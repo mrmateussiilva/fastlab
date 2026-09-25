@@ -18,9 +18,12 @@ import PropertiesSidebar from './properties-sidebar';
 import GenerationModal from './generation-modal';
 import ResultComparison from '../result-comparison';
 import { CanvasStageRef } from './canvas-stage';
-import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Plus, Building2, Sliders } from 'lucide-react';
 import { useGenerationLimit } from '@/hooks/use-generation-limit';
 import GenerationLimitBadge from '../generation-limit-badge';
+import MobileSheet from './mobile-sheet';
+import MobileQuickActions from './mobile-quick-actions';
+import MobileBottomNav from './mobile-bottom-nav';
 
 // Importação dinâmica do CanvasStage para evitar erros de SSR com Konva/Canvas
 const CanvasStage = dynamic(() => import('./canvas-stage'), {
@@ -161,6 +164,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   // Modos de visualização, zoom e modal de opções
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [mobileSheet, setMobileSheet] = useState<'items' | 'environment' | 'properties' | null>(null);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
@@ -360,6 +364,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
     const nextElements = [...elements, newElement];
     commitChange(nextElements);
     setSelectedId(newElement.id);
+    setMobileSheet(null);
   };
 
   // Adicionar elemento da biblioteca padrão ao centro
@@ -391,6 +396,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
     const nextElements = [...elements, newElement];
     commitChange(nextElements);
     setSelectedId(newElement.id);
+    setMobileSheet(null);
   };
 
   // Atualizar propriedades do elemento
@@ -697,20 +703,22 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
       {/* Área Principal: Sidebars e Canvas */}
       <div className="flex-1 flex overflow-hidden relative">
         
-        {/* 1. Sidebar Esquerda: Biblioteca de Itens & Uploads (oculta no modo preview) */}
+        {/* 1. Sidebar Esquerda: Biblioteca de Itens & Uploads (visível em Desktop) */}
         {!isPreviewMode && (
-          <ElementsSidebar 
-            onAddElement={handleAddElement}
-            customUploads={customUploads}
-            onUploadItem={handleUploadCustomItem}
-            onDeleteCustomUpload={handleDeleteCustomUpload}
-            onRenameCustomUpload={handleRenameCustomUpload}
-            onAddCustomElement={handleAddCustomElement}
-          />
+          <div className="hidden md:flex shrink-0">
+            <ElementsSidebar 
+              onAddElement={handleAddElement}
+              customUploads={customUploads}
+              onUploadItem={handleUploadCustomItem}
+              onDeleteCustomUpload={handleDeleteCustomUpload}
+              onRenameCustomUpload={handleRenameCustomUpload}
+              onAddCustomElement={handleAddCustomElement}
+            />
+          </div>
         )}
 
         {/* 2. Área Central: Canvas Interativo */}
-        <main className="flex-1 h-full bg-[#EFECE6] relative overflow-hidden flex flex-col">
+        <main className="flex-1 h-full bg-[#EFECE6] relative overflow-hidden flex flex-col pb-16 md:pb-0">
           <CanvasStage
             ref={canvasRef}
             elements={elements}
@@ -726,11 +734,11 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
           />
 
           {/* Controles Flutuantes de Zoom no Canvas */}
-          <div className="absolute bottom-4 right-4 z-20 bg-white/95 backdrop-blur-xs border border-zinc-200/80 rounded-xl shadow-md p-1 flex items-center gap-1 select-none">
+          <div className="absolute bottom-20 md:bottom-4 right-3 md:right-4 z-20 bg-white/95 backdrop-blur-xs border border-zinc-200/80 rounded-xl shadow-md p-1 flex items-center gap-1 select-none">
             <button
               type="button"
-              onClick={() => setZoom((z) => Math.max(Math.round((z - 0.25) * 100) / 100, 0.5))}
-              disabled={zoom <= 0.5}
+              onClick={() => setZoom((z) => Math.max(Math.round((z - 0.25) * 100) / 100, 0.35))}
+              disabled={zoom <= 0.35}
               title="Diminuir Zoom"
               className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             >
@@ -756,10 +764,11 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
             <button
               type="button"
               onClick={() => {
-                setZoom(1);
+                const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                setZoom(isMobile ? 0.45 : 1);
                 setPanOffset({ x: 0, y: 0 });
               }}
-              title="Redefinir Zoom (100%)"
+              title="Redefinir Zoom"
               className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 cursor-pointer"
             >
               <RotateCcw className="w-3 h-3" />
@@ -772,27 +781,144 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
           </div>
         </main>
 
-        {/* 3. Sidebar Direita: Propriedades / Ambiente (oculta no modo preview) */}
+        {/* 3. Sidebar Direita: Propriedades / Ambiente (visível em Desktop) */}
         {!isPreviewMode && (
-          <PropertiesSidebar
-            selectedElement={selectedElement}
-            onUpdateElement={(updated) => {
-              if (selectedId) handleUpdateElement(selectedId, updated);
-            }}
-            onDuplicate={handleDuplicate}
-            onDelete={handleDelete}
-            onBringToFront={handleBringToFront}
-            onBringForward={handleBringForward}
-            onSendBackward={handleSendBackward}
-            onSendToBack={handleSendToBack}
-            environment={environment}
-            onUpdateEnvironment={(updated) => {
-              setEnvironment((prev) => ({ ...prev, ...updated }));
-            }}
-          />
+          <div className="hidden md:flex shrink-0">
+            <PropertiesSidebar
+              selectedElement={selectedElement}
+              onUpdateElement={(updated) => {
+                if (selectedId) handleUpdateElement(selectedId, updated);
+              }}
+              onDuplicate={handleDuplicate}
+              onDelete={handleDelete}
+              onBringToFront={handleBringToFront}
+              onBringForward={handleBringForward}
+              onSendBackward={handleSendBackward}
+              onSendToBack={handleSendToBack}
+              environment={environment}
+              onUpdateEnvironment={(updated) => {
+                setEnvironment((prev) => ({ ...prev, ...updated }));
+              }}
+            />
+          </div>
         )}
 
       </div>
+
+      {/* Ações Rápidas Flutuantes no Celular quando um item está selecionado */}
+      {!isPreviewMode && selectedElement && (
+        <MobileQuickActions
+          selectedElement={selectedElement}
+          onOpenProperties={() => setMobileSheet('properties')}
+          onDuplicate={handleDuplicate}
+          onDelete={handleDelete}
+          onBringForward={handleBringForward}
+          onSendBackward={handleSendBackward}
+          onDeselect={() => setSelectedId(null)}
+        />
+      )}
+
+      {/* Barra de Navegação Inferior para Celular */}
+      {!isPreviewMode && (
+        <MobileBottomNav
+          onOpenItems={() => setMobileSheet('items')}
+          onOpenEnvironment={() => setMobileSheet('environment')}
+          onOpenProperties={() => setMobileSheet('properties')}
+          onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
+          hasSelectedElement={Boolean(selectedElement)}
+          elementCount={elements.length}
+          isGenerating={isGenerating}
+          limitData={limitData}
+        />
+      )}
+
+      {/* Bottom Sheet 1: Biblioteca de Itens & Meus Uploads (Celular) */}
+      <MobileSheet
+        isOpen={mobileSheet === 'items'}
+        onClose={() => setMobileSheet(null)}
+        title="Biblioteca de Itens"
+        subtitle="Toque em um item para adicionar ao cenário"
+        icon={<Plus className="w-4 h-4" />}
+        maxHeight="max-h-[85vh]"
+      >
+        <ElementsSidebar
+          className="w-full h-full flex flex-col"
+          onClose={() => setMobileSheet(null)}
+          onAddElement={(item) => {
+            handleAddElement(item);
+            setMobileSheet(null);
+          }}
+          customUploads={customUploads}
+          onUploadItem={handleUploadCustomItem}
+          onDeleteCustomUpload={handleDeleteCustomUpload}
+          onRenameCustomUpload={handleRenameCustomUpload}
+          onAddCustomElement={(item) => {
+            handleAddCustomElement(item);
+            setMobileSheet(null);
+          }}
+        />
+      </MobileSheet>
+
+      {/* Bottom Sheet 2: Ambiente & Fundo (Celular) */}
+      <MobileSheet
+        isOpen={mobileSheet === 'environment'}
+        onClose={() => setMobileSheet(null)}
+        title="Ambiente & Fundo"
+        subtitle="Foto real, parede e piso do espaço"
+        icon={<Building2 className="w-4 h-4" />}
+        maxHeight="max-h-[85vh]"
+      >
+        <PropertiesSidebar
+          mode="environment"
+          className="w-full h-full flex flex-col"
+          onClose={() => setMobileSheet(null)}
+          selectedElement={null}
+          onUpdateElement={() => {}}
+          onDuplicate={() => {}}
+          onDelete={() => {}}
+          onBringToFront={() => {}}
+          onBringForward={() => {}}
+          onSendBackward={() => {}}
+          onSendToBack={() => {}}
+          environment={environment}
+          onUpdateEnvironment={(updated) => {
+            setEnvironment((prev) => ({ ...prev, ...updated }));
+          }}
+        />
+      </MobileSheet>
+
+      {/* Bottom Sheet 3: Propriedades do Item Selecionado (Celular) */}
+      <MobileSheet
+        isOpen={mobileSheet === 'properties'}
+        onClose={() => setMobileSheet(null)}
+        title={selectedElement?.name || "Propriedades do Item"}
+        subtitle="Editar cores, dimensões e camadas"
+        icon={<Sliders className="w-4 h-4" />}
+        maxHeight="max-h-[85vh]"
+      >
+        <PropertiesSidebar
+          mode="element"
+          className="w-full h-full flex flex-col"
+          onClose={() => setMobileSheet(null)}
+          selectedElement={selectedElement}
+          onUpdateElement={(updated) => {
+            if (selectedId) handleUpdateElement(selectedId, updated);
+          }}
+          onDuplicate={handleDuplicate}
+          onDelete={() => {
+            handleDelete();
+            setMobileSheet(null);
+          }}
+          onBringToFront={handleBringToFront}
+          onBringForward={handleBringForward}
+          onSendBackward={handleSendBackward}
+          onSendToBack={handleSendToBack}
+          environment={environment}
+          onUpdateEnvironment={(updated) => {
+            setEnvironment((prev) => ({ ...prev, ...updated }));
+          }}
+        />
+      </MobileSheet>
 
       {/* Modal de Opções de Geração Realista */}
       <GenerationModal

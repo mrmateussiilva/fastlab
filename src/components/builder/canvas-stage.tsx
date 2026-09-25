@@ -380,6 +380,17 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
   const transformerRef = useRef<Konva.Transformer>(null);
   const [guides, setGuides] = useState<AlignmentGuide[]>([]);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const lastDistRef = useRef<number>(0);
+
+  // Auto-fit inicial em telas de celular (< 768px)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768 && onZoomChange) {
+      const padding = 20;
+      const availableWidth = window.innerWidth - padding;
+      const fitZoom = Math.min(Math.max(availableWidth / CANVAS_WIDTH, 0.35), 0.65);
+      onZoomChange(Math.round(fitZoom * 100) / 100);
+    }
+  }, [onZoomChange]);
 
   // Espaço pressionado para Pan
   useEffect(() => {
@@ -544,7 +555,7 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
 
   return (
     <div 
-      className={`w-full h-full flex items-center justify-center p-4 overflow-hidden relative select-none ${
+      className={`w-full h-full flex items-center justify-center p-2 sm:p-4 overflow-hidden relative select-none touch-none ${
         isSpacePressed ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
     >
@@ -571,6 +582,29 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
             if (e.target === e.target.getStage() || e.target.name() === 'background') {
               onSelectElement(null);
             }
+          }}
+          onTouchMove={(e) => {
+            const touch1 = e.evt.touches?.[0];
+            const touch2 = e.evt.touches?.[1];
+
+            if (touch1 && touch2 && onZoomChange) {
+              const dist = Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+              );
+
+              if (!lastDistRef.current) {
+                lastDistRef.current = dist;
+              }
+
+              const scale = dist / lastDistRef.current;
+              const newZoom = Math.min(Math.max(zoom * scale, 0.35), 2.2);
+              onZoomChange(Math.round(newZoom * 100) / 100);
+              lastDistRef.current = dist;
+            }
+          }}
+          onTouchEnd={() => {
+            lastDistRef.current = 0;
           }}
           onDragEnd={(e) => {
             if (isSpacePressed && onPanChange) {
@@ -664,13 +698,14 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
                     ? [] 
                     : ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']
                 }
-                anchorCornerRadius={3}
-                anchorSize={8}
+                anchorCornerRadius={4}
+                anchorSize={12}
+                rotateAnchorOffset={24}
                 anchorFill="#FFFFFF"
                 anchorStroke={selectedElement?.locked ? '#9CA3AF' : '#EA580C'}
-                anchorStrokeWidth={1.5}
+                anchorStrokeWidth={2}
                 borderStroke={selectedElement?.locked ? '#9CA3AF' : '#EA580C'}
-                borderStrokeWidth={1.2}
+                borderStrokeWidth={1.5}
                 borderDash={selectedElement?.locked ? [3, 3] : [4, 3]}
               />
             )}

@@ -20,6 +20,8 @@ interface ElementsSidebarProps {
   onDeleteCustomUpload: (id: string) => void;
   onRenameCustomUpload: (id: string, newName: string) => void;
   onAddCustomElement: (item: CustomUploadItem) => void;
+  className?: string;
+  onClose?: () => void;
 }
 
 // Mini SVG preview simplificado para representar a forma do elemento no menu
@@ -146,6 +148,8 @@ export default function ElementsSidebar({
   onDeleteCustomUpload,
   onRenameCustomUpload,
   onAddCustomElement,
+  className,
+  onClose,
 }: ElementsSidebarProps) {
   const [activeTab, setActiveTab] = useState<'library' | 'uploads'>('library');
   const [selectedCategory, setSelectedCategory] = useState<ElementCategory>('paineis');
@@ -199,7 +203,7 @@ export default function ElementsSidebar({
   };
 
   return (
-    <aside className="w-64 sm:w-72 bg-white border-r border-zinc-200/80 flex flex-col h-[calc(100vh-3.5rem)] select-none">
+    <aside className={className || "w-64 sm:w-72 bg-white border-r border-zinc-200/80 flex flex-col h-[calc(100vh-3.5rem)] select-none"}>
       
       {/* Abas Principais: Biblioteca vs Meus Itens */}
       <div className="p-2 border-b border-zinc-100 grid grid-cols-2 gap-1 bg-[#FAFAF8]/60">
@@ -261,7 +265,10 @@ export default function ElementsSidebar({
             {filteredElements.map((item) => (
               <div
                 key={item.id}
-                onClick={() => onAddElement(item)}
+                onClick={() => {
+                  onAddElement(item);
+                  onClose?.();
+                }}
                 className="group flex items-center justify-between p-2.5 rounded-xl border border-zinc-200/60 bg-white hover:border-orange-300 hover:shadow-sm hover:bg-orange-50/20 transition-all cursor-pointer"
               >
                 <div className="flex items-center gap-3">
@@ -393,7 +400,10 @@ export default function ElementsSidebar({
                   <div
                     key={item.id}
                     className="group relative rounded-xl border border-zinc-200/80 bg-white overflow-hidden hover:border-orange-400 hover:shadow-xs transition-all cursor-pointer flex flex-col"
-                    onClick={() => onAddCustomElement(item)}
+                    onClick={() => {
+                      onAddCustomElement(item);
+                      onClose?.();
+                    }}
                   >
                     {/* Badge de Categoria */}
                     {item.category && item.category !== 'Extra' && (

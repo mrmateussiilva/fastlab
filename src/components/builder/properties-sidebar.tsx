@@ -27,7 +27,8 @@ import {
   Type,
   AlignLeft,
   AlignCenter,
-  AlignRight
+  AlignRight,
+  Sliders,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -42,6 +43,9 @@ interface PropertiesSidebarProps {
   onSendToBack: () => void;
   environment: EnvironmentConfig;
   onUpdateEnvironment: (updated: Partial<EnvironmentConfig>) => void;
+  mode?: 'auto' | 'element' | 'environment';
+  className?: string;
+  onClose?: () => void;
 }
 
 export default function PropertiesSidebar({
@@ -55,6 +59,9 @@ export default function PropertiesSidebar({
   onSendToBack,
   environment,
   onUpdateEnvironment,
+  mode = 'auto',
+  className,
+  onClose,
 }: PropertiesSidebarProps) {
   const bgFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,10 +89,12 @@ export default function PropertiesSidebar({
     }
   };
 
-  // Se nada selecionado, exibe configurações globais do Ambiente (Parede + Piso + Medidas do Cenário)
-  if (!selectedElement) {
+  // Determina se exibe configurações do Ambiente ou do Elemento
+  const isEnvMode = mode === 'environment' || (mode !== 'element' && !selectedElement);
+
+  if (isEnvMode) {
     return (
-      <aside className="w-64 sm:w-72 bg-white border-l border-zinc-200/80 flex flex-col h-[calc(100vh-3.5rem)] select-none">
+      <aside className={className || "w-64 sm:w-72 bg-white border-l border-zinc-200/80 flex flex-col h-[calc(100vh-3.5rem)] select-none"}>
         <input
           ref={bgFileInputRef}
           type="file"
@@ -94,16 +103,27 @@ export default function PropertiesSidebar({
           className="hidden"
         />
 
-        <div className="p-4 border-b border-zinc-100 flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-zinc-500" />
-          <div>
-            <h2 className="text-xs font-semibold text-zinc-900 font-sans">
-              Ambiente & Fundo
-            </h2>
-            <p className="text-[10px] text-zinc-400 font-sans">
-              Configurações do espaço físico
-            </p>
+        <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-zinc-500" />
+            <div>
+              <h2 className="text-xs font-semibold text-zinc-900 font-sans">
+                Ambiente & Fundo
+              </h2>
+              <p className="text-[10px] text-zinc-400 font-sans">
+                Configurações do espaço físico
+              </p>
+            </div>
           </div>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-zinc-400 hover:text-zinc-700 p-1 rounded-md text-xs font-bold"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
@@ -278,12 +298,24 @@ export default function PropertiesSidebar({
     );
   }
 
+  if (!selectedElement) {
+    return (
+      <aside className={className || "w-64 sm:w-72 bg-white border-l border-zinc-200/80 flex flex-col h-[calc(100vh-3.5rem)] select-none"}>
+        <div className="p-8 text-center flex-1 flex flex-col items-center justify-center text-zinc-400">
+          <Sliders className="w-8 h-8 mb-2 opacity-50" />
+          <p className="text-xs font-medium text-zinc-600">Nenhum elemento selecionado</p>
+          <p className="text-[11px] text-zinc-400 mt-1">Toque em um item no canvas para editar cor, tamanho ou camada.</p>
+        </div>
+      </aside>
+    );
+  }
+
   const isLocked = Boolean(selectedElement.locked);
   const widthCm = SCALE.pxToCm(selectedElement.width);
   const heightCm = SCALE.pxToCm(selectedElement.height);
 
   return (
-    <aside className="w-64 sm:w-72 bg-white border-l border-zinc-200/80 flex flex-col h-[calc(100vh-3.5rem)] select-none">
+    <aside className={className || "w-64 sm:w-72 bg-white border-l border-zinc-200/80 flex flex-col h-[calc(100vh-3.5rem)] select-none"}>
       
       {/* Título com Nome do Item + Ações Rápidas */}
       <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
@@ -320,6 +352,16 @@ export default function PropertiesSidebar({
           >
             <Trash2 className="w-4 h-4" />
           </button>
+
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-zinc-400 hover:text-zinc-700 p-1 rounded-md text-xs font-bold ml-1"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
