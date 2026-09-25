@@ -77,6 +77,116 @@ const KonvaCustomImage = ({
   return <KonvaImage image={image} width={width} height={height} />;
 };
 
+// Auxiliar para desenhar retângulo arredondado no contexto 2D de clip
+function drawCanvasRoundRect(
+  ctx: Konva.Context,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  const nativeCtx = ctx._context as (CanvasRenderingContext2D & { roundRect?: (x: number, y: number, w: number, h: number, r: number) => void }) | undefined;
+  if (nativeCtx && typeof nativeCtx.roundRect === 'function') {
+    nativeCtx.roundRect(x, y, w, h, r);
+  } else {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+  }
+}
+
+// Componente para renderizar a imagem/arte interna mascarada na forma
+const ClippedArtworkImage = ({
+  url,
+  boxX = 0,
+  boxY = 0,
+  boxWidth,
+  boxHeight,
+  fillMode = 'cover',
+  fillScale = 1,
+  fillOffsetX = 0,
+  fillOffsetY = 0,
+}: {
+  url: string;
+  boxX?: number;
+  boxY?: number;
+  boxWidth: number;
+  boxHeight: number;
+  fillMode?: 'cover' | 'contain';
+  fillScale?: number;
+  fillOffsetX?: number;
+  fillOffsetY?: number;
+}) => {
+  const [image, setImage] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (!url) return;
+    let active = true;
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+    img.onload = () => {
+      if (active) {
+        setImage(img);
+      }
+    };
+    return () => {
+      active = false;
+    };
+  }, [url]);
+
+  if (!image || !image.width || !image.height) {
+    return null;
+  }
+
+  const imgRatio = image.width / image.height;
+  const boxRatio = boxWidth / boxHeight;
+
+  let baseWidth = boxWidth;
+  let baseHeight = boxHeight;
+
+  if (fillMode === 'contain') {
+    if (imgRatio > boxRatio) {
+      baseWidth = boxWidth;
+      baseHeight = boxWidth / imgRatio;
+    } else {
+      baseHeight = boxHeight;
+      baseWidth = boxHeight * imgRatio;
+    }
+  } else {
+    // 'cover'
+    if (imgRatio > boxRatio) {
+      baseHeight = boxHeight;
+      baseWidth = boxHeight * imgRatio;
+    } else {
+      baseWidth = boxWidth;
+      baseHeight = boxWidth / imgRatio;
+    }
+  }
+
+  const scale = fillScale || 1;
+  const finalWidth = baseWidth * scale;
+  const finalHeight = baseHeight * scale;
+
+  const posX = boxX + (boxWidth - finalWidth) / 2 + (fillOffsetX || 0);
+  const posY = boxY + (boxHeight - finalHeight) / 2 + (fillOffsetY || 0);
+
+  return (
+    <KonvaImage
+      image={image}
+      x={posX}
+      y={posY}
+      width={finalWidth}
+      height={finalHeight}
+      listening={false}
+    />
+  );
+};
+
 // Renderizador de formato personalizado baseado em shapeType
 const ElementShape = ({
   el,
@@ -107,6 +217,29 @@ const ElementShape = ({
         return (
           <>
             <Path data={archPath} fill={el.fill} stroke={strokeColor} strokeWidth={strokeWidth} />
+            {el.fillImageSrc && (
+              <Group
+                clipFunc={(ctx) => {
+                  ctx.beginPath();
+                  ctx.moveTo(0, h);
+                  ctx.lineTo(0, radius);
+                  ctx.arc(radius, radius, radius, Math.PI, 0, false);
+                  ctx.lineTo(w, h);
+                  ctx.closePath();
+                }}
+              >
+                <ClippedArtworkImage
+                  url={el.fillImageSrc}
+                  boxWidth={w}
+                  boxHeight={h}
+                  fillMode={el.fillMode}
+                  fillScale={el.fillScale}
+                  fillOffsetX={el.fillOffsetX}
+                  fillOffsetY={el.fillOffsetY}
+                />
+              </Group>
+            )}
+            <Path data={archPath} stroke={strokeColor} strokeWidth={strokeWidth} fillEnabled={false} />
             <Line points={[w * 0.15, h * 0.15, w * 0.15, h * 0.85]} stroke="#FFFFFF" strokeWidth={1} opacity={0.4} />
           </>
         );
@@ -116,6 +249,26 @@ const ElementShape = ({
         return (
           <>
             <Rect width={w} height={h} cornerRadius={6} fill={el.fill} stroke={strokeColor} strokeWidth={strokeWidth} />
+            {el.fillImageSrc && (
+              <Group
+                clipFunc={(ctx) => {
+                  ctx.beginPath();
+                  drawCanvasRoundRect(ctx, 0, 0, w, h, 6);
+                  ctx.closePath();
+                }}
+              >
+                <ClippedArtworkImage
+                  url={el.fillImageSrc}
+                  boxWidth={w}
+                  boxHeight={h}
+                  fillMode={el.fillMode}
+                  fillScale={el.fillScale}
+                  fillOffsetX={el.fillOffsetX}
+                  fillOffsetY={el.fillOffsetY}
+                />
+              </Group>
+            )}
+            <Rect width={w} height={h} cornerRadius={6} stroke={strokeColor} strokeWidth={strokeWidth} fillEnabled={false} />
             <Line points={[w * 0.1, 10, w * 0.1, h - 10]} stroke="#FFFFFF" strokeWidth={1} opacity={0.3} />
           </>
         );
@@ -128,6 +281,28 @@ const ElementShape = ({
             <Line points={[w / 2, h * 0.8, w / 2, h]} stroke="#4A4A4A" strokeWidth={4} />
             <Line points={[w / 2 - 25, h, w / 2 + 25, h]} stroke="#4A4A4A" strokeWidth={4} />
             <Circle x={w / 2} y={r} radius={r} fill={el.fill} stroke={strokeColor} strokeWidth={strokeWidth} />
+            {el.fillImageSrc && (
+              <Group
+                clipFunc={(ctx) => {
+                  ctx.beginPath();
+                  ctx.arc(w / 2, r, r, 0, Math.PI * 2, false);
+                  ctx.closePath();
+                }}
+              >
+                <ClippedArtworkImage
+                  url={el.fillImageSrc}
+                  boxX={w / 2 - r}
+                  boxY={0}
+                  boxWidth={2 * r}
+                  boxHeight={2 * r}
+                  fillMode={el.fillMode}
+                  fillScale={el.fillScale}
+                  fillOffsetX={el.fillOffsetX}
+                  fillOffsetY={el.fillOffsetY}
+                />
+              </Group>
+            )}
+            <Circle x={w / 2} y={r} radius={r} stroke={strokeColor} strokeWidth={strokeWidth} fillEnabled={false} />
             <Circle x={w / 2} y={r} radius={r * 0.9} stroke="#FFFFFF" strokeWidth={1} opacity={0.3} />
           </>
         );
@@ -136,7 +311,33 @@ const ElementShape = ({
       case 'panel-wavy': {
         const path = `M 0 ${h} Q ${w * 0.2} ${h * 0.66} 0 ${h * 0.33} Q ${w * 0.2} 0 ${w * 0.5} 0 Q ${w * 0.8} 0 ${w} ${h * 0.33} Q ${w * 0.8} ${h * 0.66} ${w} ${h} Z`;
         return (
-          <Path data={path} fill={el.fill} stroke={strokeColor} strokeWidth={strokeWidth} />
+          <>
+            <Path data={path} fill={el.fill} stroke={strokeColor} strokeWidth={strokeWidth} />
+            {el.fillImageSrc && (
+              <Group
+                clipFunc={(ctx) => {
+                  ctx.beginPath();
+                  ctx.moveTo(0, h);
+                  ctx.quadraticCurveTo(w * 0.2, h * 0.66, 0, h * 0.33);
+                  ctx.quadraticCurveTo(w * 0.2, 0, w * 0.5, 0);
+                  ctx.quadraticCurveTo(w * 0.8, 0, w, h * 0.33);
+                  ctx.quadraticCurveTo(w * 0.8, h * 0.66, w, h);
+                  ctx.closePath();
+                }}
+              >
+                <ClippedArtworkImage
+                  url={el.fillImageSrc}
+                  boxWidth={w}
+                  boxHeight={h}
+                  fillMode={el.fillMode}
+                  fillScale={el.fillScale}
+                  fillOffsetX={el.fillOffsetX}
+                  fillOffsetY={el.fillOffsetY}
+                />
+              </Group>
+            )}
+            <Path data={path} stroke={strokeColor} strokeWidth={strokeWidth} fillEnabled={false} />
+          </>
         );
       }
 

@@ -7,7 +7,8 @@ import {
   EnvironmentConfig, 
   WALL_OPTIONS, 
   FLOOR_OPTIONS, 
-  SCALE 
+  SCALE,
+  isArtworkSupported
 } from '@/lib/builder-elements';
 import { 
   ArrowUpToLine, 
@@ -64,6 +65,47 @@ export default function PropertiesSidebar({
   onClose,
 }: PropertiesSidebarProps) {
   const bgFileInputRef = useRef<HTMLInputElement>(null);
+  const artFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleArtUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Formato inválido. Use PNG, JPG ou WEBP.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        onUpdateElement({
+          fillImageSrc: dataUrl,
+          fillMode: selectedElement?.fillMode || 'cover',
+          fillScale: selectedElement?.fillScale ?? 1,
+          fillOffsetX: selectedElement?.fillOffsetX ?? 0,
+          fillOffsetY: selectedElement?.fillOffsetY ?? 0,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+
+    if (artFileInputRef.current) {
+      artFileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveArtwork = () => {
+    onUpdateElement({
+      fillImageSrc: undefined,
+      fillMode: undefined,
+      fillScale: undefined,
+      fillOffsetX: undefined,
+      fillOffsetY: undefined,
+    });
+  };
 
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -514,6 +556,148 @@ export default function PropertiesSidebar({
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Seção: Arte do Elemento (Apenas para painéis compatíveis: redondo, retangular, arqueado, ondulado) */}
+        {isArtworkSupported(selectedElement.shapeType) && (
+          <div className="p-3.5 bg-orange-50/25 rounded-xl border border-orange-200/60 space-y-3">
+            <input
+              ref={artFileInputRef}
+              type="file"
+              accept="image/png, image/jpeg, image/webp"
+              onChange={handleArtUpload}
+              className="hidden"
+            />
+
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-semibold text-zinc-800 tracking-wide font-sans flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-orange-600" />
+                Arte do elemento
+              </label>
+              {selectedElement.fillImageSrc && (
+                <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-medium">
+                  Ativa
+                </span>
+              )}
+            </div>
+
+            {/* Ações: Enviar imagem / Remover imagem */}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isLocked}
+                onClick={() => artFileInputRef.current?.click()}
+                className="flex-1 text-xs h-8 border-orange-200 text-orange-700 hover:bg-orange-50 font-sans cursor-pointer justify-center"
+              >
+                <UploadCloud className="w-3.5 h-3.5 mr-1.5 text-orange-600" />
+                {selectedElement.fillImageSrc ? 'Trocar imagem' : 'Enviar imagem'}
+              </Button>
+
+              {selectedElement.fillImageSrc && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isLocked}
+                  onClick={handleRemoveArtwork}
+                  className="text-xs h-8 border-red-200 text-red-600 hover:bg-red-50 font-sans cursor-pointer px-2.5"
+                  title="Remover imagem"
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1" />
+                  <span className="text-[11px]">Remover</span>
+                </Button>
+              )}
+            </div>
+
+            {/* Controles simples quando imagem aplicada: Ajuste, Zoom, Posição */}
+            {selectedElement.fillImageSrc && (
+              <div className="space-y-3 pt-1 border-t border-orange-100">
+                {/* Ajuste (Preencher / Conter) */}
+                <div>
+                  <span className="text-[10px] font-medium text-zinc-600 font-sans block mb-1.5">
+                    Ajuste
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5 bg-white p-0.5 rounded-lg border border-zinc-200">
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => onUpdateElement({ fillMode: 'cover' })}
+                      className={`py-1 text-xs font-sans rounded transition-colors cursor-pointer ${
+                        (!selectedElement.fillMode || selectedElement.fillMode === 'cover')
+                          ? 'bg-zinc-900 text-white font-medium shadow-2xs'
+                          : 'text-zinc-600 hover:text-zinc-900'
+                      }`}
+                    >
+                      Preencher
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => onUpdateElement({ fillMode: 'contain' })}
+                      className={`py-1 text-xs font-sans rounded transition-colors cursor-pointer ${
+                        selectedElement.fillMode === 'contain'
+                          ? 'bg-zinc-900 text-white font-medium shadow-2xs'
+                          : 'text-zinc-600 hover:text-zinc-900'
+                      }`}
+                    >
+                      Conter
+                    </button>
+                  </div>
+                </div>
+
+                {/* Zoom */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-medium text-zinc-600 font-sans">Zoom</span>
+                    <span className="text-xs font-mono font-semibold text-zinc-800">
+                      {Math.round((selectedElement.fillScale ?? 1) * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2.5"
+                    step="0.05"
+                    disabled={isLocked}
+                    value={selectedElement.fillScale ?? 1}
+                    onChange={(e) => onUpdateElement({ fillScale: parseFloat(e.target.value) || 1 })}
+                    className="w-full accent-orange-600 cursor-pointer h-1.5 bg-zinc-200 rounded-lg appearance-none disabled:opacity-50"
+                  />
+                </div>
+
+                {/* Posição */}
+                <div>
+                  <span className="text-[10px] font-medium text-zinc-600 font-sans block mb-1">
+                    Posição
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] text-zinc-400 font-sans block mb-0.5">X</span>
+                      <input
+                        type="number"
+                        disabled={isLocked}
+                        value={Math.round(selectedElement.fillOffsetX ?? 0)}
+                        onChange={(e) => onUpdateElement({ fillOffsetX: parseInt(e.target.value) || 0 })}
+                        className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 bg-white rounded-md px-2 py-1 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-zinc-400 font-sans block mb-0.5">Y</span>
+                      <input
+                        type="number"
+                        disabled={isLocked}
+                        value={Math.round(selectedElement.fillOffsetY ?? 0)}
+                        onChange={(e) => onUpdateElement({ fillOffsetY: parseInt(e.target.value) || 0 })}
+                        className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 bg-white rounded-md px-2 py-1 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

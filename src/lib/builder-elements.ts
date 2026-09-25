@@ -93,6 +93,23 @@ export interface CanvasElement {
   fontSize?: number;
   fontWeight?: 'normal' | 'bold';
   align?: 'left' | 'center' | 'right';
+  // Propriedades para Arte/Imagem Interna (Masked Artwork)
+  fillImageSrc?: string;
+  fillMode?: 'cover' | 'contain';
+  fillScale?: number;
+  fillOffsetX?: number;
+  fillOffsetY?: number;
+}
+
+export const ARTWORK_SUPPORTED_SHAPES: ShapeType[] = [
+  'panel-arch',
+  'panel-round',
+  'panel-rect',
+  'panel-wavy',
+];
+
+export function isArtworkSupported(shapeType: ShapeType): boolean {
+  return ARTWORK_SUPPORTED_SHAPES.includes(shapeType);
 }
 
 export interface EnvironmentConfig {
