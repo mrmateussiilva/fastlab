@@ -1,66 +1,111 @@
 # FestaLab
 
-Aplicação web moderna construída com Next.js 16 e React 19 que integra um editor visual interativo baseado em canvas (Konva) com inteligência artificial (OpenAI) para transformar mockups e elementos visuais de festas em imagens realistas.
+Aplicação web moderna e de alta performance construída com **Next.js 16 (App Router)** e **React 19**, projetada para revolucionar o planejamento e a visualização de decorações e mockups de festas. O sistema combina um editor visual em tempo real baseado em canvas com inteligência artificial generativa, permitindo criar, customizar e converter projetos em imagens realistas.
 
-## 🚀 Funcionalidades
+---
 
-- **Editor Visual (Builder):** Canvas interativo com suporte a manipulação de elementos, barra de ferramentas e painel de propriedades.
-- **Geração por IA:** Integração com a API da OpenAI para renderização e conversão de mockups.
-- **Persistência Local:** Armazenamento seguro de dados e estados utilizando IndexedDB.
-- **Controle de Limites:** Sistema de rate limiting e controle de gerações (via Upstash Redis e hooks customizados).
-- **Interface Responsiva:** Design otimizado para múltiplos dispositivos com navegação e ações rápidas móveis.
+## 🚀 Funcionalidades Principais
 
-## 🛠️ Tecnologias Utilizadas
+- **Editor Visual Interativo (Builder):**
+  - Canvas dinâmico baseado em `Konva` e `React Konva` para manipulação fluida de elementos gráficos.
+  - Barra de ferramentas intuitiva e painel de propriedades avançado para customização de objetos.
+  - Ações rápidas otimizadas para dispositivos móveis (Mobile Quick Actions e Bottom Navigation).
+- **Geração de Imagens por IA:**
+  - Integração nativa com a API da OpenAI para traduzir o layout montado no canvas em imagens fotorrealistas e detalhadas de festas.
+- **Persistência de Dados Robusta:**
+  - Armazenamento client-side descentralizado utilizando **IndexedDB** para garantir que os projetos e estados do usuário não sejam perdidos.
+- **Controle de Taxa e Limites (Rate Limiting):**
+  - Sistema integrado com `@upstash/redis` e hooks customizados para gerenciar cotas e limites de geração de forma segura.
 
-- **Framework:** [Next.js 16](https://nextjs.org/) (App Router) + React 19
-- **Estilização:** [Tailwind CSS v4](https://tailwindcss.com/)
-- **Canvas & Gráficos:** `konva` e `react-konva`
-- **IA & APIs:** SDK oficial da OpenAI
-- **Banco de Dados Local:** IndexedDB
-- **Utilitários:** `lucide-react`, `class-variance-authority`, `@base-ui/react`
+---
+
+## 🛠️ Stack Tecnológica
+
+- **Framework:** Next.js 16 (App Router)
+- **Biblioteca UI:** React 19
+- **Estilização:** Tailwind CSS v4 (`@tailwindcss/postcss`)
+- **Renderização Gráfica:** `konva`, `react-konva`
+- **Inteligência Artificial:** SDK da OpenAI (`openai`)
+- **Persistência:** IndexedDB (`idb`)
+- **Rate Limiting:** Upstash Redis (`@upstash/redis`)
+- **Ícones & Componentes:** `lucide-react`, `@base-ui/react`, *Shadcn UI*
+- **Qualidade de Código:** TypeScript, ESLint
+
+---
+
+## 🔮 Roadmap & Próximas Features
+
+- **Renderização 3D de Mockups via Inteligência Artificial Aumentada:**
+  - Conversão automatizada de layouts 2D do canvas em modelos 3D interativos e imersivos.
+  - Projeção de ambientes virtuais tridimensionais fotorrealistas utilizando modelos generativos avançados combinados com inteligência aumentada, permitindo visualizar a decoração sob múltiplos ângulos (360°), simular iluminação ambiente real e inspecionar a escala volumétrica dos elementos da festa.
+
+---
 
 ## 📋 Pré-requisitos
 
-- **Node.js:** Versão 18 ou superior
-- **Gerenciador de pacotes:** `npm`
-- **Chave de API:** Conta na OpenAI com créditos disponíveis
+Certifique-se de ter instalado em sua máquina:
 
-## 📦 Instalação
+- **Node.js:** Versão 18.x ou superior
+- **npm:** Gerenciador de pacotes padrão
+- **Chave de API OpenAI:** Conta ativa na OpenAI com créditos válidos para consumo das APIs de imagem e chat.
 
-1. Clone o repositório e instale as dependências:
+---
+
+## 📦 Instalação e Configuração
+
+1. Clone o repositório:
+   ```bash
+   git clone [https://github.com/mrmateussiilva/fastlab.git](https://github.com/mrmateussiilva/fastlab.git)
+   cd fastlab
+   ```
+
+2. Instale as dependências do projeto:
    ```bash
    npm install
    ```
 
-2. Configure o arquivo de ambiente na raiz do projeto (utilize o `.env.example` como referência):
+3. Configure as variáveis de ambiente:
+   Crie um arquivo `.env.local` na raiz do projeto baseando-se no `.env.example`:
    ```env
-   OPENAI_API_KEY=sua-chave-aqui
+   OPENAI_API_KEY=sua-chave-openai-aqui
    ```
 
-## 🏃 Executando localmente
+---
 
-Inicie o servidor de desenvolvimento na porta `3001`:
+## 🏃 Executando Localmente
+
+Inicie o servidor de desenvolvimento na porta padrão `3001`:
 
 ```bash
 npm run dev
 ```
 
-Abra [http://localhost:3001](http://localhost:3001) no seu navegador para acessar a aplicação.
+Abra o navegador em [http://localhost:3001](http://localhost:3001) para interagir com a aplicação.
+
+---
 
 ## 🧪 Scripts Disponíveis
 
-- `npm run dev` — Inicia o ambiente de desenvolvimento
-- `npm run build` — Compila a aplicação para produção
-- `npm run start` — Executa a aplicação compilada
-- `npm run lint` — Executa a verificação de linting (ESLint)
+No `package.json` você encontrará os seguintes scripts:
+
+- `npm run dev`: Inicia o ambiente de desenvolvimento Next.js na porta `3001`
+- `npm run build`: Cria a versão otimizada de produção
+- `npm run start`: Inicia o servidor em modo de produção na porta `3001`
+- `npm run lint`: Executa a verificação estática de código com o ESLint
+
+---
 
 ## ☁️ Deploy na Vercel
 
-O projeto está preparado para deploy simplificado na Vercel:
+A aplicação está totalmente otimizada para deploy na plataforma Vercel:
 
-1. Envie o código para o seu repositório Git.
-2. Importe o projeto no painel da Vercel.
-3. Configure a variável de ambiente necessária:
-   - `OPENAI_API_KEY`: sua chave de acesso da OpenAI
-   - Variáveis adicionais de Redis/Upstash (se aplicável)
-4. Conclua clicando em **Deploy**.
+1. Conecte o repositório Git ao seu painel da Vercel.
+2. Configure as variáveis de ambiente necessárias:
+   - `OPENAI_API_KEY`: Sua chave secreta da OpenAI
+3. Clique em **Deploy**.
+
+---
+
+## 📄 Licença
+
+Este projeto é distribuído sob a licença privada / uso interno.
