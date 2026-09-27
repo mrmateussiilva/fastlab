@@ -127,11 +127,38 @@ export async function POST(req: Request) {
 
     // Se houve erro antes de produzir uma imagem válida, devolve a tentativa ao usuário
     if (slotReserved) {
-      await rollbackIpGeneration(ip);
+      try {
+        await rollbackIpGeneration(ip);
+      } catch (rollbackErr) {
+        console.error('Failed to rollback rate limit slot:', rollbackErr);
+      }
     }
 
-    const message = error instanceof Error ? error.message : 'Erro ao gerar imagem';
-    return NextResponse.json({ error: message }, { status: 500 });
+    let status = 500;
+    let errorMessage = 'Erro ao gerar imagem com a Inteligência Artificial.';
+
+    if (error && typeof error === 'object') {
+      // Tratamento refinado para erros do SDK da OpenAI ou erros de rede/timeout
+      const errObj = error as Record<string, unknown>;
+      if ('status' in errObj && typeof errObj.status === 'number') {
+        status = errObj.status;
+      }
+      if ('message' in errObj && typeof errObj.message === 'string') {
+        errorMessage = errObj.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    return NextResponse.json(
+      {
+        error: 'AI_GENERATION_ERROR',
+        message: errorMessage,
+      },
+      { status }
+    );
   }
 }
 
