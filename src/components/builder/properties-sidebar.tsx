@@ -593,7 +593,7 @@ export default function PropertiesSidebar({
                 className="flex-1 text-xs h-8 border-orange-200 text-orange-700 hover:bg-orange-50 font-sans cursor-pointer justify-center"
               >
                 <UploadCloud className="w-3.5 h-3.5 mr-1.5 text-orange-600" />
-                {selectedElement.fillImageSrc ? 'Trocar imagem' : 'Enviar imagem'}
+                {selectedElement.fillImageSrc ? 'Trocar arte' : 'Enviar arte para este painel'}
               </Button>
 
               {selectedElement.fillImageSrc && (

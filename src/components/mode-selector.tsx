@@ -69,12 +69,17 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
         </div>
 
         <h1 className="font-serif text-3xl sm:text-5xl md:text-[54px] font-normal tracking-tight text-zinc-950 leading-[1.14] max-w-3xl mx-auto">
-          Monte a decoração. Mostre o resultado antes da montagem.
+          Monte o mockup da festa e gere uma imagem realista para apresentar ao cliente.
         </h1>
 
         <p className="mt-4 sm:mt-5 text-sm sm:text-base md:text-lg text-zinc-600 font-sans leading-relaxed max-w-2xl mx-auto">
-          Crie seu mockup com painéis, mesas, balões e itens do seu acervo ou envie um projeto pronto. O FestaLab transforma a composição em uma apresentação fotorealista.
+          Use painéis, mesas, cilindros, balões e artes do seu acervo. Teste grátis, sem cartão.
         </p>
+
+        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-200/80 rounded-full text-xs font-medium text-amber-800">
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+          2 gerações gratuitas por hora durante o período de testes.
+        </div>
 
         {/* CTAs */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
