@@ -70,6 +70,7 @@ export interface LibraryElement {
   defaultStroke?: string;
   defaultOpacity?: number;
   description?: string;
+  defaultFillImageSrc?: string;
 }
 
 export interface CanvasElement {
@@ -183,6 +184,7 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
     defaultHeight: 340,
     defaultFill: '#E7DFD5',
     defaultStroke: '#D1C6BA',
+    defaultFillImageSrc: '/patterns/floral.jpg',
   },
   {
     id: 'panel-rect',
@@ -193,6 +195,7 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
     defaultHeight: 340,
     defaultFill: '#F5F3EF',
     defaultStroke: '#DDD7CE',
+    defaultFillImageSrc: '/patterns/floral.jpg',
   },
   {
     id: 'panel-round',
@@ -203,6 +206,7 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
     defaultHeight: 320,
     defaultFill: '#C97A63',
     defaultStroke: '#B56852',
+    defaultFillImageSrc: '/patterns/floral.jpg',
   },
   {
     id: 'panel-wavy',
@@ -213,6 +217,7 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
     defaultHeight: 340,
     defaultFill: '#E2B1B6',
     defaultStroke: '#CCA0A5',
+    defaultFillImageSrc: '/patterns/floral.jpg',
   },
 
   // Mesas

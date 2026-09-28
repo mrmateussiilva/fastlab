@@ -23,6 +23,7 @@ import { CanvasStageRef } from './canvas-stage';
 import { ZoomIn, ZoomOut, RotateCcw, Plus, Building2, Sliders, Sparkles, Copy, Trash2 } from 'lucide-react';
 import { useGenerationLimit } from '@/hooks/use-generation-limit';
 import { useOnline } from '@/hooks/use-online';
+import { removeImageBackground } from '@/lib/bg-removal';
 import GenerationLimitBadge from '../generation-limit-badge';
 import MobileSheet from './mobile-sheet';
 import MobileQuickActions from './mobile-quick-actions';
@@ -137,6 +138,7 @@ const QUICK_ADD_ITEMS = ELEMENT_LIBRARY.filter((el) => QUICK_ADD_IDS.includes(el
 export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const limitData = useGenerationLimit();
   const isOnline = useOnline();
+  const [isUploadingItem, setIsUploadingItem] = useState(false);
 
   const [isARModeOpen, setIsARModeOpen] = useState(false);
   const [arImageUrl, setArImageUrl] = useState<string | null>(null);
@@ -335,7 +337,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const selectedElement = elements.find((el) => el.id === selectedId) || null;
 
   // Processa o upload de uma imagem personalizada
-  const handleUploadCustomItem = (uploadedFile: File, category: CustomItemCategory = 'Extra') => {
+  const handleUploadCustomItem = async (uploadedFile: File, category: CustomItemCategory = 'Extra') => {
     const validTypes = ['image/png', 'image/webp', 'image/jpeg'];
     if (!validTypes.includes(uploadedFile.type)) {
       setError('Formato inválido. Use PNG, WEBP ou JPG.');
@@ -346,29 +348,64 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      if (!dataUrl) return;
+    setIsUploadingItem(true);
+    
+    try {
+      // Remove background automatically
+      const processedBlob = await removeImageBackground(uploadedFile);
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        if (!dataUrl) return;
 
-      const img = new window.Image();
-      img.onload = () => {
-        const newItem: CustomUploadItem = {
-          id: `custom-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          name: uploadedFile.name.replace(/\.[^/.]+$/, ''),
-          category,
-          dataUrl,
-          width: img.naturalWidth,
-          height: img.naturalHeight,
-          createdAt: Date.now(),
+        const img = new window.Image();
+        img.onload = () => {
+          const newItem: CustomUploadItem = {
+            id: `custom-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            name: uploadedFile.name.replace(/\.[^/.]+$/, ''),
+            category,
+            dataUrl,
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+            createdAt: Date.now(),
+          };
+
+          setCustomUploads((prev) => [newItem, ...prev]);
+          idbSave(newItem);
+          setIsUploadingItem(false);
         };
-
-        setCustomUploads((prev) => [newItem, ...prev]);
-        idbSave(newItem);
+        img.src = dataUrl;
       };
-      img.src = dataUrl;
-    };
-    reader.readAsDataURL(uploadedFile);
+      reader.readAsDataURL(processedBlob);
+    } catch (err) {
+      console.error('Error removing background:', err);
+      // Fallback to original image if background removal fails
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        if (!dataUrl) return;
+
+        const img = new window.Image();
+        img.onload = () => {
+          const newItem: CustomUploadItem = {
+            id: `custom-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            name: uploadedFile.name.replace(/\.[^/.]+$/, ''),
+            category,
+            dataUrl,
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+            createdAt: Date.now(),
+          };
+
+          setCustomUploads((prev) => [newItem, ...prev]);
+          idbSave(newItem);
+          setIsUploadingItem(false);
+        };
+        img.src = dataUrl;
+      };
+      reader.readAsDataURL(uploadedFile);
+    }
   };
 
   // Exclui item da lista de uploads
@@ -458,6 +495,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
       fontSize: isText ? 32 : undefined,
       fontWeight: isText ? 'bold' : undefined,
       align: isText ? 'center' : undefined,
+      fillImageSrc: libItem.defaultFillImageSrc,
     };
 
     const nextElements = [...elements, newElement];
@@ -816,6 +854,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
               onDeleteCustomUpload={handleDeleteCustomUpload}
               onRenameCustomUpload={handleRenameCustomUpload}
               onAddCustomElement={handleAddCustomElement}
+              isUploadingItem={isUploadingItem}
             />
           </div>
         )}
@@ -1045,6 +1084,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
             handleAddCustomElement(item);
             setMobileSheet(null);
           }}
+          isUploadingItem={isUploadingItem}
         />
       </MobileSheet>
 

@@ -20,6 +20,7 @@ interface ElementsSidebarProps {
   onDeleteCustomUpload: (id: string) => void;
   onRenameCustomUpload: (id: string, newName: string) => void;
   onAddCustomElement: (item: CustomUploadItem) => void;
+  isUploadingItem?: boolean;
   className?: string;
   onClose?: () => void;
 }
@@ -148,6 +149,7 @@ export default function ElementsSidebar({
   onDeleteCustomUpload,
   onRenameCustomUpload,
   onAddCustomElement,
+  isUploadingItem,
   className,
   onClose,
 }: ElementsSidebarProps) {
@@ -409,10 +411,10 @@ export default function ElementsSidebar({
               }`}
             >
               <div className="w-7 h-7 rounded-full bg-white border border-zinc-200/80 mx-auto flex items-center justify-center mb-1.5 text-zinc-600 shadow-2xs">
-                <UploadCloud className="w-3.5 h-3.5" />
+                {isUploadingItem ? <div className="w-3.5 h-3.5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
               </div>
               <h4 className="text-xs font-semibold text-zinc-800 font-sans mb-0.5">
-                Enviar elemento próprio
+                {isUploadingItem ? 'Removendo fundo...' : 'Enviar elemento próprio'}
               </h4>
               <p className="text-[10px] text-zinc-400 font-sans mb-2">
                 PNG, WEBP ou JPG (até 8MB)
