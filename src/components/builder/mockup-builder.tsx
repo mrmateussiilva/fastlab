@@ -20,7 +20,7 @@ import GenerationModal from './generation-modal';
 import ResultComparison from '../result-comparison';
 import LeadCaptureCard from '../lead-capture-card';
 import { CanvasStageRef } from './canvas-stage';
-import { ZoomIn, ZoomOut, RotateCcw, Plus, Building2, Sliders, Sparkles } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Plus, Building2, Sliders, Sparkles, Copy, Trash2 } from 'lucide-react';
 import { useGenerationLimit } from '@/hooks/use-generation-limit';
 import { useOnline } from '@/hooks/use-online';
 import GenerationLimitBadge from '../generation-limit-badge';
@@ -835,6 +835,86 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
             onPanChange={setPanOffset}
             isPreviewMode={isPreviewMode}
           />
+
+          {/* Empty State do Canvas */}
+          {elements.length === 0 && !isPreviewMode && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 p-4">
+              <div className="bg-white/90 backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-xl border border-zinc-200/60 flex flex-col items-center max-w-sm text-center pointer-events-auto">
+                <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-4">
+                  <Sparkles className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-serif text-zinc-900 mb-2">Sua decoração começa aqui</h3>
+                <p className="text-sm text-zinc-500 mb-6 font-sans leading-relaxed">
+                  Adicione painéis, mesas, balões ou faça o upload dos seus próprios itens para montar o projeto perfeito.
+                </p>
+                <Button 
+                  onClick={() => {
+                    const isMobile = window.innerWidth < 768;
+                    if (isMobile) {
+                      setMobileSheet('items');
+                    } else {
+                      handleAddElement(ELEMENT_LIBRARY.find(e => e.id === 'panel-arch')!);
+                    }
+                  }}
+                  className="bg-orange-600 hover:bg-orange-700 text-white font-sans w-full cursor-pointer h-11"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Primeiro Item
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Tooltip flutuante de ações rápidas ao selecionar um item */}
+          {selectedElement && !isPreviewMode && (
+            <div 
+              className="absolute z-20 bg-white shadow-xl border border-zinc-200 rounded-xl px-2 py-1.5 flex items-center gap-1 pointer-events-auto transition-all duration-75"
+              style={{
+                left: `${(selectedElement.x + selectedElement.width / 2) * zoom + panOffset.x}px`,
+                top: `${Math.max(16, (selectedElement.y * zoom + panOffset.y) - 56)}px`,
+                transform: 'translateX(-50%)',
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleDuplicate}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors cursor-pointer"
+                title="Duplicar"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                title="Excluir"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <div className="w-px h-5 bg-zinc-200 mx-1" />
+              <button
+                type="button"
+                onClick={() => {
+                  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                  if (isMobile) {
+                    setMobileSheet('properties');
+                  } else {
+                    // Flash sutil na sidebar pra indicar onde edita
+                    const sidebar = document.getElementById('properties-sidebar-scroll');
+                    if (sidebar) {
+                      sidebar.classList.add('ring-2', 'ring-orange-500', 'transition-all');
+                      setTimeout(() => sidebar.classList.remove('ring-2', 'ring-orange-500'), 500);
+                    }
+                  }
+                }}
+                className="px-2 h-8 rounded-lg flex items-center gap-1.5 text-xs font-medium text-orange-600 hover:bg-orange-50 transition-colors cursor-pointer"
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Propriedades</span>
+                <span className="sm:hidden">Editar</span>
+              </button>
+            </div>
+          )}
 
           {/* Controles Flutuantes de Zoom no Canvas */}
           <div className="absolute bottom-20 md:bottom-4 right-3 md:right-4 z-20 bg-white/95 backdrop-blur-xs border border-zinc-200/80 rounded-xl shadow-md p-1 flex items-center gap-1 select-none">
