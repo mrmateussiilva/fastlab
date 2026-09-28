@@ -391,6 +391,14 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
       const updated = { ...item, dataUrl: newDataUrl };
       setCustomUploads((prev) => prev.map((it) => (it.id === item.id ? updated : it)));
       idbSave(updated);
+
+      // Atualiza também os elementos no canvas que usam essa imagem
+      const updatedElements = elements.map((el) =>
+        el.elementId === item.id ? { ...el, imageUrl: newDataUrl } : el
+      );
+      if (updatedElements.some((el, i) => el.imageUrl !== elements[i].imageUrl)) {
+        commitChange(updatedElements);
+      }
     } catch (err) {
       console.error('BG removal failed:', err);
       setError('Não foi possível remover o fundo. Tente novamente.');
