@@ -114,9 +114,11 @@ export default function ARViewer({ imageUrl, onClose }: ARViewerProps) {
 
         if (session && hitTestSourceRequested === false) {
           session.requestReferenceSpace('viewer').then((referenceSpace) => {
-            session.requestHitTestSource({ space: referenceSpace })?.then((source) => {
-              hitTestSource = source;
-            });
+            if (session.requestHitTestSource) {
+              session.requestHitTestSource({ space: referenceSpace }).then((source) => {
+                hitTestSource = source;
+              });
+            }
           });
           session.addEventListener('end', () => {
             hitTestSourceRequested = false;
