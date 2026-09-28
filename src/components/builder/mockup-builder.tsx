@@ -200,9 +200,23 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [baseImageForGeneration, setBaseImageForGeneration] = useState<string | null>(null);
+  const [is3DAutoRotating, setIs3DAutoRotating] = useState(false);
+  const capture3DSnapshotRef = useRef<(() => string | null) | null>(null);
+  const actions3DRef = useRef<{ toggleRotate: () => void; cycleCamera: () => void } | null>(null);
+
   const [mobileSheet, setMobileSheet] = useState<'items' | 'environment' | 'properties' | null>(null);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+
+  const handleStartRenderFrom3D = useCallback((snapshotDataUrl: string) => {
+    if (!isOnline) {
+      setError('Sem internet: a geração de imagem exige conexão.');
+      return;
+    }
+    setBaseImageForGeneration(snapshotDataUrl);
+    setIsGenerateModalOpen(true);
+  }, [isOnline]);
 
   const handleOpenGenerateModal = useCallback(() => {
     if (!isOnline) {
@@ -211,14 +225,31 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
       );
       return;
     }
+    // Se estiver no modo 3D, captura imediatamente o ângulo atual da câmera 3D
+    if (viewMode === '3d' && capture3DSnapshotRef.current) {
+      const snapshot = capture3DSnapshotRef.current();
+      if (snapshot) {
+        setBaseImageForGeneration(snapshot);
+      }
+    }
     setIsGenerateModalOpen(true);
-  }, [isOnline]);
+  }, [isOnline, viewMode]);
 
   const handleOpenARMode = useCallback(() => {
-    if (!canvasRef.current) return;
     setSelectedId(null);
     setMobileSheet(null);
     
+    // Se estiver no modo 3D, captura a visão 3D para AR
+    if (viewMode === '3d' && capture3DSnapshotRef.current) {
+      const snapshot = capture3DSnapshotRef.current();
+      if (snapshot) {
+        setArImageUrl(snapshot);
+        setIsARModeOpen(true);
+        return;
+      }
+    }
+
+    if (!canvasRef.current) return;
     setTimeout(() => {
       const dataUrl = canvasRef.current?.exportImage();
       if (dataUrl) {
@@ -228,7 +259,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
         setError('Erro ao preparar imagem para AR.');
       }
     }, 60);
-  }, []);
+  }, [viewMode]);
 
   // Faixa de onboarding: exibida até o usuário dispensar (persistido)
   const [showOnboarding, setShowOnboarding] = useState(() => {
@@ -677,9 +708,8 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
     }, 60);
   };
 
-  // Gerar Imagem Realista a partir do Canvas com Opções
+  // Gerar Imagem Realista a partir do Canvas ou do 3D com Opções
   const handleGenerateRealistic = async (options: RealisticPromptOptions) => {
-    if (!canvasRef.current) return;
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setError('Sem internet: a geração de imagem exige conexão. Tente novamente quando estiver online.');
       setIsGenerateModalOpen(false);
@@ -692,17 +722,18 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
 
     setTimeout(async () => {
       try {
-        const dataUrl = canvasRef.current?.exportImage();
+        const dataUrl = baseImageForGeneration || (canvasRef.current?.exportImage() ?? null);
         if (!dataUrl) {
-          throw new Error('Não foi possível exportar a imagem do canvas.');
+          throw new Error('Não foi possível obter a imagem para renderizar.');
         }
 
         setExportedMockupUrl(dataUrl);
+        setBaseImageForGeneration(null);
 
         // Converte Data URL em Blob e depois em File
         const resBlob = await fetch(dataUrl);
         const blob = await resBlob.blob();
-        const file = new File([blob], 'mockup-canvas.png', { type: 'image/png' });
+        const file = new File([blob], 'mockup-render.png', { type: 'image/png' });
 
         const formData = new FormData();
         formData.append('image', file);
@@ -894,6 +925,14 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
               onUpdateElement={handleUpdateElement}
               onDuplicateElement={handleDuplicate}
               onDeleteElement={handleDelete}
+              onRenderWithAI={handleStartRenderFrom3D}
+              onOpenARMode={handleOpenARMode}
+              onRegisterCapture={(fn) => {
+                capture3DSnapshotRef.current = fn;
+              }}
+              onRegister3DActions={(actions) => {
+                actions3DRef.current = actions;
+              }}
               onClose={() => setViewMode('2d')}
             />
           </main>
@@ -1109,6 +1148,14 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
           onToggleViewMode={() => {
             setSelectedId(null);
             setViewMode((prev) => (prev === '2d' ? '3d' : '2d'));
+          }}
+          onToggle3DAutoRotate={() => {
+            actions3DRef.current?.toggleRotate();
+            setIs3DAutoRotating((prev) => !prev);
+          }}
+          is3DAutoRotating={is3DAutoRotating}
+          onCycle3DCamera={() => {
+            actions3DRef.current?.cycleCamera();
           }}
           hasSelectedElement={Boolean(selectedElement)}
           elementCount={elements.length}

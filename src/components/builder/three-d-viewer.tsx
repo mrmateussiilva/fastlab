@@ -28,7 +28,8 @@ import {
   Check,
   Focus,
   Palette,
-  Layers
+  Layers,
+  Smartphone
 } from 'lucide-react';
 
 interface ThreeDViewerProps {
@@ -40,6 +41,10 @@ interface ThreeDViewerProps {
   onDuplicateElement?: () => void;
   onDeleteElement?: () => void;
   onClose?: () => void;
+  onRenderWithAI?: (snapshotDataUrl: string) => void;
+  onOpenARMode?: () => void;
+  onRegisterCapture?: (fn: () => string | null) => void;
+  onRegister3DActions?: (actions: { toggleRotate: () => void; cycleCamera: () => void }) => void;
   className?: string;
 }
 
@@ -71,6 +76,10 @@ export default function ThreeDViewer({
   onDuplicateElement,
   onDeleteElement,
   onClose,
+  onRenderWithAI,
+  onOpenARMode,
+  onRegisterCapture,
+  onRegister3DActions,
   className = '',
 }: ThreeDViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -905,6 +914,47 @@ export default function ThreeDViewer({
     }
   }, [isAutoRotating]);
 
+  // Renderizar o ângulo 3D atual com IA
+  const handleRender3DWithAI = () => {
+    if (!rendererRef.current) return;
+    const dataUrl = rendererRef.current.domElement.toDataURL('image/png');
+    if (onRenderWithAI) {
+      onRenderWithAI(dataUrl);
+    }
+  };
+
+  // Registra métodos de captura e ações para componentes pais (ex: barra mobile)
+  useEffect(() => {
+    if (onRegisterCapture) {
+      onRegisterCapture(() => {
+        if (!rendererRef.current) return null;
+        return rendererRef.current.domElement.toDataURL('image/png');
+      });
+    }
+  }, [onRegisterCapture]);
+
+  useEffect(() => {
+    if (onRegister3DActions) {
+      onRegister3DActions({
+        toggleRotate: () => setIsAutoRotating((prev) => !prev),
+        cycleCamera: () => {
+          setCurrentView((prev) => {
+            if (prev === 'perspective') {
+              setCameraView('front');
+              return 'front';
+            } else if (prev === 'front') {
+              setCameraView('top');
+              return 'top';
+            } else {
+              setCameraView('perspective');
+              return 'perspective';
+            }
+          });
+        },
+      });
+    }
+  }, [onRegister3DActions]);
+
   // Captura de Foto 3D
   const handleCaptureSnapshot = () => {
     if (!rendererRef.current) return;
@@ -939,7 +989,8 @@ export default function ThreeDViewer({
         ref={canvasMountRef}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
-        className="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing"
+        className="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing touch-none"
+        style={{ touchAction: 'none' }}
       />
 
       {/* Loading overlay */}
@@ -966,8 +1017,19 @@ export default function ThreeDViewer({
           </div>
         </div>
 
-        {/* Controles de Topo: Tela Cheia & Fechar */}
-        <div className="flex items-center gap-2 pointer-events-auto">
+        {/* Controles de Topo: Renderizar (Mobile), Tela Cheia & Fechar */}
+        <div className="flex items-center gap-1.5 pointer-events-auto">
+          {onRenderWithAI && (
+            <button
+              type="button"
+              onClick={handleRender3DWithAI}
+              className="sm:hidden flex items-center gap-1.5 bg-gradient-to-r from-orange-600 to-amber-500 text-white text-xs font-bold px-3 h-9 rounded-xl shadow-md active:scale-95 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+              <span>Renderizar ✨</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={toggleFullscreen}
@@ -1081,12 +1143,12 @@ export default function ThreeDViewer({
       </div>
 
       {/* ------------------------------------------------------- */}
-      {/* CARD DO ELEMENTO SELECIONADO (3D INSPECTOR) */}
+      {/* CARD DO ELEMENTO SELECIONADO (3D INSPECTOR RESPONSIVO) */}
       {/* ------------------------------------------------------- */}
       {selectedElement && (
         <div 
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-32 right-3 w-72 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-zinc-200 p-3.5 z-30 animate-in slide-in-from-right-3 duration-200"
+          className="absolute bottom-32 left-3 right-3 md:left-auto md:right-3 md:top-32 md:bottom-auto md:w-72 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-zinc-200 p-3.5 z-30 animate-in slide-in-from-bottom-2 md:slide-in-from-right-3 duration-200"
         >
           {/* Cabeçalho do Card */}
           <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
@@ -1213,7 +1275,7 @@ export default function ThreeDViewer({
       {/* ------------------------------------------------------- */}
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-3.5 py-2.5 rounded-2xl shadow-2xl border border-zinc-200 pointer-events-auto max-w-[96vw] overflow-x-auto z-20"
+        className="absolute bottom-20 md:bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-2xl border border-zinc-200 pointer-events-auto max-w-[96vw] overflow-x-auto z-20"
       >
         
         {/* Presets de Câmera */}
@@ -1221,7 +1283,7 @@ export default function ThreeDViewer({
           <button
             type="button"
             onClick={() => setCameraView('perspective')}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+            className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
               currentView === 'perspective' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
             }`}
           >
@@ -1230,7 +1292,7 @@ export default function ThreeDViewer({
           <button
             type="button"
             onClick={() => setCameraView('front')}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+            className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
               currentView === 'front' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
             }`}
           >
@@ -1239,7 +1301,7 @@ export default function ThreeDViewer({
           <button
             type="button"
             onClick={() => setCameraView('top')}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+            className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
               currentView === 'top' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
             }`}
           >
@@ -1301,6 +1363,19 @@ export default function ThreeDViewer({
           <span className="hidden sm:inline">Luzinhas</span>
         </button>
 
+        {/* Realidade Aumentada (AR no Celular) */}
+        {onOpenARMode && (
+          <button
+            type="button"
+            onClick={onOpenARMode}
+            title="Ver decoração em Realidade Aumentada (AR) no chão da sua sala pelo celular"
+            className="flex items-center gap-1.5 h-8 px-2.5 rounded-xl text-xs font-medium text-zinc-700 hover:bg-zinc-100 transition-colors cursor-pointer whitespace-nowrap"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-zinc-600" />
+            <span className="hidden sm:inline">Ver em AR</span>
+          </button>
+        )}
+
         <div className="w-px h-6 bg-zinc-200 mx-1" />
 
         {/* Captura de Foto 3D */}
@@ -1308,17 +1383,30 @@ export default function ThreeDViewer({
           type="button"
           onClick={handleCaptureSnapshot}
           title="Baixar foto nítida deste ângulo 3D"
-          className="flex items-center gap-1.5 h-8 px-3 rounded-xl text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-white transition-colors cursor-pointer shadow-sm"
+          className="flex items-center gap-1.5 h-8 px-3 rounded-xl text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 transition-colors cursor-pointer shadow-xs whitespace-nowrap"
         >
-          <Camera className="w-3.5 h-3.5 text-orange-400" />
-          <span>Foto 3D</span>
+          <Camera className="w-3.5 h-3.5 text-zinc-600" />
+          <span className="hidden sm:inline">Foto 3D</span>
         </button>
+
+        {/* Renderizar com IA a partir do 3D (Destaque Principal) */}
+        {onRenderWithAI && (
+          <button
+            type="button"
+            onClick={handleRender3DWithAI}
+            title="Renderizar foto ultra-realista com Inteligência Artificial a partir deste ângulo 3D"
+            className="flex items-center gap-1.5 h-8 px-3.5 rounded-xl text-xs font-bold bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white transition-all shadow-md active:scale-95 cursor-pointer whitespace-nowrap"
+          >
+            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+            <span>Renderizar com IA ✨</span>
+          </button>
+        )}
       </div>
 
       {/* Dica de Interação sutil */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 pointer-events-none text-center">
+      <div className="absolute bottom-36 md:bottom-20 left-1/2 -translate-x-1/2 pointer-events-none text-center">
         <span className="text-[10px] text-zinc-500/80 bg-white/70 backdrop-blur-xs px-3 py-1 rounded-full border border-zinc-200/40 shadow-2xs font-sans">
-          💡 Clique em qualquer item para inspecionar • Arraste para girar 360°
+          💡 Clique e arraste para girar 360° • Toque para inspecionar
         </span>
       </div>
 
