@@ -860,7 +860,19 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
         )}
 
         {/* 2. Área Central: Canvas Interativo */}
-        <main className="flex-1 h-full bg-[#EFECE6] relative overflow-hidden flex flex-col pb-16 md:pb-0">
+        <main className="flex-1 h-full relative overflow-hidden flex flex-col pb-16 md:pb-0"
+          style={{
+            backgroundColor: '#F0EEE9',
+            backgroundImage: `
+              linear-gradient(45deg, #E5E2DC 25%, transparent 25%),
+              linear-gradient(-45deg, #E5E2DC 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, #E5E2DC 75%),
+              linear-gradient(-45deg, transparent 75%, #E5E2DC 75%)
+            `,
+            backgroundSize: '20px 20px',
+            backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
+          }}
+        >
           <CanvasStage
             ref={canvasRef}
             elements={elements}

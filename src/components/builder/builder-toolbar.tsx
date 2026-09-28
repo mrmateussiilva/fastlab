@@ -1,7 +1,21 @@
 'use client';
 
-import { ArrowLeft, Download, Sparkles, Loader2, Undo2, Redo2, Eye, EyeOff, Box } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import {
+  ArrowLeft,
+  Download,
+  Sparkles,
+  Loader2,
+  Undo2,
+  Redo2,
+  Eye,
+  EyeOff,
+  Box,
+  ChevronDown,
+  Share2,
+  Pencil,
+  Check,
+} from 'lucide-react';
 import { GenerationLimitData } from '@/hooks/use-generation-limit';
 import GenerationLimitBadge from '@/components/generation-limit-badge';
 
@@ -40,149 +54,199 @@ export default function BuilderToolbar({
   onTogglePreview,
   limitData,
 }: BuilderToolbarProps) {
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState(projectName);
+
+  const handleNameSubmit = () => {
+    onProjectNameChange(tempName.trim() || 'Meu projeto');
+    setIsEditingName(false);
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleNameSubmit();
+    if (e.key === 'Escape') {
+      setTempName(projectName);
+      setIsEditingName(false);
+    }
+  };
+
   return (
-    <header className="w-full border-b border-zinc-200/80 bg-white sticky top-0 z-30 select-none">
-      <div className="w-full px-2.5 sm:px-4 h-14 flex items-center justify-between gap-1.5 sm:gap-4">
-        
-        {/* Esquerda: Botão Voltar + Logo + Desfazer / Refazer */}
-        <div className="flex items-center gap-1.5 sm:gap-3">
+    <header className="w-full border-b border-zinc-200 bg-white sticky top-0 z-30 select-none h-14 flex items-center px-3 gap-2">
+      
+      {/* ── LEFT: Logo + Undo/Redo ── */}
+      <div className="flex items-center gap-1 shrink-0">
+        {/* Back */}
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={isGenerating}
+          title="Voltar ao início"
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors cursor-pointer disabled:opacity-40"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+
+        {/* Logo mark */}
+        <div className="flex items-center gap-1.5 px-1">
+          <div className="w-7 h-7 rounded-lg bg-orange-600 flex items-center justify-center shrink-0">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="font-semibold text-sm text-zinc-900 hidden sm:block tracking-tight">
+            FestaLab
+          </span>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-5 bg-zinc-200 mx-1 hidden sm:block" />
+
+        {/* Undo / Redo */}
+        <div className="flex items-center">
           <button
             type="button"
-            onClick={onBack}
-            disabled={isGenerating}
-            title="Voltar ao Início"
-            className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 transition-colors cursor-pointer font-sans"
+            onClick={onUndo}
+            disabled={!canUndo || isGenerating}
+            title="Desfazer (Ctrl+Z)"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Início</span>
+            <Undo2 className="w-4 h-4" />
           </button>
-
-          <span className="text-zinc-300 font-light hidden xs:inline">|</span>
-          
-          <div className="flex items-center gap-1.5">
-            <span className="font-serif text-base sm:text-lg font-normal tracking-tight text-zinc-950">
-              FestaLab
-            </span>
-            <span className="text-[9px] sm:text-[10px] font-sans font-medium px-1.5 py-0.5 rounded-full bg-zinc-100 text-zinc-600 hidden sm:inline">
-              Editor
-            </span>
-          </div>
-
-          <span className="text-zinc-200 font-light hidden md:inline">|</span>
-
-          {/* Botões de Undo e Redo */}
-          <div className="flex items-center gap-0.5">
-            <button
-              type="button"
-              onClick={onUndo}
-              disabled={!canUndo || isGenerating}
-              title="Desfazer (Ctrl+Z)"
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              <Undo2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={onRedo}
-              disabled={!canRedo || isGenerating}
-              title="Refazer (Ctrl+Shift+Z)"
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              <Redo2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Centro: Nome do Projeto (oculto em telas pequenas) */}
-        <div className="hidden lg:flex items-center">
-          <input
-            type="text"
-            value={projectName}
-            onChange={(e) => onProjectNameChange(e.target.value)}
-            placeholder="Nome do Projeto"
-            className="text-xs sm:text-sm font-medium text-center text-zinc-800 bg-transparent border border-transparent hover:border-zinc-200 focus:border-zinc-300 focus:bg-zinc-50/50 rounded-md px-3 py-1 outline-none transition-all max-w-[200px] truncate"
-          />
-        </div>
-
-        {/* Direita: Preview, Exportar & Gerar */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          {/* Botão de Preview Limpo */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onTogglePreview}
-            title={isPreviewMode ? 'Voltar para modo de edição' : 'Visualizar mockup limpo'}
-            className={`h-8 px-2 sm:px-3 text-xs font-medium border-zinc-200/80 font-sans cursor-pointer transition-all ${
-              isPreviewMode
-                ? 'bg-zinc-900 text-white hover:bg-zinc-800 border-zinc-900'
-                : 'bg-white text-zinc-700 hover:bg-zinc-50'
-            }`}
+          <button
+            type="button"
+            onClick={onRedo}
+            disabled={!canRedo || isGenerating}
+            title="Refazer (Ctrl+Shift+Z)"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
-            {isPreviewMode ? (
-              <>
-                <EyeOff className="w-3.5 h-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">Sair do preview</span>
-              </>
-            ) : (
-              <>
-                <Eye className="w-3.5 h-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">Pré-visualizar</span>
-              </>
-            )}
-          </Button>
+            <Redo2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
 
-          {limitData && (
-            <div className="hidden md:flex items-center mr-1">
-              <GenerationLimitBadge limitData={limitData} compact />
-            </div>
+      {/* ── CENTER: Project name (Canva-style editable) ── */}
+      <div className="flex-1 flex justify-center items-center min-w-0 px-2">
+        {isEditingName ? (
+          <div className="flex items-center gap-1.5 bg-zinc-50 border border-orange-300 rounded-lg px-2 py-1 ring-2 ring-orange-100">
+            <Pencil className="w-3 h-3 text-orange-500 shrink-0" />
+            <input
+              autoFocus
+              type="text"
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              onBlur={handleNameSubmit}
+              onKeyDown={handleNameKeyDown}
+              className="text-sm font-medium text-zinc-900 bg-transparent outline-none w-44 sm:w-56"
+              maxLength={60}
+            />
+            <button
+              type="button"
+              onClick={handleNameSubmit}
+              className="w-5 h-5 rounded flex items-center justify-center text-orange-600 hover:bg-orange-50"
+            >
+              <Check className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setTempName(projectName);
+              setIsEditingName(true);
+            }}
+            title="Clique para renomear"
+            className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-zinc-100 transition-colors cursor-pointer max-w-xs"
+          >
+            <span className="text-sm font-medium text-zinc-800 truncate">
+              {projectName}
+            </span>
+            <Pencil className="w-3 h-3 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          </button>
+        )}
+      </div>
+
+      {/* ── RIGHT: Actions ── */}
+      <div className="flex items-center gap-1.5 shrink-0">
+
+        {/* Generation limit badge */}
+        {limitData && (
+          <div className="hidden md:flex items-center">
+            <GenerationLimitBadge limitData={limitData} compact />
+          </div>
+        )}
+
+        {/* Preview */}
+        <button
+          type="button"
+          onClick={onTogglePreview}
+          title={isPreviewMode ? 'Voltar para edição' : 'Pré-visualizar'}
+          className={`hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+            isPreviewMode
+              ? 'bg-zinc-900 text-white hover:bg-zinc-800'
+              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200'
+          }`}
+        >
+          {isPreviewMode ? (
+            <>
+              <EyeOff className="w-3.5 h-3.5" />
+              <span>Sair</span>
+            </>
+          ) : (
+            <>
+              <Eye className="w-3.5 h-3.5" />
+              <span>Preview</span>
+            </>
           )}
+        </button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onExport}
-            disabled={elementCount === 0 || isGenerating}
-            title="Exportar mockup"
-            className="h-8 px-2 sm:px-3 text-xs font-medium text-zinc-700 border-zinc-200/80 bg-white hover:bg-zinc-50 cursor-pointer font-sans"
-          >
-            <Download className="w-3.5 h-3.5 sm:mr-1.5" />
-            <span className="hidden sm:inline">Exportar mockup</span>
-          </Button>
+        {/* AR */}
+        <button
+          type="button"
+          onClick={onOpenARMode}
+          disabled={elementCount === 0 || isGenerating}
+          title="Ver no Ambiente (AR)"
+          className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Box className="w-3.5 h-3.5" />
+          <span>AR</span>
+        </button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onOpenARMode}
-            disabled={elementCount === 0 || isGenerating}
-            title="Ver no Ambiente (AR)"
-            className="h-8 px-2 sm:px-3 text-xs font-medium text-zinc-700 border-zinc-200/80 bg-white hover:bg-zinc-50 cursor-pointer font-sans"
-          >
-            <Box className="w-3.5 h-3.5 sm:mr-1.5" />
-            <span className="hidden sm:inline">AR</span>
-          </Button>
+        {/* Export dropdown button */}
+        <button
+          type="button"
+          onClick={onExport}
+          disabled={elementCount === 0 || isGenerating}
+          title="Exportar mockup"
+          className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Share2 className="w-3.5 h-3.5" />
+          <span>Exportar</span>
+          <ChevronDown className="w-3 h-3 text-zinc-400" />
+        </button>
 
-          <Button
-            size="sm"
-            onClick={onOpenGenerateModal}
-            disabled={elementCount === 0 || isGenerating || limitData?.remaining === 0 || limitData?.globalLimitReached}
-            className="h-8 px-2.5 sm:px-3.5 text-xs font-medium bg-orange-600 hover:bg-orange-700 text-white shadow-xs transition-colors cursor-pointer font-sans disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 sm:mr-1.5 animate-spin" />
-                <span className="hidden sm:inline">Gerando...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-3.5 h-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">Gerar imagem realista</span>
-                <span className="sm:hidden">Gerar</span>
-              </>
-            )}
-          </Button>
-        </div>
-
+        {/* Primary CTA: Generate */}
+        <button
+          type="button"
+          onClick={onOpenGenerateModal}
+          disabled={
+            elementCount === 0 ||
+            isGenerating ||
+            limitData?.remaining === 0 ||
+            limitData?.globalLimitReached
+          }
+          className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-semibold bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="hidden sm:inline">Gerando...</span>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">Gerar com IA</span>
+              <span className="sm:hidden">IA</span>
+            </>
+          )}
+        </button>
       </div>
     </header>
   );
