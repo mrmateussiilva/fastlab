@@ -612,6 +612,10 @@ export default function PropertiesSidebar({
               )}
             </div>
 
+            <p className="text-[10px] text-zinc-500 font-sans leading-relaxed">
+              A imagem será ajustada automaticamente ao formato do item.
+            </p>
+
             {/* Controles simples quando imagem aplicada: Ajuste, Zoom, Posição */}
             {selectedElement.fillImageSrc && (
               <div className="space-y-3 pt-1 border-t border-orange-100">
@@ -714,36 +718,76 @@ export default function PropertiesSidebar({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <span className="text-[10px] text-zinc-500 font-sans block mb-1">Largura (cm)</span>
-              <div className="relative">
-                <input
-                  type="number"
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
                   disabled={isLocked}
-                  value={widthCm}
-                  onChange={(e) => {
-                    const cm = Math.max(10, parseInt(e.target.value) || 10);
-                    onUpdateElement({ width: SCALE.cmToPx(cm) });
-                  }}
-                  className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 rounded-md px-2.5 py-1.5 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
-                />
-                <span className="absolute right-2 top-1.5 text-[10px] text-zinc-400 pointer-events-none">cm</span>
+                  onClick={() => onUpdateElement({ width: Math.max(SCALE.cmToPx(10), selectedElement.width - SCALE.cmToPx(5)) })}
+                  title="Diminuir 5 cm"
+                  className="w-6 h-7 shrink-0 rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  −
+                </button>
+                <div className="relative flex-1 min-w-0">
+                  <input
+                    type="number"
+                    disabled={isLocked}
+                    value={widthCm}
+                    onChange={(e) => {
+                      const cm = Math.max(10, parseInt(e.target.value) || 10);
+                      onUpdateElement({ width: SCALE.cmToPx(cm) });
+                    }}
+                    className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 rounded-md px-2.5 py-1.5 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                  />
+                  <span className="absolute right-2 top-1.5 text-[10px] text-zinc-400 pointer-events-none">cm</span>
+                </div>
+                <button
+                  type="button"
+                  disabled={isLocked}
+                  onClick={() => onUpdateElement({ width: Math.min(SCALE.cmToPx(500), selectedElement.width + SCALE.cmToPx(5)) })}
+                  title="Aumentar 5 cm"
+                  className="w-6 h-7 shrink-0 rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  +
+                </button>
               </div>
               <span className="text-[10px] text-zinc-400 font-mono block mt-0.5">{Math.round(selectedElement.width)} px</span>
             </div>
 
             <div>
               <span className="text-[10px] text-zinc-500 font-sans block mb-1">Altura (cm)</span>
-              <div className="relative">
-                <input
-                  type="number"
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
                   disabled={isLocked}
-                  value={heightCm}
-                  onChange={(e) => {
-                    const cm = Math.max(10, parseInt(e.target.value) || 10);
-                    onUpdateElement({ height: SCALE.cmToPx(cm) });
-                  }}
-                  className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 rounded-md px-2.5 py-1.5 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
-                />
-                <span className="absolute right-2 top-1.5 text-[10px] text-zinc-400 pointer-events-none">cm</span>
+                  onClick={() => onUpdateElement({ height: Math.max(SCALE.cmToPx(10), selectedElement.height - SCALE.cmToPx(5)) })}
+                  title="Diminuir 5 cm"
+                  className="w-6 h-7 shrink-0 rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  −
+                </button>
+                <div className="relative flex-1 min-w-0">
+                  <input
+                    type="number"
+                    disabled={isLocked}
+                    value={heightCm}
+                    onChange={(e) => {
+                      const cm = Math.max(10, parseInt(e.target.value) || 10);
+                      onUpdateElement({ height: SCALE.cmToPx(cm) });
+                    }}
+                    className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 rounded-md px-2.5 py-1.5 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                  />
+                  <span className="absolute right-2 top-1.5 text-[10px] text-zinc-400 pointer-events-none">cm</span>
+                </div>
+                <button
+                  type="button"
+                  disabled={isLocked}
+                  onClick={() => onUpdateElement({ height: Math.min(SCALE.cmToPx(500), selectedElement.height + SCALE.cmToPx(5)) })}
+                  title="Aumentar 5 cm"
+                  className="w-6 h-7 shrink-0 rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  +
+                </button>
               </div>
               <span className="text-[10px] text-zinc-400 font-mono block mt-0.5">{Math.round(selectedElement.height)} px</span>
             </div>

@@ -8,7 +8,8 @@ import {
   CustomUploadItem,
   CustomItemCategory,
   EnvironmentConfig,
-  DEFAULT_ENVIRONMENT
+  DEFAULT_ENVIRONMENT,
+  ELEMENT_LIBRARY
 } from '@/lib/builder-elements';
 import { idbGetAll, idbSave, idbDelete } from '@/lib/idb';
 import { RealisticPromptOptions } from '@/lib/prompts';
@@ -18,11 +19,12 @@ import PropertiesSidebar from './properties-sidebar';
 import GenerationModal from './generation-modal';
 import ResultComparison from '../result-comparison';
 import { CanvasStageRef } from './canvas-stage';
-import { ZoomIn, ZoomOut, RotateCcw, Plus, Building2, Sliders } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Plus, Building2, Sliders, Sparkles } from 'lucide-react';
 import { useGenerationLimit } from '@/hooks/use-generation-limit';
 import GenerationLimitBadge from '../generation-limit-badge';
 import MobileSheet from './mobile-sheet';
 import MobileQuickActions from './mobile-quick-actions';
+import MobileQuickAdd from './mobile-quick-add';
 import MobileBottomNav from './mobile-bottom-nav';
 
 // Importação dinâmica do CanvasStage para evitar erros de SSR com Konva/Canvas
@@ -117,6 +119,18 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   },
 ];
 
+// Itens mais usados para adição rápida em 1 toque no celular
+const QUICK_ADD_IDS = [
+  'panel-arch',
+  'panel-rect',
+  'panel-round',
+  'cylinder-mid',
+  'table-rect',
+  'balloon-mid',
+  'element-text',
+];
+const QUICK_ADD_ITEMS = ELEMENT_LIBRARY.filter((el) => QUICK_ADD_IDS.includes(el.id));
+
 export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const limitData = useGenerationLimit();
 
@@ -167,6 +181,25 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const [mobileSheet, setMobileSheet] = useState<'items' | 'environment' | 'properties' | null>(null);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+
+  // Faixa de onboarding: exibida até o usuário dispensar (persistido)
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      return localStorage.getItem('festalab_onboarding_dismissed') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  const handleDismissOnboarding = useCallback(() => {
+    setShowOnboarding(false);
+    try {
+      localStorage.setItem('festalab_onboarding_dismissed', 'true');
+    } catch {
+      // ignora falha de persistência
+    }
+  }, []);
 
   const canvasRef = useRef<CanvasStageRef>(null);
 
@@ -329,7 +362,8 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   // Adiciona elemento personalizado ao canvas com proporção calculada
   const handleAddCustomElement = (item: CustomUploadItem) => {
     const maxZ = elements.reduce((max, el) => Math.max(max, el.zIndex), 0);
-    const offset = Math.floor(Math.random() * 40) - 20;
+    // Cascata determinística: evita que itens caiam empilhados no mesmo ponto
+    const cascade = ((elements.length % 5) - 2) * 30;
 
     const origW = item.width || 200;
     const origH = item.height || 200;
@@ -351,8 +385,8 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
       name: item.name,
       shapeType: 'custom-image',
       imageUrl: item.dataUrl,
-      x: 450 + offset,
-      y: 350 + offset,
+      x: 450 + cascade,
+      y: 350 + cascade,
       width: defW,
       height: defH,
       rotation: 0,
@@ -370,7 +404,8 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   // Adicionar elemento da biblioteca padrão ao centro
   const handleAddElement = (libItem: LibraryElement) => {
     const maxZ = elements.reduce((max, el) => Math.max(max, el.zIndex), 0);
-    const offset = Math.floor(Math.random() * 40) - 20;
+    // Cascata determinística: evita que itens caiam empilhados no mesmo ponto
+    const cascade = ((elements.length % 5) - 2) * 30;
     const isText = libItem.shapeType === 'text';
 
     const newElement: CanvasElement = {
@@ -378,8 +413,8 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
       elementId: libItem.id,
       name: libItem.name,
       shapeType: libItem.shapeType,
-      x: 450 + offset,
-      y: 350 + offset,
+      x: 450 + cascade,
+      y: 350 + cascade,
       width: libItem.defaultWidth,
       height: libItem.defaultHeight,
       rotation: 0,
@@ -692,6 +727,26 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
         limitData={limitData}
       />
 
+      {/* Faixa discreta de onboarding para usuário novo */}
+      {!isPreviewMode && showOnboarding && (
+        <div className="w-full bg-orange-50/70 border-b border-orange-100 px-4 py-2 text-[11px] sm:text-xs text-orange-900/80 flex items-center justify-between gap-3 z-30">
+          <span className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+            <span className="truncate sm:whitespace-normal">
+              Comece aqui: clique em um painel, envie uma arte e gere a imagem realista.
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={handleDismissOnboarding}
+            title="Dispensar dica"
+            className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-orange-400 hover:text-orange-700 hover:bg-orange-100 active:scale-95 transition-colors cursor-pointer font-bold"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Alerta de Erro, se houver */}
       {error && (
         <div className="w-full bg-red-50 border-b border-red-200 px-4 py-2 text-xs text-red-700 flex items-center justify-between z-40">
@@ -804,6 +859,11 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
         )}
 
       </div>
+
+      {/* Barra de Adição Rápida no Celular (1 toque = item no canvas) */}
+      {!isPreviewMode && !selectedElement && (
+        <MobileQuickAdd items={QUICK_ADD_ITEMS} onQuickAdd={handleAddElement} />
+      )}
 
       {/* Ações Rápidas Flutuantes no Celular quando um item está selecionado */}
       {!isPreviewMode && selectedElement && (
