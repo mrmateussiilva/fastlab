@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
+import RegisterSW from "@/components/pwa/register-sw";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,9 +19,23 @@ const newsreader = Newsreader({
   style: ["normal", "italic"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#EA580C",
+};
+
 export const metadata: Metadata = {
   title: "FestaLab - Do projeto à realidade",
   description: "Transforme seu projeto de festa em uma apresentação fotorealista em segundos.",
+  applicationName: "FestaLab",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "FestaLab",
+  },
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({
@@ -33,7 +48,10 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#FAFAF8] text-zinc-900">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#FAFAF8] text-zinc-900">
+        {children}
+        <RegisterSW />
+      </body>
     </html>
   );
 }

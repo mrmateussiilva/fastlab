@@ -21,6 +21,7 @@ import ResultComparison from '../result-comparison';
 import { CanvasStageRef } from './canvas-stage';
 import { ZoomIn, ZoomOut, RotateCcw, Plus, Building2, Sliders, Sparkles } from 'lucide-react';
 import { useGenerationLimit } from '@/hooks/use-generation-limit';
+import { useOnline } from '@/hooks/use-online';
 import GenerationLimitBadge from '../generation-limit-badge';
 import MobileSheet from './mobile-sheet';
 import MobileQuickActions from './mobile-quick-actions';
@@ -133,6 +134,17 @@ const QUICK_ADD_ITEMS = ELEMENT_LIBRARY.filter((el) => QUICK_ADD_IDS.includes(el
 
 export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const limitData = useGenerationLimit();
+  const isOnline = useOnline();
+
+  const handleOpenGenerateModal = useCallback(() => {
+    if (!isOnline) {
+      setError(
+        'Sem internet: a geração de imagem exige conexão. A edição do projeto continua funcionando offline.'
+      );
+      return;
+    }
+    setIsGenerateModalOpen(true);
+  }, [isOnline]);
 
   // Carrega estado salvo do localStorage com fallback
   const [elements, setElements] = useState<CanvasElement[]>(() => {
@@ -598,6 +610,11 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   // Gerar Imagem Realista a partir do Canvas com Opções
   const handleGenerateRealistic = async (options: RealisticPromptOptions) => {
     if (!canvasRef.current) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setError('Sem internet: a geração de imagem exige conexão. Tente novamente quando estiver online.');
+      setIsGenerateModalOpen(false);
+      return;
+    }
     setSelectedId(null);
     setIsGenerating(true);
     setError(null);
@@ -682,10 +699,10 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
             resultImage={realisticResultUrl}
             originalLabel="Mockup montado"
             isGenerating={isGenerating}
-            onRegenerate={() => setIsGenerateModalOpen(true)}
+            onRegenerate={handleOpenGenerateModal}
             onBack={() => setRealisticResultUrl(null)}
             backLabel="Voltar ao editor"
-            isRegenerateDisabled={limitData.remaining === 0 || limitData.globalLimitReached}
+            isRegenerateDisabled={limitData.remaining === 0 || limitData.globalLimitReached || !isOnline}
             limitBadge={<GenerationLimitBadge limitData={limitData} compact />}
           />
         </div>
@@ -712,7 +729,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
         onProjectNameChange={setProjectName}
         onBack={onBackToHome}
         onExport={handleExportMockup}
-        onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
+        onOpenGenerateModal={handleOpenGenerateModal}
         isGenerating={isGenerating}
         elementCount={elements.length}
         canUndo={historyIndex > 0}
@@ -726,6 +743,15 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
         }}
         limitData={limitData}
       />
+
+      {/* Faixa de status offline */}
+      {!isOnline && (
+        <div className="w-full bg-amber-50 border-b border-amber-200 px-4 py-2 text-[11px] sm:text-xs text-amber-800 flex items-center justify-between z-40">
+          <span>
+            Você está offline. A edição funciona normalmente — a geração de imagem exige internet.
+          </span>
+        </div>
+      )}
 
       {/* Faixa discreta de onboarding para usuário novo */}
       {!isPreviewMode && showOnboarding && (
@@ -884,7 +910,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
           onOpenItems={() => setMobileSheet('items')}
           onOpenEnvironment={() => setMobileSheet('environment')}
           onOpenProperties={() => setMobileSheet('properties')}
-          onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
+          onOpenGenerateModal={handleOpenGenerateModal}
           hasSelectedElement={Boolean(selectedElement)}
           elementCount={elements.length}
           isGenerating={isGenerating}

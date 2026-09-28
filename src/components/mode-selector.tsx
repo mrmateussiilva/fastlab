@@ -11,6 +11,7 @@ import {
   Move
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import InstallPrompt from '@/components/pwa/install-prompt';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'upload' | 'builder') => void;
@@ -383,6 +384,8 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
           </p>
         </div>
       </footer>
+
+      <InstallPrompt />
 
     </div>
   );
