@@ -141,32 +141,6 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const [isARModeOpen, setIsARModeOpen] = useState(false);
   const [arImageUrl, setArImageUrl] = useState<string | null>(null);
 
-  const handleOpenGenerateModal = useCallback(() => {
-    if (!isOnline) {
-      setError(
-        'Sem internet: a geração de imagem exige conexão. A edição do projeto continua funcionando offline.'
-      );
-      return;
-    }
-    setIsGenerateModalOpen(true);
-  }, [isOnline]);
-
-  const handleOpenARMode = useCallback(() => {
-    if (!canvasRef.current) return;
-    setSelectedId(null);
-    setMobileSheet(null);
-    
-    setTimeout(() => {
-      const dataUrl = canvasRef.current?.exportImage();
-      if (dataUrl) {
-        setArImageUrl(dataUrl);
-        setIsARModeOpen(true);
-      } else {
-        setError('Erro ao preparar imagem para AR.');
-      }
-    }, 60);
-  }, []);
-
   // Carrega estado salvo do localStorage com fallback
   const [elements, setElements] = useState<CanvasElement[]>(() => {
     if (typeof window === 'undefined') return INITIAL_ELEMENTS;
@@ -213,6 +187,32 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const [mobileSheet, setMobileSheet] = useState<'items' | 'environment' | 'properties' | null>(null);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+
+  const handleOpenGenerateModal = useCallback(() => {
+    if (!isOnline) {
+      setError(
+        'Sem internet: a geração de imagem exige conexão. A edição do projeto continua funcionando offline.'
+      );
+      return;
+    }
+    setIsGenerateModalOpen(true);
+  }, [isOnline]);
+
+  const handleOpenARMode = useCallback(() => {
+    if (!canvasRef.current) return;
+    setSelectedId(null);
+    setMobileSheet(null);
+    
+    setTimeout(() => {
+      const dataUrl = canvasRef.current?.exportImage();
+      if (dataUrl) {
+        setArImageUrl(dataUrl);
+        setIsARModeOpen(true);
+      } else {
+        setError('Erro ao preparar imagem para AR.');
+      }
+    }, 60);
+  }, []);
 
   // Faixa de onboarding: exibida até o usuário dispensar (persistido)
   const [showOnboarding, setShowOnboarding] = useState(() => {
@@ -1042,6 +1042,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
       {isARModeOpen && (
         <ARManager 
           imageUrl={arImageUrl} 
+          elements={elements}
           onClose={() => setIsARModeOpen(false)} 
         />
       )}

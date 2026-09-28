@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CanvasElement } from '@/lib/builder-elements';
 
 const ARViewer = dynamic(() => import('./ar-viewer'), { 
   ssr: false,
@@ -27,9 +28,10 @@ function LoadingAR() {
 interface ARManagerProps {
   onClose: () => void;
   imageUrl: string | null;
+  elements: CanvasElement[];
 }
 
-export default function ARManager({ onClose, imageUrl }: ARManagerProps) {
+export default function ARManager({ onClose, imageUrl, elements }: ARManagerProps) {
   const [isSupported, setIsSupported] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -72,7 +74,7 @@ export default function ARManager({ onClose, imageUrl }: ARManagerProps) {
       </button>
 
       {isSupported ? (
-        <ARViewer imageUrl={imageUrl} onClose={onClose} />
+        <ARViewer imageUrl={imageUrl} elements={elements} onClose={onClose} />
       ) : (
         <ARFallback imageUrl={imageUrl} />
       )}

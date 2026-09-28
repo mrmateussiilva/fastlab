@@ -3,13 +3,73 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
+import { CanvasElement } from '@/lib/builder-elements';
 
 interface ARViewerProps {
   imageUrl: string;
+  elements: CanvasElement[];
   onClose: () => void;
 }
 
-export default function ARViewer({ imageUrl, onClose }: ARViewerProps) {
+function createMeshForElement(el: CanvasElement, textureLoader: THREE.TextureLoader): THREE.Object3D {
+  const pxToM = 0.005; // 1px = 5mm. 200px = 1m
+  const w = el.width * pxToM;
+  const h = el.height * pxToM;
+  const depth = 0.05; // 5cm
+  
+  const x3d = (el.x + el.width / 2 - 500) * pxToM;
+  const y3d = (560 - (el.y + el.height) + el.height / 2) * pxToM;
+  const z3d = ((el.zIndex || 0) * 0.02); // 2cm depth between layers
+
+  let geometry: THREE.BufferGeometry;
+  let material: THREE.Material;
+
+  const color = new THREE.Color(el.fill !== 'transparent' ? el.fill : '#ffffff');
+
+  if (el.shapeType.includes('cylinder') || el.shapeType.includes('round')) {
+    if (el.shapeType.includes('cylinder')) {
+      geometry = new THREE.CylinderGeometry(w/2, w/2, h, 32);
+    } else {
+      geometry = new THREE.CylinderGeometry(w/2, w/2, depth, 32);
+      geometry.rotateX(Math.PI / 2);
+    }
+    
+    material = new THREE.MeshStandardMaterial({ 
+      color,
+      transparent: el.opacity < 1,
+      opacity: el.opacity,
+      roughness: 0.7,
+      metalness: 0.1
+    });
+  } else if (el.shapeType.includes('rect') || el.shapeType.includes('box') || el.shapeType.includes('table') || el.shapeType.includes('arch') || el.shapeType.includes('wavy')) {
+    const d = el.shapeType.includes('table') ? w/1.5 : depth; // mesas são mais fundas
+    geometry = new THREE.BoxGeometry(w, h, d);
+    
+    // Se for um arch (Painel Arqueado) tentar simular se der, mas um box já ajuda com a textura
+    material = new THREE.MeshStandardMaterial({ 
+      color,
+      transparent: el.opacity < 1,
+      opacity: el.opacity,
+      roughness: 0.9
+    });
+  } else {
+    // baloes, texto, imagens -> Plano
+    geometry = new THREE.PlaneGeometry(w, h);
+    if (el.imageUrl) {
+      const tex = textureLoader.load(el.imageUrl);
+      material = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+    } else {
+      material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: el.opacity, side: THREE.DoubleSide });
+    }
+  }
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x3d, y3d, z3d);
+  mesh.rotation.z = -el.rotation * (Math.PI / 180); 
+  return mesh;
+}
+
+export default function ARViewer({ imageUrl, elements, onClose }: ARViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaced, setIsPlaced] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -23,7 +83,7 @@ export default function ARViewer({ imageUrl, onClose }: ARViewerProps) {
     let reticle: THREE.Mesh;
     let hitTestSource: XRHitTestSource | null = null;
     let hitTestSourceRequested = false;
-    let mockupMesh: THREE.Mesh | null = null;
+    let sceneGroup: THREE.Group | null = null;
 
     const init = () => {
       scene = new THREE.Scene();
@@ -52,27 +112,18 @@ export default function ARViewer({ imageUrl, onClose }: ARViewerProps) {
       reticle.visible = false;
       scene.add(reticle);
 
-      // Load Texture
+      // Load Elements
       const textureLoader = new THREE.TextureLoader();
-      textureLoader.load(imageUrl, (texture) => {
-        const aspect = texture.image.width / texture.image.height;
-        // Assume physical width is roughly 2.5 meters
-        const planeWidth = 2.5; 
-        const planeHeight = planeWidth / aspect;
-        
-        const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
-        const material = new THREE.MeshBasicMaterial({ 
-          map: texture, 
-          transparent: true,
-          side: THREE.DoubleSide
-        });
-        mockupMesh = new THREE.Mesh(geometry, material);
-        // Translate to stand on the floor
-        geometry.translate(0, planeHeight / 2, 0); 
-        mockupMesh.visible = false;
-        scene.add(mockupMesh);
-        setIsReady(true);
+      sceneGroup = new THREE.Group();
+      
+      elements.forEach(el => {
+        const mesh = createMeshForElement(el, textureLoader);
+        sceneGroup!.add(mesh);
       });
+      
+      sceneGroup.visible = false;
+      scene.add(sceneGroup);
+      setIsReady(true);
 
       // Controller
       const controller = renderer.xr.getController(0);
@@ -80,12 +131,12 @@ export default function ARViewer({ imageUrl, onClose }: ARViewerProps) {
       scene.add(controller);
 
       function onSelect() {
-        if (reticle.visible && mockupMesh && !mockupMesh.visible) {
-          mockupMesh.position.setFromMatrixPosition(reticle.matrix);
-          // Look at the camera on the Y axis
-          const target = new THREE.Vector3(camera.position.x, mockupMesh.position.y, camera.position.z);
-          mockupMesh.lookAt(target);
-          mockupMesh.visible = true;
+        if (reticle.visible && sceneGroup && !sceneGroup.visible) {
+          sceneGroup.position.setFromMatrixPosition(reticle.matrix);
+          // Fazer o grupo olhar para a câmera no eixo Y
+          const target = new THREE.Vector3(camera.position.x, sceneGroup.position.y, camera.position.z);
+          sceneGroup.lookAt(target);
+          sceneGroup.visible = true;
           reticle.visible = false;
           setIsPlaced(true);
         }
@@ -108,7 +159,7 @@ export default function ARViewer({ imageUrl, onClose }: ARViewerProps) {
     };
 
     const render = (timestamp: number, frame?: XRFrame) => {
-      if (frame && mockupMesh && !mockupMesh.visible) {
+      if (frame && sceneGroup && !sceneGroup.visible) {
         const referenceSpace = renderer.xr.getReferenceSpace();
         const session = renderer.xr.getSession();
 
