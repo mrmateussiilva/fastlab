@@ -12,12 +12,23 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import InstallPrompt from '@/components/pwa/install-prompt';
+import { FESTA_TEMPLATES, FestaTemplate } from '@/lib/templates';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'upload' | 'builder') => void;
 }
 
 export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
+  const handleSelectTemplate = (template: FestaTemplate | null) => {
+    if (template) {
+      localStorage.setItem('festalab_project_elements', JSON.stringify(template.elements));
+      localStorage.setItem('festalab_environment_state', JSON.stringify(template.environment));
+    } else {
+      localStorage.removeItem('festalab_project_elements');
+      localStorage.removeItem('festalab_environment_state');
+    }
+    onSelectMode('builder');
+  };
   const scrollToHowItWorks = () => {
     const el = document.getElementById('como-funciona');
     if (el) {
@@ -51,7 +62,7 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
             </button>
             <Button
               size="sm"
-              onClick={() => onSelectMode('builder')}
+              onClick={() => handleSelectTemplate(null)}
               className="h-8 sm:h-9 px-3.5 sm:px-4 text-xs sm:text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white shadow-2xs transition-colors cursor-pointer font-sans"
             >
               Testar grátis
@@ -85,7 +96,7 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
         {/* CTAs */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
           <Button
-            onClick={() => onSelectMode('builder')}
+            onClick={() => handleSelectTemplate(null)}
             className="w-full sm:w-auto h-12 px-7 text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white shadow-xs transition-all hover:scale-[1.01] cursor-pointer font-sans"
           >
             Criar projeto grátis
@@ -223,11 +234,11 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6 max-w-4xl mx-auto mb-10">
           
           {/* Card 1: Monte do zero */}
           <div
-            onClick={() => onSelectMode('builder')}
+            onClick={() => handleSelectTemplate(null)}
             className="group bg-white rounded-2xl border border-zinc-200/80 p-6 sm:p-7 flex flex-col justify-between cursor-pointer transition-all duration-200 hover:border-zinc-400 hover:shadow-sm"
           >
             <div>
@@ -271,6 +282,32 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
             </div>
           </div>
 
+        </div>
+
+        {/* TEMPLATES */}
+        <div className="max-w-4xl mx-auto border-t border-zinc-200/80 pt-10">
+          <h3 className="font-serif text-xl sm:text-2xl font-normal tracking-tight text-zinc-950 mb-5">
+            Ou comece com um template
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {FESTA_TEMPLATES.map((template) => (
+              <div
+                key={template.id}
+                onClick={() => handleSelectTemplate(template)}
+                className="group bg-white rounded-xl border border-zinc-200 p-3 flex flex-col cursor-pointer hover:border-orange-300 hover:shadow-sm transition-all"
+              >
+                <div className={`w-full h-32 rounded-lg bg-gradient-to-br ${template.previewColor} mb-3 flex items-center justify-center overflow-hidden`}>
+                  <Sparkles className="w-6 h-6 text-white/50" />
+                </div>
+                <h4 className="text-sm font-semibold text-zinc-900 font-sans mb-1">
+                  {template.name}
+                </h4>
+                <p className="text-xs text-zinc-500 font-sans leading-tight">
+                  {template.description}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -353,7 +390,7 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
 
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button
-                onClick={() => onSelectMode('builder')}
+                onClick={() => handleSelectTemplate(null)}
                 className="w-full sm:w-auto h-12 px-8 text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white shadow-xs transition-all hover:scale-[1.01] cursor-pointer font-sans"
               >
                 Criar meu primeiro projeto
