@@ -40,6 +40,8 @@ interface ElementsSidebarProps {
   onRenameCustomUpload: (id: string, newName: string) => void;
   onAddCustomElement: (item: CustomUploadItem) => void;
   isUploadingItem?: boolean;
+  removingBgId?: string | null;
+  onRemoveBg?: (item: CustomUploadItem) => void;
   className?: string;
   onClose?: () => void;
 }
@@ -111,6 +113,8 @@ export default function ElementsSidebar({
   onRenameCustomUpload,
   onAddCustomElement,
   isUploadingItem,
+  removingBgId,
+  onRemoveBg,
   onClose,
 }: ElementsSidebarProps) {
   const [activePanel, setActivePanel] = useState<ActivePanel>('paineis');
@@ -388,12 +392,35 @@ export default function ElementsSidebar({
                         )}
 
                         {/* Preview */}
-                        <div className="w-full h-20 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:8px_8px] bg-zinc-50 flex items-center justify-center p-2">
+                        <div className="w-full h-20 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:8px_8px] bg-zinc-50 flex items-center justify-center p-2 relative">
                           <img
                             src={item.dataUrl}
                             alt={item.name}
                             className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
                           />
+                          {/* Remove BG button - appears on hover */}
+                          {onRemoveBg && (
+                            <div className="absolute inset-0 flex items-end justify-center pb-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {removingBgId === item.id ? (
+                                <span className="flex items-center gap-1 bg-white/95 text-[9px] font-semibold text-orange-600 px-2 py-1 rounded-full shadow border border-orange-200">
+                                  <span className="w-2.5 h-2.5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin inline-block" />
+                                  Removendo...
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRemoveBg(item);
+                                  }}
+                                  title="Remover fundo com IA"
+                                  className="flex items-center gap-1 bg-white/95 text-[9px] font-semibold text-zinc-700 hover:text-orange-600 hover:border-orange-300 px-2 py-1 rounded-full shadow border border-zinc-200 cursor-pointer transition-colors"
+                                >
+                                  ✂️ Remover fundo
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Footer */}

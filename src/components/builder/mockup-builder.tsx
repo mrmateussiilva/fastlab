@@ -139,6 +139,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const limitData = useGenerationLimit();
   const isOnline = useOnline();
   const [isUploadingItem, setIsUploadingItem] = useState(false);
+  const [removingBgId, setRemovingBgId] = useState<string | null>(null);
 
   const [isARModeOpen, setIsARModeOpen] = useState(false);
   const [arImageUrl, setArImageUrl] = useState<string | null>(null);
@@ -337,7 +338,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const selectedElement = elements.find((el) => el.id === selectedId) || null;
 
   // Processa o upload de uma imagem personalizada
-  const handleUploadCustomItem = async (uploadedFile: File, category: CustomItemCategory = 'Extra') => {
+  const handleUploadCustomItem = (uploadedFile: File, category: CustomItemCategory = 'Extra') => {
     const validTypes = ['image/png', 'image/webp', 'image/jpeg'];
     if (!validTypes.includes(uploadedFile.type)) {
       setError('Formato inválido. Use PNG, WEBP ou JPG.');
@@ -349,62 +350,52 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
     }
 
     setIsUploadingItem(true);
-    
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (!dataUrl) { setIsUploadingItem(false); return; }
+
+      const img = new window.Image();
+      img.onload = () => {
+        const newItem: CustomUploadItem = {
+          id: `custom-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          name: uploadedFile.name.replace(/\.[^/.]+$/, ''),
+          category,
+          dataUrl,
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+          createdAt: Date.now(),
+        };
+        setCustomUploads((prev) => [newItem, ...prev]);
+        idbSave(newItem);
+        setIsUploadingItem(false);
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(uploadedFile);
+  };
+
+  // Remove o fundo de um item já salvo (a pedido do usuário)
+  const handleRemoveBg = async (item: CustomUploadItem) => {
+    setRemovingBgId(item.id);
     try {
-      // Remove background automatically
-      const processedBlob = await removeImageBackground(uploadedFile);
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        if (!dataUrl) return;
-
-        const img = new window.Image();
-        img.onload = () => {
-          const newItem: CustomUploadItem = {
-            id: `custom-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            name: uploadedFile.name.replace(/\.[^/.]+$/, ''),
-            category,
-            dataUrl,
-            width: img.naturalWidth,
-            height: img.naturalHeight,
-            createdAt: Date.now(),
-          };
-
-          setCustomUploads((prev) => [newItem, ...prev]);
-          idbSave(newItem);
-          setIsUploadingItem(false);
-        };
-        img.src = dataUrl;
-      };
-      reader.readAsDataURL(processedBlob);
+      const res = await fetch(item.dataUrl);
+      const blob = await res.blob();
+      const processedBlob = await removeImageBackground(blob);
+      const newDataUrl = await new Promise<string>((resolve) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result as string);
+        fr.readAsDataURL(processedBlob);
+      });
+      const updated = { ...item, dataUrl: newDataUrl };
+      setCustomUploads((prev) => prev.map((it) => (it.id === item.id ? updated : it)));
+      idbSave(updated);
     } catch (err) {
-      console.error('Error removing background:', err);
-      // Fallback to original image if background removal fails
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        if (!dataUrl) return;
-
-        const img = new window.Image();
-        img.onload = () => {
-          const newItem: CustomUploadItem = {
-            id: `custom-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            name: uploadedFile.name.replace(/\.[^/.]+$/, ''),
-            category,
-            dataUrl,
-            width: img.naturalWidth,
-            height: img.naturalHeight,
-            createdAt: Date.now(),
-          };
-
-          setCustomUploads((prev) => [newItem, ...prev]);
-          idbSave(newItem);
-          setIsUploadingItem(false);
-        };
-        img.src = dataUrl;
-      };
-      reader.readAsDataURL(uploadedFile);
+      console.error('BG removal failed:', err);
+      setError('Não foi possível remover o fundo. Tente novamente.');
+    } finally {
+      setRemovingBgId(null);
     }
   };
 
@@ -855,6 +846,8 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
               onRenameCustomUpload={handleRenameCustomUpload}
               onAddCustomElement={handleAddCustomElement}
               isUploadingItem={isUploadingItem}
+              removingBgId={removingBgId}
+              onRemoveBg={handleRemoveBg}
             />
           </div>
         )}
@@ -1015,9 +1008,9 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
           </div>
         </main>
 
-        {/* 3. Sidebar Direita: Propriedades / Ambiente (visível em Desktop) */}
-        {!isPreviewMode && (
-          <div className="hidden md:flex shrink-0">
+        {/* 3. Sidebar Direita: Propriedades (ONLY when element selected — Canva-style) */}
+        {!isPreviewMode && selectedElement && (
+          <div className="hidden md:flex shrink-0 animate-in slide-in-from-right-2 duration-150">
             <PropertiesSidebar
               selectedElement={selectedElement}
               onUpdateElement={(updated) => {
@@ -1097,6 +1090,8 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
             setMobileSheet(null);
           }}
           isUploadingItem={isUploadingItem}
+          removingBgId={removingBgId}
+          onRemoveBg={handleRemoveBg}
         />
       </MobileSheet>
 
