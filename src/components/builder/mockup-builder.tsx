@@ -1,6 +1,7 @@
 'use client';
 import { Button } from '@/components/ui/button';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { 
   CanvasElement, 
@@ -726,9 +727,14 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
         {/* Header da Comparação */}
         <header className="w-full border-b border-zinc-200/70 bg-[#FAFAF8]/90 backdrop-blur-xs sticky top-0 z-20">
           <div className="max-w-[1200px] mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-            <span className="font-serif text-xl sm:text-2xl font-normal tracking-tight text-zinc-950 select-none">
-              FestaLab
-            </span>
+            <Image
+              src="/logo-horizontal.png"
+              alt="FestaLab"
+              width={132}
+              height={32}
+              className="h-7 sm:h-8 w-auto object-contain"
+              priority
+            />
             <button
               type="button"
               onClick={() => setRealisticResultUrl(null)}

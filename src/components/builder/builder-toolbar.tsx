@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import {
   ArrowLeft,
   Download,
@@ -88,10 +89,14 @@ export default function BuilderToolbar({
 
         {/* Logo mark */}
         <div className="flex items-center gap-1.5 px-1">
-          <div className="w-7 h-7 rounded-lg bg-orange-600 flex items-center justify-center shrink-0">
-            <Sparkles className="w-3.5 h-3.5 text-white" />
-          </div>
-          <span className="font-semibold text-sm text-zinc-900 hidden sm:block tracking-tight">
+          <Image
+            src="/logo-icon.png"
+            alt="FestaLab"
+            width={28}
+            height={28}
+            className="w-7 h-7 object-contain shrink-0"
+          />
+          <span className="font-serif font-medium text-sm text-zinc-900 hidden sm:block tracking-tight">
             FestaLab
           </span>
         </div>

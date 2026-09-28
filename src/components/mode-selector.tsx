@@ -1,6 +1,8 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
+import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Sparkles, Wand2, Layers, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import InstallPrompt from '@/components/pwa/install-prompt';
@@ -35,9 +37,20 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
       {/* HEADER */}
       <header className="w-full border-b border-zinc-100 bg-white sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="font-serif text-2xl tracking-tight text-zinc-900 select-none font-medium">
-            FestaLab
-          </div>
+          <Link
+            href="/"
+            aria-label="FestaLab — início"
+            className="flex items-center transition-opacity hover:opacity-90 shrink-0"
+          >
+            <Image
+              src="/logo-horizontal.png"
+              alt="FestaLab"
+              width={165}
+              height={40}
+              className="h-8 sm:h-9 md:h-10 w-auto object-contain"
+              priority
+            />
+          </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-500">
             <button onClick={scrollToHowItWorks} className="hover:text-zinc-900 transition-colors cursor-pointer">Como funciona</button>
             <button onClick={() => {
@@ -253,11 +266,21 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
 
       {/* FOOTER */}
       <footer className="w-full bg-white border-t border-zinc-100 py-8 mt-auto">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-sm text-zinc-500">
-          <div className="font-serif text-lg font-medium text-zinc-900">
-            FestaLab
-          </div>
-          <div className="mt-4 md:mt-0">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-sm text-zinc-500 gap-4">
+          <Link
+            href="/"
+            aria-label="FestaLab — início"
+            className="flex items-center transition-opacity hover:opacity-90"
+          >
+            <Image
+              src="/logo-horizontal.png"
+              alt="FestaLab"
+              width={116}
+              height={28}
+              className="h-7 w-auto object-contain"
+            />
+          </Link>
+          <div className="text-xs text-zinc-400">
             Estúdio digital para profissionais de decoração.
           </div>
         </div>
