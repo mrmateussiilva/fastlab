@@ -889,6 +889,11 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
             <ThreeDViewer
               elements={elements}
               environment={environment}
+              selectedId={selectedId}
+              onSelectElement={setSelectedId}
+              onUpdateElement={handleUpdateElement}
+              onDuplicateElement={handleDuplicate}
+              onDeleteElement={handleDelete}
               onClose={() => setViewMode('2d')}
             />
           </main>
