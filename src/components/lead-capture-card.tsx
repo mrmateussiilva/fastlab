@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { MessageCircle, Loader2, Check, X } from 'lucide-react';
 import { formatWhatsapp, isValidEmail, isValidWhatsapp, normalizeWhatsapp } from '@/lib/lead-validation';
 
@@ -168,7 +169,15 @@ export default function LeadCaptureCard() {
           className="mt-0.5 w-3.5 h-3.5 accent-orange-600 cursor-pointer"
         />
         <span className="text-[10px] sm:text-[11px] text-zinc-500 font-sans leading-relaxed">
-          Concordo em receber contato do FestaLab pelo WhatsApp ou e-mail (LGPD).
+          Concordo em receber contato do FestaLab pelo WhatsApp ou e-mail e aceito a{' '}
+          <Link
+            href="/privacidade"
+            target="_blank"
+            className="underline text-orange-700 hover:text-orange-800"
+          >
+            Política de Privacidade
+          </Link>
+          .
         </span>
       </label>
 
