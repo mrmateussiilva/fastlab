@@ -33,6 +33,7 @@ export default function MobileBottomNav({
     limitData?.remaining === 0 ||
     limitData?.globalLimitReached;
 
+  return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-zinc-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-2 py-2 flex items-center justify-between gap-1 select-none">
       
       {/* 1. Botão Ambiente */}
