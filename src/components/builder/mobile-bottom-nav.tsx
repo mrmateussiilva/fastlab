@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus, Building2, Sliders, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Building2, Sliders, Sparkles, Loader2, Box } from 'lucide-react';
 import { GenerationLimitData } from '@/hooks/use-generation-limit';
 
 interface MobileBottomNavProps {
@@ -9,6 +9,7 @@ interface MobileBottomNavProps {
   onOpenEnvironment: () => void;
   onOpenProperties: () => void;
   onOpenGenerateModal: () => void;
+  onOpenARMode: () => void;
   hasSelectedElement: boolean;
   elementCount: number;
   isGenerating: boolean;
@@ -20,6 +21,7 @@ export default function MobileBottomNav({
   onOpenEnvironment,
   onOpenProperties,
   onOpenGenerateModal,
+  onOpenARMode,
   hasSelectedElement,
   elementCount,
   isGenerating,
@@ -45,6 +47,23 @@ export default function MobileBottomNav({
         </div>
         <span className="text-[10px] font-medium font-sans mt-0.5">
           Adicionar
+        </span>
+      </button>
+
+      {/* Botão AR */}
+      <button
+        type="button"
+        onClick={onOpenARMode}
+        disabled={elementCount === 0 || isGenerating}
+        className={`flex-1 flex flex-col items-center justify-center py-1 rounded-xl transition-colors cursor-pointer ${
+          elementCount === 0 || isGenerating ? 'text-zinc-400 opacity-60 cursor-not-allowed' : 'text-zinc-700 hover:text-zinc-950 active:bg-zinc-100'
+        }`}
+      >
+        <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-800">
+          <Box className="w-4 h-4" />
+        </div>
+        <span className="text-[10px] font-medium font-sans mt-0.5">
+          Ver AR
         </span>
       </button>
 

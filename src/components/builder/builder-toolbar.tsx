@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Download, Sparkles, Loader2, Undo2, Redo2, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Download, Sparkles, Loader2, Undo2, Redo2, Eye, EyeOff, Box } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GenerationLimitData } from '@/hooks/use-generation-limit';
 import GenerationLimitBadge from '@/components/generation-limit-badge';
@@ -11,6 +11,7 @@ interface BuilderToolbarProps {
   onBack: () => void;
   onExport: () => void;
   onOpenGenerateModal: () => void;
+  onOpenARMode: () => void;
   isGenerating: boolean;
   elementCount: number;
   canUndo: boolean;
@@ -28,6 +29,7 @@ export default function BuilderToolbar({
   onBack,
   onExport,
   onOpenGenerateModal,
+  onOpenARMode,
   isGenerating,
   elementCount,
   canUndo,
@@ -146,6 +148,18 @@ export default function BuilderToolbar({
           >
             <Download className="w-3.5 h-3.5 sm:mr-1.5" />
             <span className="hidden sm:inline">Exportar mockup</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenARMode}
+            disabled={elementCount === 0 || isGenerating}
+            title="Ver no Ambiente (AR)"
+            className="h-8 px-2 sm:px-3 text-xs font-medium text-zinc-700 border-zinc-200/80 bg-white hover:bg-zinc-50 cursor-pointer font-sans"
+          >
+            <Box className="w-3.5 h-3.5 sm:mr-1.5" />
+            <span className="hidden sm:inline">AR</span>
           </Button>
 
           <Button

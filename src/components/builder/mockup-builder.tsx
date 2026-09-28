@@ -28,6 +28,7 @@ import MobileSheet from './mobile-sheet';
 import MobileQuickActions from './mobile-quick-actions';
 import MobileQuickAdd from './mobile-quick-add';
 import MobileBottomNav from './mobile-bottom-nav';
+import ARManager from '../ar/ar-manager';
 
 // Importação dinâmica do CanvasStage para evitar erros de SSR com Konva/Canvas
 const CanvasStage = dynamic(() => import('./canvas-stage'), {
@@ -137,6 +138,9 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const limitData = useGenerationLimit();
   const isOnline = useOnline();
 
+  const [isARModeOpen, setIsARModeOpen] = useState(false);
+  const [arImageUrl, setArImageUrl] = useState<string | null>(null);
+
   const handleOpenGenerateModal = useCallback(() => {
     if (!isOnline) {
       setError(
@@ -146,6 +150,22 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
     }
     setIsGenerateModalOpen(true);
   }, [isOnline]);
+
+  const handleOpenARMode = useCallback(() => {
+    if (!canvasRef.current) return;
+    setSelectedId(null);
+    setMobileSheet(null);
+    
+    setTimeout(() => {
+      const dataUrl = canvasRef.current?.exportImage();
+      if (dataUrl) {
+        setArImageUrl(dataUrl);
+        setIsARModeOpen(true);
+      } else {
+        setError('Erro ao preparar imagem para AR.');
+      }
+    }, 60);
+  }, []);
 
   // Carrega estado salvo do localStorage com fallback
   const [elements, setElements] = useState<CanvasElement[]>(() => {
@@ -188,7 +208,6 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const [realisticResultUrl, setRealisticResultUrl] = useState<string | null>(null);
   const [customUploads, setCustomUploads] = useState<CustomUploadItem[]>([]);
   
-  // Modos de visualização, zoom e modal de opções
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [mobileSheet, setMobileSheet] = useState<'items' | 'environment' | 'properties' | null>(null);
@@ -468,7 +487,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
     const nextElements = [...elements, duplicated];
     commitChange(nextElements);
     setSelectedId(duplicated.id);
-  }, [selectedElement, elements, commitChange]);
+  }, [selectedElement, elements, commitChange, setSelectedId]);
 
   // Excluir elemento selecionado
   const handleDelete = useCallback(() => {
@@ -476,7 +495,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
     const nextElements = elements.filter((el) => el.id !== selectedId);
     commitChange(nextElements);
     setSelectedId(null);
-  }, [selectedId, elements, commitChange]);
+  }, [selectedId, elements, commitChange, setSelectedId]);
 
   // Ordem de camadas: Trazer para frente (Topo)
   const handleBringToFront = () => {
@@ -732,6 +751,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
         onBack={onBackToHome}
         onExport={handleExportMockup}
         onOpenGenerateModal={handleOpenGenerateModal}
+        onOpenARMode={handleOpenARMode}
         isGenerating={isGenerating}
         elementCount={elements.length}
         canUndo={historyIndex > 0}
@@ -913,6 +933,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
           onOpenEnvironment={() => setMobileSheet('environment')}
           onOpenProperties={() => setMobileSheet('properties')}
           onOpenGenerateModal={handleOpenGenerateModal}
+          onOpenARMode={handleOpenARMode}
           hasSelectedElement={Boolean(selectedElement)}
           elementCount={elements.length}
           isGenerating={isGenerating}
@@ -1016,6 +1037,14 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
         isGenerating={isGenerating}
         limitData={limitData}
       />
+
+      {/* AR Manager */}
+      {isARModeOpen && (
+        <ARManager 
+          imageUrl={arImageUrl} 
+          onClose={() => setIsARModeOpen(false)} 
+        />
+      )}
 
     </div>
   );
