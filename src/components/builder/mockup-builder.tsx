@@ -1021,6 +1021,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
           <div className="hidden md:flex shrink-0 animate-in slide-in-from-right-2 duration-150">
             <PropertiesSidebar
               selectedElement={selectedElement}
+              onClose={() => setSelectedId(null)}
               onUpdateElement={(updated) => {
                 if (selectedId) handleUpdateElement(selectedId, updated);
               }}
