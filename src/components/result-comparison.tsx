@@ -38,7 +38,7 @@ export default function ResultComparison({
         a.download = 'festalab-render.png';
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        a.remove();
       } else {
         const response = await fetch(resultImage);
         const blob = await response.blob();
@@ -48,7 +48,7 @@ export default function ResultComparison({
         a.download = 'festalab-render.png';
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        a.remove();
         setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
       }
     } catch {

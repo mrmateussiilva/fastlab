@@ -74,6 +74,7 @@ export default function ThreeDViewer({
   className = '',
 }: ThreeDViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasMountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -232,7 +233,8 @@ export default function ThreeDViewer({
   // -------------------------------------------------------------
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    const canvasMount = canvasMountRef.current;
+    if (!container || !canvasMount) return;
 
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
@@ -263,7 +265,7 @@ export default function ThreeDViewer({
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
 
-    container.replaceChildren(renderer.domElement);
+    canvasMount.replaceChildren(renderer.domElement);
 
     // OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -431,6 +433,9 @@ export default function ThreeDViewer({
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       controls.dispose();
       renderer.dispose();
+      if (canvasMount && canvasMount.contains(renderer.domElement)) {
+        canvasMount.removeChild(renderer.domElement);
+      }
     };
   }, []); // Monta uma vez só
 
@@ -513,8 +518,8 @@ export default function ThreeDViewer({
     const dy = Math.abs(e.clientY - handlePointerDownPos.current.y);
     if (dx > 5 || dy > 5) return; // Arrastou câmera, não foi clique
 
-    if (!containerRef.current || !cameraRef.current || !sceneRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
+    if (!canvasMountRef.current || !cameraRef.current || !sceneRef.current) return;
+    const rect = canvasMountRef.current.getBoundingClientRect();
     const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
@@ -927,14 +932,19 @@ export default function ThreeDViewer({
   return (
     <div 
       ref={containerRef}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
       className={`w-full h-full relative overflow-hidden select-none ${className}`}
     >
-      
+      {/* Viewport isolado exclusivamente para o canvas Three.js (sem nós filhos do React) */}
+      <div
+        ref={canvasMountRef}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        className="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing"
+      />
+
       {/* Loading overlay */}
       {!isLoaded && (
-        <div className="absolute inset-0 bg-[#F0EFEB] flex flex-col items-center justify-center gap-2 z-50">
+        <div className="absolute inset-0 bg-[#F0EFEB] flex flex-col items-center justify-center gap-2 z-50 pointer-events-none">
           <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-xs font-medium text-zinc-600 font-sans">Renderizando Estúdio 3D...</span>
         </div>

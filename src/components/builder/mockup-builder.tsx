@@ -673,7 +673,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
       a.download = `${projectName.toLowerCase().replace(/\s+/g, '-')}-mockup.png`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
     }, 60);
   };
 

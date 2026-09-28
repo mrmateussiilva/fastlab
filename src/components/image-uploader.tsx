@@ -114,7 +114,7 @@ export default function ImageUploader() {
     a.download = 'festalab-render.png';
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    a.remove();
   };
 
   return (
