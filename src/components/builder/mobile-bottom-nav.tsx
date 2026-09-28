@@ -10,6 +10,8 @@ interface MobileBottomNavProps {
   onOpenProperties: () => void;
   onOpenGenerateModal: () => void;
   onOpenARMode: () => void;
+  viewMode?: '2d' | '3d';
+  onToggleViewMode?: () => void;
   hasSelectedElement: boolean;
   elementCount: number;
   isGenerating: boolean;
@@ -22,6 +24,8 @@ export default function MobileBottomNav({
   onOpenProperties,
   onOpenGenerateModal,
   onOpenARMode,
+  viewMode = '2d',
+  onToggleViewMode,
   hasSelectedElement,
   elementCount,
   isGenerating,
@@ -46,17 +50,20 @@ export default function MobileBottomNav({
         <span className="text-[9px] font-medium font-sans">Ambiente</span>
       </button>
 
-      {/* 2. Botão AR */}
+      {/* 2. Botão 3D */}
       <button
         type="button"
-        onClick={onOpenARMode}
-        disabled={elementCount === 0 || isGenerating}
+        onClick={onToggleViewMode}
         className={`flex-1 flex flex-col items-center justify-center py-1 rounded-xl transition-colors cursor-pointer ${
-          elementCount === 0 || isGenerating ? 'text-zinc-400 opacity-50 cursor-not-allowed' : 'text-zinc-600 hover:text-zinc-950 active:bg-zinc-100'
+          viewMode === '3d' 
+            ? 'text-orange-600 font-semibold' 
+            : 'text-zinc-600 hover:text-zinc-950 active:bg-zinc-100'
         }`}
       >
-        <Box className="w-5 h-5 mb-1" />
-        <span className="text-[9px] font-medium font-sans">Ver AR</span>
+        <Box className={`w-5 h-5 mb-1 ${viewMode === '3d' ? 'text-orange-600' : ''}`} />
+        <span className="text-[9px] font-medium font-sans">
+          {viewMode === '3d' ? 'Voltar 2D' : 'Ver em 3D'}
+        </span>
       </button>
 
       {/* 3. Botão Adicionar (Centro, Destaque) */}

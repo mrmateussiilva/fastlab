@@ -42,6 +42,17 @@ const CanvasStage = dynamic(() => import('./canvas-stage'), {
   ),
 });
 
+// Importação dinâmica do ThreeDViewer para visualização 3D com Three.js
+const ThreeDViewer = dynamic(() => import('./three-d-viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex flex-col items-center justify-center bg-[#F0EFEB] text-xs text-zinc-500 font-sans gap-2">
+      <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      <span>Carregando estúdio 3D...</span>
+    </div>
+  ),
+});
+
 interface MockupBuilderProps {
   onBackToHome: () => void;
 }
@@ -144,6 +155,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
 
   const [isARModeOpen, setIsARModeOpen] = useState(false);
   const [arImageUrl, setArImageUrl] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
 
   // Carrega estado salvo do localStorage com fallback
   const [elements, setElements] = useState<CanvasElement[]>(() => {
@@ -806,6 +818,11 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
           setSelectedId(null);
           setIsPreviewMode(!isPreviewMode);
         }}
+        viewMode={viewMode}
+        onToggleViewMode={() => {
+          setSelectedId(null);
+          setViewMode((prev) => (prev === '2d' ? '3d' : '2d'));
+        }}
         limitData={limitData}
       />
 
@@ -850,7 +867,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
       <div className="flex-1 flex overflow-hidden relative">
         
         {/* 1. Sidebar Esquerda: Biblioteca de Itens & Uploads (visível em Desktop) */}
-        {!isPreviewMode && (
+        {!isPreviewMode && viewMode !== '3d' && (
           <div className="hidden md:flex shrink-0">
             <ElementsSidebar 
               onAddElement={handleAddElement}
@@ -866,20 +883,29 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
           </div>
         )}
 
-        {/* 2. Área Central: Canvas Interativo */}
-        <main className="flex-1 h-full relative overflow-hidden flex flex-col pb-16 md:pb-0"
-          style={{
-            backgroundColor: '#F0EEE9',
-            backgroundImage: `
-              linear-gradient(45deg, #E5E2DC 25%, transparent 25%),
-              linear-gradient(-45deg, #E5E2DC 25%, transparent 25%),
-              linear-gradient(45deg, transparent 75%, #E5E2DC 75%),
-              linear-gradient(-45deg, transparent 75%, #E5E2DC 75%)
-            `,
-            backgroundSize: '20px 20px',
-            backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
-          }}
-        >
+        {/* 2. Área Central: Canvas Interativo OU Vista 3D */}
+        {viewMode === '3d' ? (
+          <main className="flex-1 h-full relative overflow-hidden flex flex-col pb-16 md:pb-0 bg-[#F0EFEB]">
+            <ThreeDViewer
+              elements={elements}
+              environment={environment}
+              onClose={() => setViewMode('2d')}
+            />
+          </main>
+        ) : (
+          <main className="flex-1 h-full relative overflow-hidden flex flex-col pb-16 md:pb-0"
+            style={{
+              backgroundColor: '#F0EEE9',
+              backgroundImage: `
+                linear-gradient(45deg, #E5E2DC 25%, transparent 25%),
+                linear-gradient(-45deg, #E5E2DC 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #E5E2DC 75%),
+                linear-gradient(-45deg, transparent 75%, #E5E2DC 75%)
+              `,
+              backgroundSize: '20px 20px',
+              backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
+            }}
+          >
           <CanvasStage
             ref={canvasRef}
             elements={elements}
@@ -1021,9 +1047,10 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
             💡 Dica: Segure <kbd className="px-1.5 py-0.5 bg-white/80 border border-zinc-200 rounded font-mono text-[9px]">Espaço</kbd> para arrastar o cenário
           </div>
         </main>
+        )}
 
         {/* 3. Sidebar Direita: Propriedades (ONLY when element selected — Canva-style) */}
-        {!isPreviewMode && selectedElement && (
+        {!isPreviewMode && viewMode !== '3d' && selectedElement && (
           <div className="hidden md:flex shrink-0 animate-in slide-in-from-right-2 duration-150">
             <PropertiesSidebar
               selectedElement={selectedElement}
@@ -1073,6 +1100,11 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
           onOpenProperties={() => setMobileSheet('properties')}
           onOpenGenerateModal={handleOpenGenerateModal}
           onOpenARMode={handleOpenARMode}
+          viewMode={viewMode}
+          onToggleViewMode={() => {
+            setSelectedId(null);
+            setViewMode((prev) => (prev === '2d' ? '3d' : '2d'));
+          }}
           hasSelectedElement={Boolean(selectedElement)}
           elementCount={elements.length}
           isGenerating={isGenerating}

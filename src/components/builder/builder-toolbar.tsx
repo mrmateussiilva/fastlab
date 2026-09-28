@@ -35,6 +35,8 @@ interface BuilderToolbarProps {
   onRedo: () => void;
   isPreviewMode: boolean;
   onTogglePreview: () => void;
+  viewMode?: '2d' | '3d';
+  onToggleViewMode?: () => void;
   limitData?: GenerationLimitData;
 }
 
@@ -53,6 +55,8 @@ export default function BuilderToolbar({
   onRedo,
   isPreviewMode,
   onTogglePreview,
+  viewMode = '2d',
+  onToggleViewMode,
   limitData,
 }: BuilderToolbarProps) {
   const [isEditingName, setIsEditingName] = useState(false);
@@ -202,17 +206,34 @@ export default function BuilderToolbar({
           )}
         </button>
 
-        {/* AR */}
-        <button
-          type="button"
-          onClick={onOpenARMode}
-          disabled={elementCount === 0 || isGenerating}
-          title="Ver no Ambiente (AR)"
-          className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Box className="w-3.5 h-3.5" />
-          <span>AR</span>
-        </button>
+        {/* Toggle 2D / 3D */}
+        <div className="flex items-center bg-zinc-100 p-0.5 rounded-lg border border-zinc-200">
+          <button
+            type="button"
+            onClick={() => onToggleViewMode && viewMode !== '2d' && onToggleViewMode()}
+            title="Editor 2D"
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              viewMode === '2d'
+                ? 'bg-white text-zinc-900 shadow-xs'
+                : 'text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            2D
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleViewMode && viewMode !== '3d' && onToggleViewMode()}
+            title="Visualização 3D com rotação 360°"
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+              viewMode === '3d'
+                ? 'bg-orange-600 text-white shadow-xs'
+                : 'text-zinc-600 hover:text-orange-600'
+            }`}
+          >
+            <Box className="w-3.5 h-3.5" />
+            <span>3D</span>
+          </button>
+        </div>
 
         {/* Export dropdown button */}
         <button
