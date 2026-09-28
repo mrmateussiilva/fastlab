@@ -14,6 +14,7 @@ interface ResultComparisonProps {
   backLabel?: string;
   isRegenerateDisabled?: boolean;
   limitBadge?: React.ReactNode;
+  leadCaptureCard?: React.ReactNode;
 }
 
 export default function ResultComparison({
@@ -26,6 +27,7 @@ export default function ResultComparison({
   backLabel = 'Voltar',
   isRegenerateDisabled = false,
   limitBadge,
+  leadCaptureCard,
 }: ResultComparisonProps) {
   const handleDownload = async () => {
     if (!resultImage) return;
@@ -138,6 +140,12 @@ export default function ResultComparison({
         </div>
 
       </div>
+
+      {leadCaptureCard && (
+        <div className="mt-5 sm:mt-6">
+          {leadCaptureCard}
+        </div>
+      )}
     </div>
   );
 }

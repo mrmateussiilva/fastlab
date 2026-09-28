@@ -18,6 +18,7 @@ import ElementsSidebar from './elements-sidebar';
 import PropertiesSidebar from './properties-sidebar';
 import GenerationModal from './generation-modal';
 import ResultComparison from '../result-comparison';
+import LeadCaptureCard from '../lead-capture-card';
 import { CanvasStageRef } from './canvas-stage';
 import { ZoomIn, ZoomOut, RotateCcw, Plus, Building2, Sliders, Sparkles } from 'lucide-react';
 import { useGenerationLimit } from '@/hooks/use-generation-limit';
@@ -704,6 +705,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
             backLabel="Voltar ao editor"
             isRegenerateDisabled={limitData.remaining === 0 || limitData.globalLimitReached || !isOnline}
             limitBadge={<GenerationLimitBadge limitData={limitData} compact />}
+            leadCaptureCard={<LeadCaptureCard />}
           />
         </div>
 
