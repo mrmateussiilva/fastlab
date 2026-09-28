@@ -5,6 +5,7 @@ import { ArrowRight, Sparkles, Wand2, Layers, Image as ImageIcon } from 'lucide-
 import { Button } from '@/components/ui/button';
 import InstallPrompt from '@/components/pwa/install-prompt';
 import { FESTA_TEMPLATES, FestaTemplate } from '@/lib/templates';
+import ImageComparator from '@/components/image-comparator';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'upload' | 'builder') => void;
@@ -97,44 +98,24 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="font-serif text-3xl md:text-4xl font-medium tracking-tight text-zinc-900 mb-4">
-              Do esboço à realidade
+              Você monta a ideia. A IA ajuda a visualizar.
             </h2>
             <p className="text-zinc-500 text-lg max-w-2xl mx-auto">
-              A ferramenta transforma sua estrutura em uma referência criativa forte para alinhar expectativas com seu cliente.
+              Compare seu mockup com a visualização gerada a partir dele.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">
-                Seu mockup
-              </span>
-              <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
-                <img
-                  src="/demo-mockup.jpg"
-                  alt="Mockup do projeto criado no FestaLab"
-                  className="w-full h-auto object-contain"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-orange-600 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                Visualização com IA
-              </span>
-              <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
-                <img
-                  src="/demo-real.jpg"
-                  alt="Visualização fotorealista da festa gerada com IA"
-                  className="w-full h-auto object-contain"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="mt-6 text-center text-sm text-zinc-400">
-            *A visualização gerada serve como referência criativa de cores, iluminação e texturas, não prometendo fidelidade exata de medidas reais.
-          </div>
+          <ImageComparator 
+            pairs={[
+              {
+                id: '1',
+                name: 'Decoração Inicial',
+                mockupUrl: '/demo-mockup.jpg',
+                realUrl: '/demo-real.jpg',
+                isComparable: false // Definido como false porque o mockup atual tem UI ao redor. (Troque para true quando tiver uma imagem de mockup limpa com a mesma proporção)
+              }
+            ]}
+          />
         </div>
       </section>
 
