@@ -23,6 +23,10 @@ export type ShapeType =
   | 'balloon-small'
   | 'balloon-mid'
   | 'balloon-arch'
+  | 'balloon-arch-l'
+  | 'balloon-arch-half'
+  | 'balloon-cascade'
+  | 'balloon-cluster'
   | 'rug-rect'
   | 'rug-oval'
   | 'box'
@@ -104,6 +108,11 @@ export interface CanvasElement {
   topFill?: string;
   topImageSrc?: string;
   includeTopArtwork?: boolean;
+  // Propriedades específicas para Balões Orgânicos de Festa
+  balloonSecondaryFill?: string;
+  balloonTertiaryFill?: string;
+  balloonFinish?: 'matte' | 'chrome' | 'pearl';
+  balloonInvert?: boolean;
 }
 
 export const ARTWORK_SUPPORTED_SHAPES: ShapeType[] = [
@@ -316,7 +325,57 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
     defaultOpacity: 0.55,
   },
 
-  // Balões
+  // Balões Orgânicos
+  {
+    id: 'balloon-arch-l',
+    name: 'Arco em "L" Desconstruído',
+    category: 'baloes',
+    shapeType: 'balloon-arch-l',
+    defaultWidth: 280,
+    defaultHeight: 360,
+    defaultFill: '#E2B1B6',
+    defaultStroke: '#CCA0A5',
+  },
+  {
+    id: 'balloon-arch-half',
+    name: 'Guirlanda Superior (Topo)',
+    category: 'baloes',
+    shapeType: 'balloon-arch-half',
+    defaultWidth: 320,
+    defaultHeight: 180,
+    defaultFill: '#D5C7B7',
+    defaultStroke: '#C0B1A0',
+  },
+  {
+    id: 'balloon-cascade',
+    name: 'Cascata Vertical',
+    category: 'baloes',
+    shapeType: 'balloon-cascade',
+    defaultWidth: 160,
+    defaultHeight: 380,
+    defaultFill: '#C97A63',
+    defaultStroke: '#B56852',
+  },
+  {
+    id: 'balloon-cluster',
+    name: 'Cacho Orgânico',
+    category: 'baloes',
+    shapeType: 'balloon-cluster',
+    defaultWidth: 180,
+    defaultHeight: 180,
+    defaultFill: '#E2B1B6',
+    defaultStroke: '#CCA0A5',
+  },
+  {
+    id: 'balloon-arch',
+    name: 'Arco Desconstruído',
+    category: 'baloes',
+    shapeType: 'balloon-arch',
+    defaultWidth: 320,
+    defaultHeight: 280,
+    defaultFill: '#E7DFD5',
+    defaultStroke: '#D1C6BA',
+  },
   {
     id: 'balloon-small',
     name: 'Cacho Pequeno',
@@ -336,16 +395,6 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
     defaultHeight: 220,
     defaultFill: '#C97A63',
     defaultStroke: '#B56852',
-  },
-  {
-    id: 'balloon-arch',
-    name: 'Arco Desconstruído',
-    category: 'baloes',
-    shapeType: 'balloon-arch',
-    defaultWidth: 320,
-    defaultHeight: 280,
-    defaultFill: '#E7DFD5',
-    defaultStroke: '#D1C6BA',
   },
 
   // Tapetes

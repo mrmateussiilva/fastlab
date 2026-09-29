@@ -32,7 +32,8 @@ import {
   Sliders,
   ChevronDown,
   ChevronUp,
-  Scissors
+  Scissors,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { removeImageBackground } from '@/lib/bg-removal';
@@ -911,8 +912,146 @@ export default function PropertiesSidebar({
           </div>
         )}
 
-        {/* 3. Cores (se não for imagem) */}
-        {selectedElement.shapeType !== 'custom-image' && (
+        {/* 3. Cores e Acabamentos */}
+        {selectedElement.shapeType.includes('balloon') ? (
+          <div className="p-3.5 bg-orange-50/30 rounded-xl border border-orange-200/80 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-semibold text-zinc-800 tracking-wide font-sans flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-orange-600" />
+                Balões Orgânicos & Cores
+              </label>
+              {(selectedElement.shapeType === 'balloon-arch-l' || selectedElement.shapeType === 'balloon-arch') && (
+                <button
+                  type="button"
+                  disabled={isLocked}
+                  onClick={() => onUpdateElement({ balloonInvert: !selectedElement.balloonInvert })}
+                  className="text-[10px] text-orange-700 bg-orange-100 hover:bg-orange-200 px-2 py-0.5 rounded font-medium cursor-pointer transition-colors"
+                >
+                  Inverter Lado ⇄
+                </button>
+              )}
+            </div>
+
+            {/* Trio de Cores do Arco */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-medium text-zinc-600 font-sans block">
+                Trio de Cores da Composição:
+              </span>
+              <div className="grid grid-cols-3 gap-2 bg-white p-2 rounded-lg border border-zinc-200/80">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[9px] text-zinc-400 font-sans">Cor 1 (Base)</span>
+                  <div className="relative">
+                    <input
+                      type="color"
+                      disabled={isLocked}
+                      value={selectedElement.fill || '#E2B1B6'}
+                      onChange={(e) => onUpdateElement({ fill: e.target.value })}
+                      className="w-8 h-8 rounded-full border border-zinc-300 cursor-pointer p-0 overflow-hidden shadow-2xs"
+                      title="Cor 1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[9px] text-zinc-400 font-sans">Cor 2 (Meio)</span>
+                  <div className="relative">
+                    <input
+                      type="color"
+                      disabled={isLocked}
+                      value={selectedElement.balloonSecondaryFill || '#F5EBE0'}
+                      onChange={(e) => onUpdateElement({ balloonSecondaryFill: e.target.value })}
+                      className="w-8 h-8 rounded-full border border-zinc-300 cursor-pointer p-0 overflow-hidden shadow-2xs"
+                      title="Cor 2"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[9px] text-zinc-400 font-sans">Cor 3 (Destaque)</span>
+                  <div className="relative">
+                    <input
+                      type="color"
+                      disabled={isLocked}
+                      value={selectedElement.balloonTertiaryFill || '#D4AF37'}
+                      onChange={(e) => onUpdateElement({ balloonTertiaryFill: e.target.value })}
+                      className="w-8 h-8 rounded-full border border-zinc-300 cursor-pointer p-0 overflow-hidden shadow-2xs"
+                      title="Cor 3"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Paletas de Festa Populares */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-medium text-zinc-600 font-sans block">
+                Paletas Prontas de Festa:
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { name: 'Boho Terracota', c1: '#C97A63', c2: '#F5EBE0', c3: '#D4AF37' },
+                  { name: 'Safari Nude', c1: '#A8DADC', c2: '#D5C7B7', c3: '#FFFFFF' },
+                  { name: 'Jardim Candy', c1: '#F2D5D9', c2: '#FFFFFF', c3: '#D4AF37' },
+                  { name: 'Botânico Eucalipto', c1: '#84A98C', c2: '#F5EBE0', c3: '#D4AF37' },
+                  { name: 'Lavanda Glow', c1: '#582B7D', c2: '#C4B5FD', c3: '#D4AF37' },
+                  { name: 'Doce Sol', c1: '#F6BD60', c2: '#F5EBE0', c3: '#E76F51' },
+                ].map((palette) => (
+                  <button
+                    key={palette.name}
+                    type="button"
+                    disabled={isLocked}
+                    onClick={() =>
+                      onUpdateElement({
+                        fill: palette.c1,
+                        balloonSecondaryFill: palette.c2,
+                        balloonTertiaryFill: palette.c3,
+                      })
+                    }
+                    className="flex items-center gap-1.5 p-1.5 bg-white hover:bg-orange-50/50 rounded-lg border border-zinc-200 text-left transition-colors cursor-pointer"
+                  >
+                    <div className="flex -space-x-1 shrink-0">
+                      <span className="w-3.5 h-3.5 rounded-full border border-white shadow-2xs" style={{ backgroundColor: palette.c1 }} />
+                      <span className="w-3.5 h-3.5 rounded-full border border-white shadow-2xs" style={{ backgroundColor: palette.c2 }} />
+                      <span className="w-3.5 h-3.5 rounded-full border border-white shadow-2xs" style={{ backgroundColor: palette.c3 }} />
+                    </div>
+                    <span className="text-[10px] font-medium text-zinc-700 font-sans truncate">
+                      {palette.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Acabamento dos Balões */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-medium text-zinc-600 font-sans block">
+                Acabamento dos Balões:
+              </span>
+              <div className="grid grid-cols-3 gap-1 bg-white p-0.5 rounded-lg border border-zinc-200">
+                {[
+                  { id: 'matte', label: 'Fosco' },
+                  { id: 'chrome', label: 'Cromado ✨' },
+                  { id: 'pearl', label: 'Perolado' },
+                ].map((finish) => (
+                  <button
+                    key={finish.id}
+                    type="button"
+                    disabled={isLocked}
+                    onClick={() => onUpdateElement({ balloonFinish: finish.id as 'matte' | 'chrome' | 'pearl' })}
+                    className={`py-1 text-[11px] font-sans rounded transition-colors cursor-pointer ${
+                      (selectedElement.balloonFinish || 'matte') === finish.id
+                        ? 'bg-zinc-900 text-white font-medium shadow-2xs'
+                        : 'text-zinc-600 hover:text-zinc-900'
+                    }`}
+                  >
+                    {finish.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          selectedElement.shapeType !== 'custom-image' && (
           <div>
             <label className="text-[11px] font-semibold text-zinc-700 tracking-wide font-sans block mb-2">
               {selectedElement.shapeType === 'text' ? 'Cor do Texto' : 'Cor do Elemento'}
@@ -952,7 +1091,7 @@ export default function PropertiesSidebar({
               />
             </div>
           </div>
-        )}
+        ))}
 
         {/* 4. Opacidade */}
         <div>

@@ -84,10 +84,51 @@ function ElementMiniPreview({ shapeType, fill }: { shapeType: ShapeType; fill: s
       return <svg viewBox="0 0 40 40" className="w-10 h-10"><ellipse cx="20" cy="12" rx="10" ry="4" fill={fill} opacity="0.6" stroke="#4A90E2" strokeWidth="1.5" /><rect x="10" y="12" width="20" height="20" fill={fill} opacity="0.4" stroke="#4A90E2" strokeWidth="1" /><ellipse cx="20" cy="32" rx="10" ry="4" fill={fill} opacity="0.6" stroke="#4A90E2" strokeWidth="1.5" /></svg>;
     case 'acrylic-table':
       return <svg viewBox="0 0 40 40" className="w-10 h-10"><rect x="6" y="16" width="28" height="5" rx="1" fill={fill} opacity="0.6" stroke="#4A90E2" strokeWidth="1.5" /><line x1="10" y1="21" x2="10" y2="34" stroke="#4A90E2" strokeWidth="1.5" strokeDasharray="2,2" /><line x1="30" y1="21" x2="30" y2="34" stroke="#4A90E2" strokeWidth="1.5" strokeDasharray="2,2" /></svg>;
+    case 'balloon-arch-l':
+      return (
+        <svg viewBox="0 0 40 40" className="w-10 h-10">
+          <circle cx="10" cy="34" r="5" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="12" cy="25" r="5.5" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="11" cy="16" r="5" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="14" cy="9" r="6" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="23" cy="8" r="5.5" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="32" cy="9" r="5" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="16" cy="19" r="3.5" fill="#FFFFFF" opacity="0.6" />
+        </svg>
+      );
+    case 'balloon-arch-half':
+      return (
+        <svg viewBox="0 0 40 40" className="w-10 h-10">
+          <circle cx="7" cy="26" r="4.5" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="13" cy="17" r="5.5" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="20" cy="12" r="6" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="28" cy="16" r="5.5" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="33" cy="25" r="4.5" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="20" cy="19" r="3" fill="#FFFFFF" opacity="0.6" />
+        </svg>
+      );
+    case 'balloon-cascade':
+      return (
+        <svg viewBox="0 0 40 40" className="w-10 h-10">
+          <circle cx="20" cy="7" r="4" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="18" cy="15" r="5" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="23" cy="22" r="5.5" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="18" cy="29" r="6" fill={fill} stroke={stroke} strokeWidth="1" />
+          <circle cx="22" cy="35" r="5" fill={fill} stroke={stroke} strokeWidth="1" />
+        </svg>
+      );
+    case 'balloon-cluster':
     case 'balloon-small':
     case 'balloon-mid':
     case 'balloon-arch':
-      return <svg viewBox="0 0 40 40" className="w-10 h-10"><circle cx="16" cy="16" r="7" fill={fill} stroke={stroke} strokeWidth="1.2" /><circle cx="24" cy="18" r="8" fill={fill} stroke={stroke} strokeWidth="1.2" /><circle cx="18" cy="26" r="6" fill={fill} stroke={stroke} strokeWidth="1.2" /></svg>;
+      return (
+        <svg viewBox="0 0 40 40" className="w-10 h-10">
+          <circle cx="16" cy="16" r="7" fill={fill} stroke={stroke} strokeWidth="1.2" />
+          <circle cx="24" cy="18" r="8" fill={fill} stroke={stroke} strokeWidth="1.2" />
+          <circle cx="18" cy="26" r="6" fill={fill} stroke={stroke} strokeWidth="1.2" />
+          <circle cx="22" cy="23" r="3.5" fill="#FFFFFF" opacity="0.6" />
+        </svg>
+      );
     case 'rug-rect':
       return <svg viewBox="0 0 40 40" className="w-10 h-10"><rect x="6" y="20" width="28" height="10" rx="2" fill={fill} stroke={stroke} strokeWidth="1.5" strokeDasharray="3,1" /></svg>;
     case 'rug-oval':

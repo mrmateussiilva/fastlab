@@ -1722,38 +1722,71 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
     }
   }
 
-  // 6. BALÕES ORGÂNICOS (Arco & Cacho Realistas com Brilho Cromado)
+  // 6. BALÕES ORGÂNICOS (Arco & Cacho Realistas com 3 Cores e Acabamentos)
   else if (el.shapeType.includes('balloon')) {
-    const isArch = el.shapeType === 'balloon-arch';
-    const balloonCount = isArch ? 32 : 14;
+    const isLArch = el.shapeType === 'balloon-arch-l' || el.shapeType === 'balloon-arch';
+    const isHalfArch = el.shapeType === 'balloon-arch-half';
+    const isCascade = el.shapeType === 'balloon-cascade';
+    const balloonCount = isLArch ? 42 : (isHalfArch ? 32 : (isCascade ? 28 : 22));
 
-    const balloonMat = new THREE.MeshStandardMaterial({
-      color: threeColor,
-      roughness: 0.18, // Brilho de bexiga de festa luxo
-      metalness: 0.30,
-    });
+    const color1 = threeColor;
+    const color2 = el.balloonSecondaryFill ? new THREE.Color(el.balloonSecondaryFill) : new THREE.Color('#F5EBE0');
+    const color3 = el.balloonTertiaryFill ? new THREE.Color(el.balloonTertiaryFill) : new THREE.Color('#D4AF37');
+
+    const finish = el.balloonFinish || 'matte';
+    const roughness = finish === 'chrome' ? 0.12 : (finish === 'pearl' ? 0.28 : 0.45);
+    const metalness = finish === 'chrome' ? 0.85 : (finish === 'pearl' ? 0.35 : 0.05);
+
+    const mat1 = new THREE.MeshStandardMaterial({ color: color1, roughness, metalness });
+    const mat2 = new THREE.MeshStandardMaterial({ color: color2, roughness, metalness });
+    const mat3 = new THREE.MeshStandardMaterial({ color: color3, roughness, metalness });
+    const mats = [mat1, mat2, mat3];
+
+    const invert = !!el.balloonInvert;
 
     for (let i = 0; i < balloonCount; i++) {
-      // Tamanhos variados (orgânicos: mini, médio e grande)
-      const radius = THREE.MathUtils.randFloat(0.06, 0.14);
+      // 5" mini balões pontuam na frente (a cada 4 balões)
+      const isMini = i % 4 === 3;
+      const radius = isMini ? THREE.MathUtils.randFloat(0.04, 0.06) : THREE.MathUtils.randFloat(0.07, 0.15);
       const sphereGeo = new THREE.SphereGeometry(radius, 24, 24);
-      const sphereMesh = new THREE.Mesh(sphereGeo, balloonMat);
+      const chosenMat = mats[i % 3];
+      const sphereMesh = new THREE.Mesh(sphereGeo, chosenMat);
 
-      if (isArch) {
+      let bx = 0;
+      let by = 0;
+      let bz = THREE.MathUtils.randFloat(-0.06, 0.08);
+
+      if (isLArch) {
+        const ratio = i / (balloonCount - 1);
+        if (ratio < 0.55) {
+          const t = ratio / 0.55;
+          bx = -w / 2 + THREE.MathUtils.randFloat(0.02, 0.16);
+          by = -h / 2 + t * h + THREE.MathUtils.randFloat(-0.05, 0.05);
+        } else {
+          const t = (ratio - 0.55) / 0.45;
+          bx = -w / 2 + t * w + THREE.MathUtils.randFloat(-0.05, 0.05);
+          by = h / 2 - THREE.MathUtils.randFloat(0.02, 0.16);
+        }
+        if (invert) bx = -bx;
+      } else if (isHalfArch) {
         const t = (i / (balloonCount - 1)) * Math.PI;
         const archR = w / 2;
-        const bx = -Math.cos(t) * archR + THREE.MathUtils.randFloat(-0.07, 0.07);
-        const by = Math.sin(t) * (h * 0.85) - h / 2 + THREE.MathUtils.randFloat(-0.07, 0.07);
-        const bz = THREE.MathUtils.randFloat(-0.10, 0.10);
-        sphereMesh.position.set(bx, by, bz);
+        bx = -Math.cos(t) * archR + THREE.MathUtils.randFloat(-0.06, 0.06);
+        by = Math.sin(t) * (h * 0.8) - h / 2 + THREE.MathUtils.randFloat(-0.06, 0.06);
+      } else if (isCascade) {
+        const t = i / (balloonCount - 1);
+        bx = THREE.MathUtils.randFloat(-w / 4, w / 4);
+        by = h / 2 - t * h + THREE.MathUtils.randFloat(-0.05, 0.05);
       } else {
-        const bx = THREE.MathUtils.randFloat(-w / 3, w / 3);
-        const by = THREE.MathUtils.randFloat(-h / 3, h / 3);
-        const bz = THREE.MathUtils.randFloat(-0.10, 0.10);
-        sphereMesh.position.set(bx, by, bz);
+        bx = THREE.MathUtils.randFloat(-w / 3, w / 3);
+        by = THREE.MathUtils.randFloat(-h / 3, h / 3);
       }
 
+      if (isMini) bz += 0.08;
+
+      sphereMesh.position.set(bx, by, bz);
       sphereMesh.castShadow = true;
+      sphereMesh.receiveShadow = true;
       sphereMesh.userData = { elementId: el.id };
       group.add(sphereMesh);
     }

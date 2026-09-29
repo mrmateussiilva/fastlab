@@ -187,6 +187,240 @@ const ClippedArtworkImage = ({
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPOSIÇÃO DE BALÕES ORGÂNICOS (Acabamentos: Matte, Chrome, Pearl e 3 Cores)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface BalloonSpec {
+  nx: number;
+  ny: number;
+  nr: number;
+  slot: 1 | 2 | 3;
+  z: number;
+}
+
+// 1. Arco em L Desconstruído (Emoldura painéis com subida lateral e topo horizontal)
+const L_ARCH_SPECS: BalloonSpec[] = [
+  // Base do chão
+  { nx: 0.12, ny: 0.94, nr: 0.15, slot: 1, z: 1 },
+  { nx: 0.24, ny: 0.92, nr: 0.13, slot: 2, z: 2 },
+  { nx: 0.08, ny: 0.88, nr: 0.11, slot: 3, z: 2 },
+  { nx: 0.18, ny: 0.87, nr: 0.07, slot: 1, z: 5 },
+  { nx: 0.17, ny: 0.80, nr: 0.14, slot: 1, z: 1 },
+  { nx: 0.09, ny: 0.76, nr: 0.11, slot: 2, z: 3 },
+  { nx: 0.25, ny: 0.74, nr: 0.10, slot: 3, z: 2 },
+  { nx: 0.16, ny: 0.72, nr: 0.06, slot: 2, z: 5 },
+  // Coluna vertical
+  { nx: 0.16, ny: 0.65, nr: 0.14, slot: 1, z: 1 },
+  { nx: 0.07, ny: 0.60, nr: 0.10, slot: 3, z: 2 },
+  { nx: 0.24, ny: 0.58, nr: 0.12, slot: 2, z: 3 },
+  { nx: 0.15, ny: 0.54, nr: 0.06, slot: 1, z: 5 },
+  { nx: 0.14, ny: 0.47, nr: 0.13, slot: 1, z: 1 },
+  { nx: 0.23, ny: 0.43, nr: 0.11, slot: 3, z: 2 },
+  { nx: 0.08, ny: 0.40, nr: 0.10, slot: 2, z: 3 },
+  { nx: 0.16, ny: 0.38, nr: 0.06, slot: 3, z: 5 },
+  { nx: 0.18, ny: 0.31, nr: 0.14, slot: 1, z: 2 },
+  { nx: 0.09, ny: 0.27, nr: 0.11, slot: 2, z: 1 },
+  { nx: 0.26, ny: 0.25, nr: 0.12, slot: 3, z: 3 },
+  { nx: 0.17, ny: 0.23, nr: 0.07, slot: 2, z: 5 },
+  // Cotovelo / Curva
+  { nx: 0.20, ny: 0.15, nr: 0.15, slot: 1, z: 1 },
+  { nx: 0.12, ny: 0.13, nr: 0.11, slot: 3, z: 2 },
+  { nx: 0.28, ny: 0.14, nr: 0.12, slot: 2, z: 3 },
+  { nx: 0.22, ny: 0.09, nr: 0.07, slot: 1, z: 5 },
+  // Braço superior horizontal
+  { nx: 0.36, ny: 0.13, nr: 0.14, slot: 1, z: 1 },
+  { nx: 0.44, ny: 0.10, nr: 0.11, slot: 2, z: 2 },
+  { nx: 0.50, ny: 0.15, nr: 0.12, slot: 3, z: 3 },
+  { nx: 0.42, ny: 0.17, nr: 0.06, slot: 3, z: 5 },
+  { nx: 0.58, ny: 0.12, nr: 0.13, slot: 1, z: 1 },
+  { nx: 0.65, ny: 0.15, nr: 0.11, slot: 2, z: 2 },
+  { nx: 0.72, ny: 0.11, nr: 0.12, slot: 3, z: 3 },
+  { nx: 0.64, ny: 0.08, nr: 0.06, slot: 2, z: 5 },
+  { nx: 0.79, ny: 0.13, nr: 0.12, slot: 1, z: 2 },
+  { nx: 0.86, ny: 0.11, nr: 0.10, slot: 2, z: 1 },
+  { nx: 0.92, ny: 0.14, nr: 0.09, slot: 3, z: 3 },
+  { nx: 0.84, ny: 0.16, nr: 0.05, slot: 1, z: 5 },
+  { nx: 0.97, ny: 0.12, nr: 0.07, slot: 2, z: 2 },
+];
+
+// 2. Guirlanda Superior / Meio Arco (Contorna topo de painel redondo/romano)
+const HALF_ARCH_SPECS: BalloonSpec[] = [
+  { nx: 0.06, ny: 0.70, nr: 0.13, slot: 1, z: 1 },
+  { nx: 0.12, ny: 0.55, nr: 0.14, slot: 2, z: 2 },
+  { nx: 0.08, ny: 0.42, nr: 0.11, slot: 3, z: 1 },
+  { nx: 0.14, ny: 0.45, nr: 0.07, slot: 1, z: 5 },
+  { nx: 0.20, ny: 0.34, nr: 0.15, slot: 1, z: 2 },
+  { nx: 0.27, ny: 0.24, nr: 0.13, slot: 2, z: 1 },
+  { nx: 0.32, ny: 0.30, nr: 0.11, slot: 3, z: 3 },
+  { nx: 0.25, ny: 0.20, nr: 0.06, slot: 2, z: 5 },
+  { nx: 0.40, ny: 0.18, nr: 0.15, slot: 1, z: 2 },
+  { nx: 0.48, ny: 0.15, nr: 0.16, slot: 2, z: 1 },
+  { nx: 0.55, ny: 0.16, nr: 0.14, slot: 3, z: 3 },
+  { nx: 0.47, ny: 0.23, nr: 0.07, slot: 1, z: 5 },
+  { nx: 0.63, ny: 0.20, nr: 0.15, slot: 1, z: 2 },
+  { nx: 0.70, ny: 0.26, nr: 0.13, slot: 2, z: 1 },
+  { nx: 0.75, ny: 0.32, nr: 0.12, slot: 3, z: 3 },
+  { nx: 0.68, ny: 0.22, nr: 0.06, slot: 3, z: 5 },
+  { nx: 0.82, ny: 0.40, nr: 0.14, slot: 1, z: 2 },
+  { nx: 0.88, ny: 0.52, nr: 0.13, slot: 2, z: 1 },
+  { nx: 0.94, ny: 0.65, nr: 0.11, slot: 3, z: 2 },
+  { nx: 0.86, ny: 0.48, nr: 0.07, slot: 2, z: 5 },
+];
+
+// 3. Cascata Vertical (Coluna desconstruída com volume na base)
+const CASCADE_SPECS: BalloonSpec[] = [
+  { nx: 0.50, ny: 0.06, nr: 0.12, slot: 1, z: 1 },
+  { nx: 0.58, ny: 0.11, nr: 0.10, slot: 2, z: 2 },
+  { nx: 0.42, ny: 0.14, nr: 0.11, slot: 3, z: 1 },
+  { nx: 0.52, ny: 0.16, nr: 0.06, slot: 1, z: 5 },
+  { nx: 0.48, ny: 0.23, nr: 0.14, slot: 1, z: 2 },
+  { nx: 0.60, ny: 0.28, nr: 0.12, slot: 2, z: 1 },
+  { nx: 0.38, ny: 0.32, nr: 0.13, slot: 3, z: 3 },
+  { nx: 0.53, ny: 0.34, nr: 0.07, slot: 2, z: 5 },
+  { nx: 0.50, ny: 0.42, nr: 0.16, slot: 1, z: 1 },
+  { nx: 0.36, ny: 0.48, nr: 0.13, slot: 2, z: 2 },
+  { nx: 0.62, ny: 0.50, nr: 0.14, slot: 3, z: 3 },
+  { nx: 0.46, ny: 0.53, nr: 0.07, slot: 1, z: 5 },
+  { nx: 0.52, ny: 0.61, nr: 0.15, slot: 1, z: 2 },
+  { nx: 0.38, ny: 0.66, nr: 0.13, slot: 3, z: 1 },
+  { nx: 0.64, ny: 0.68, nr: 0.12, slot: 2, z: 3 },
+  { nx: 0.51, ny: 0.70, nr: 0.07, slot: 3, z: 5 },
+  { nx: 0.45, ny: 0.78, nr: 0.17, slot: 1, z: 1 },
+  { nx: 0.62, ny: 0.82, nr: 0.15, slot: 2, z: 2 },
+  { nx: 0.32, ny: 0.85, nr: 0.14, slot: 3, z: 3 },
+  { nx: 0.48, ny: 0.87, nr: 0.08, slot: 2, z: 5 },
+  { nx: 0.50, ny: 0.94, nr: 0.18, slot: 1, z: 1 },
+  { nx: 0.34, ny: 0.95, nr: 0.15, slot: 2, z: 2 },
+  { nx: 0.66, ny: 0.95, nr: 0.16, slot: 3, z: 2 },
+  { nx: 0.55, ny: 0.96, nr: 0.09, slot: 1, z: 5 },
+];
+
+// 4. Cacho Orgânico / Buquê (Cluster compacto e volumoso)
+const CLUSTER_SPECS: BalloonSpec[] = [
+  { nx: 0.40, ny: 0.35, nr: 0.24, slot: 1, z: 1 },
+  { nx: 0.62, ny: 0.38, nr: 0.22, slot: 2, z: 2 },
+  { nx: 0.35, ny: 0.60, nr: 0.25, slot: 3, z: 1 },
+  { nx: 0.65, ny: 0.62, nr: 0.23, slot: 1, z: 3 },
+  { nx: 0.50, ny: 0.50, nr: 0.18, slot: 2, z: 4 },
+  { nx: 0.24, ny: 0.45, nr: 0.16, slot: 2, z: 2 },
+  { nx: 0.76, ny: 0.48, nr: 0.15, slot: 3, z: 1 },
+  { nx: 0.48, ny: 0.24, nr: 0.17, slot: 1, z: 3 },
+  { nx: 0.52, ny: 0.76, nr: 0.19, slot: 2, z: 2 },
+  { nx: 0.38, ny: 0.46, nr: 0.09, slot: 3, z: 5 },
+  { nx: 0.60, ny: 0.52, nr: 0.08, slot: 1, z: 5 },
+  { nx: 0.46, ny: 0.62, nr: 0.09, slot: 2, z: 5 },
+  { nx: 0.56, ny: 0.34, nr: 0.08, slot: 3, z: 5 },
+];
+
+const renderSingleOrganicBalloon = (
+  bx: number,
+  by: number,
+  br: number,
+  color: string,
+  finish: 'matte' | 'chrome' | 'pearl' | undefined,
+  key: string | number
+) => {
+  const isChrome = finish === 'chrome';
+  const isPearl = finish === 'pearl';
+
+  return (
+    <Group key={key}>
+      {/* Sombra de oclusão sutil entre balões */}
+      <Circle
+        x={bx + br * 0.08}
+        y={by + br * 0.12}
+        radius={br}
+        fill="#000000"
+        opacity={0.12}
+        listening={false}
+      />
+
+      {/* Corpo esférico do Balão */}
+      <Circle
+        x={bx}
+        y={by}
+        radius={br}
+        fill={color}
+        stroke={isChrome ? '#FFFFFF' : 'rgba(0,0,0,0.12)'}
+        strokeWidth={isChrome ? 0.8 : 0.6}
+      />
+
+      {/* Acabamento CROMADO (Alto Brilho Metálico) */}
+      {isChrome && (
+        <>
+          <Ellipse
+            x={bx - br * 0.32}
+            y={by - br * 0.32}
+            radiusX={br * 0.32}
+            radiusY={br * 0.14}
+            rotation={-35}
+            fill="#FFFFFF"
+            opacity={0.92}
+            listening={false}
+          />
+          <Circle
+            x={bx - br * 0.38}
+            y={by - br * 0.38}
+            radius={Math.max(1.5, br * 0.08)}
+            fill="#FFFFFF"
+            opacity={1}
+            listening={false}
+          />
+          <Ellipse
+            x={bx + br * 0.28}
+            y={by + br * 0.28}
+            radiusX={br * 0.22}
+            radiusY={br * 0.09}
+            rotation={-35}
+            fill="#FFFFFF"
+            opacity={0.4}
+            listening={false}
+          />
+        </>
+      )}
+
+      {/* Acabamento PEROLADO (Acetinado suave) */}
+      {isPearl && (
+        <>
+          <Ellipse
+            x={bx - br * 0.3}
+            y={by - br * 0.3}
+            radiusX={br * 0.35}
+            radiusY={br * 0.2}
+            rotation={-30}
+            fill="#FFFFFF"
+            opacity={0.55}
+            listening={false}
+          />
+          <Circle
+            x={bx - br * 0.32}
+            y={by - br * 0.32}
+            radius={Math.max(1.5, br * 0.07)}
+            fill="#FFFFFF"
+            opacity={0.8}
+            listening={false}
+          />
+        </>
+      )}
+
+      {/* Acabamento FOSCO / MATTE (Padrão) */}
+      {!isChrome && !isPearl && (
+        <Ellipse
+          x={bx - br * 0.3}
+          y={by - br * 0.3}
+          radiusX={br * 0.28}
+          radiusY={br * 0.15}
+          rotation={-35}
+          fill="#FFFFFF"
+          opacity={0.42}
+          listening={false}
+        />
+      )}
+    </Group>
+  );
+};
+
 // Renderizador de formato personalizado baseado em shapeType
 const ElementShape = ({
   el,
@@ -719,30 +953,44 @@ const ElementShape = ({
         );
       }
 
+      case 'balloon-arch-l':
+      case 'balloon-arch-half':
+      case 'balloon-cascade':
+      case 'balloon-cluster':
       case 'balloon-small':
       case 'balloon-mid':
       case 'balloon-arch': {
-        const scale = w / 200;
-        const bFill = el.fill;
+        let specs: BalloonSpec[];
+        if (el.shapeType === 'balloon-arch-l' || el.shapeType === 'balloon-arch') {
+          specs = L_ARCH_SPECS;
+        } else if (el.shapeType === 'balloon-arch-half') {
+          specs = HALF_ARCH_SPECS;
+        } else if (el.shapeType === 'balloon-cascade') {
+          specs = CASCADE_SPECS;
+        } else {
+          specs = CLUSTER_SPECS;
+        }
+
+        const color1 = el.fill || '#E2B1B6';
+        const color2 = el.balloonSecondaryFill || '#F5EBE0';
+        const color3 = el.balloonTertiaryFill || '#D4AF37';
+        const invert = !!el.balloonInvert;
+        const finish = el.balloonFinish || 'matte';
+
+        // Ordenar por Z para renderizar profundidade
+        const sorted = [...specs].sort((a, b) => a.z - b.z);
+        const baseDim = Math.min(w, h);
+
         return (
-          <Group scaleX={scale} scaleY={scale}>
-            <Circle x={60} y={60} radius={36} fill={bFill} stroke={strokeColor} strokeWidth={1.2} />
-            <Ellipse x={50} y={48} radiusX={8} radiusY={4} rotation={-30} fill="#FFFFFF" opacity={0.5} />
-
-            <Circle x={120} y={55} radius={32} fill={bFill} stroke={strokeColor} strokeWidth={1.2} />
-            <Ellipse x={110} y={45} radiusX={7} radiusY={3.5} rotation={-30} fill="#FFFFFF" opacity={0.5} />
-
-            <Circle x={90} y={110} radius={42} fill={bFill} stroke={strokeColor} strokeWidth={1.2} />
-            <Ellipse x={78} y={96} radiusX={10} radiusY={5} rotation={-30} fill="#FFFFFF" opacity={0.5} />
-
-            <Circle x={145} y={120} radius={30} fill={bFill} stroke={strokeColor} strokeWidth={1.2} />
-            <Ellipse x={138} y={110} radiusX={6} radiusY={3} rotation={-30} fill="#FFFFFF" opacity={0.5} />
-
-            <Circle x={45} y={130} radius={28} fill={bFill} stroke={strokeColor} strokeWidth={1.2} />
-            <Ellipse x={38} y={122} radiusX={6} radiusY={3} rotation={-30} fill="#FFFFFF" opacity={0.5} />
-
-            <Circle x={105} y={170} radius={35} fill={bFill} stroke={strokeColor} strokeWidth={1.2} />
-            <Ellipse x={95} y={158} radiusX={8} radiusY={4} rotation={-30} fill="#FFFFFF" opacity={0.5} />
+          <Group>
+            {sorted.map((b, idx) => {
+              const nx = invert ? 1 - b.nx : b.nx;
+              const bx = nx * w;
+              const by = b.ny * h;
+              const br = b.nr * baseDim;
+              const bColor = b.slot === 1 ? color1 : (b.slot === 2 ? color2 : color3);
+              return renderSingleOrganicBalloon(bx, by, br, bColor, finish, `${el.id}-b-${idx}`);
+            })}
           </Group>
         );
       }
