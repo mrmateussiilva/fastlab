@@ -3,6 +3,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { 
+  getBalloonSpecsForShape, 
+  generate3DBalloonInstances 
+} from '@/lib/balloon-specs';
 import { 
   CanvasElement, 
   EnvironmentConfig, 
@@ -274,6 +279,13 @@ export default function ThreeDViewer({
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
 
+    // Ambiente de reflexão de estúdio para materiais físicos (Clearcoat, Cromo e Pérola)
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+    const roomEnv = new RoomEnvironment();
+    const envTexture = pmremGenerator.fromScene(roomEnv, 0.04).texture;
+    scene.environment = envTexture;
+
     canvasMount.replaceChildren(renderer.domElement);
 
     // OrbitControls
@@ -441,6 +453,9 @@ export default function ThreeDViewer({
       window.removeEventListener('resize', handleResize);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       controls.dispose();
+      envTexture.dispose();
+      roomEnv.dispose();
+      pmremGenerator.dispose();
       renderer.dispose();
       if (canvasMount && canvasMount.contains(renderer.domElement)) {
         canvasMount.removeChild(renderer.domElement);
@@ -1722,73 +1737,93 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
     }
   }
 
-  // 6. BALÕES ORGÂNICOS (Arco & Cacho Realistas com 3 Cores e Acabamentos)
+  // 6. BALÕES ORGÂNICOS (Arco & Cacho Volumétrico 3D com 3 Cores e Acabamentos Físicos)
   else if (el.shapeType.includes('balloon')) {
-    const isLArch = el.shapeType === 'balloon-arch-l' || el.shapeType === 'balloon-arch';
-    const isHalfArch = el.shapeType === 'balloon-arch-half';
-    const isCascade = el.shapeType === 'balloon-cascade';
-    const balloonCount = isLArch ? 42 : (isHalfArch ? 32 : (isCascade ? 28 : 22));
-
+    const isSingle = el.shapeType === 'balloon-small' || el.shapeType === 'balloon-mid';
     const color1 = threeColor;
     const color2 = el.balloonSecondaryFill ? new THREE.Color(el.balloonSecondaryFill) : new THREE.Color('#F5EBE0');
     const color3 = el.balloonTertiaryFill ? new THREE.Color(el.balloonTertiaryFill) : new THREE.Color('#D4AF37');
-
     const finish = el.balloonFinish || 'matte';
-    const roughness = finish === 'chrome' ? 0.12 : (finish === 'pearl' ? 0.28 : 0.45);
-    const metalness = finish === 'chrome' ? 0.85 : (finish === 'pearl' ? 0.35 : 0.05);
-
-    const mat1 = new THREE.MeshStandardMaterial({ color: color1, roughness, metalness });
-    const mat2 = new THREE.MeshStandardMaterial({ color: color2, roughness, metalness });
-    const mat3 = new THREE.MeshStandardMaterial({ color: color3, roughness, metalness });
-    const mats = [mat1, mat2, mat3];
-
     const invert = !!el.balloonInvert;
 
-    for (let i = 0; i < balloonCount; i++) {
-      // 5" mini balões pontuam na frente (a cada 4 balões)
-      const isMini = i % 4 === 3;
-      const radius = isMini ? THREE.MathUtils.randFloat(0.04, 0.06) : THREE.MathUtils.randFloat(0.07, 0.15);
-      const sphereGeo = new THREE.SphereGeometry(radius, 24, 24);
-      const chosenMat = mats[i % 3];
-      const sphereMesh = new THREE.Mesh(sphereGeo, chosenMat);
-
-      let bx = 0;
-      let by = 0;
-      let bz = THREE.MathUtils.randFloat(-0.06, 0.08);
-
-      if (isLArch) {
-        const ratio = i / (balloonCount - 1);
-        if (ratio < 0.55) {
-          const t = ratio / 0.55;
-          bx = -w / 2 + THREE.MathUtils.randFloat(0.02, 0.16);
-          by = -h / 2 + t * h + THREE.MathUtils.randFloat(-0.05, 0.05);
-        } else {
-          const t = (ratio - 0.55) / 0.45;
-          bx = -w / 2 + t * w + THREE.MathUtils.randFloat(-0.05, 0.05);
-          by = h / 2 - THREE.MathUtils.randFloat(0.02, 0.16);
-        }
-        if (invert) bx = -bx;
-      } else if (isHalfArch) {
-        const t = (i / (balloonCount - 1)) * Math.PI;
-        const archR = w / 2;
-        bx = -Math.cos(t) * archR + THREE.MathUtils.randFloat(-0.06, 0.06);
-        by = Math.sin(t) * (h * 0.8) - h / 2 + THREE.MathUtils.randFloat(-0.06, 0.06);
-      } else if (isCascade) {
-        const t = i / (balloonCount - 1);
-        bx = THREE.MathUtils.randFloat(-w / 4, w / 4);
-        by = h / 2 - t * h + THREE.MathUtils.randFloat(-0.05, 0.05);
+    // Função para criar material físico com acabamento hiper-realista
+    const getBalloonMat = (color: THREE.Color) => {
+      if (finish === 'chrome') {
+        return new THREE.MeshPhysicalMaterial({
+          color,
+          metalness: 0.94,
+          roughness: 0.06,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.04,
+          reflectivity: 1.0,
+        });
+      } else if (finish === 'pearl') {
+        return new THREE.MeshPhysicalMaterial({
+          color,
+          metalness: 0.35,
+          roughness: 0.18,
+          clearcoat: 0.92,
+          clearcoatRoughness: 0.08,
+          sheen: 0.85,
+          sheenRoughness: 0.25,
+          sheenColor: new THREE.Color('#FFF5EE'),
+        });
       } else {
-        bx = THREE.MathUtils.randFloat(-w / 3, w / 3);
-        by = THREE.MathUtils.randFloat(-h / 3, h / 3);
+        // Matte / Látex Suave com Hi-Shine Spray de festa (brilho acetinado protetor)
+        return new THREE.MeshPhysicalMaterial({
+          color,
+          metalness: 0.02,
+          roughness: 0.28,
+          clearcoat: 0.85,
+          clearcoatRoughness: 0.12,
+          sheen: 0.5,
+          sheenRoughness: 0.35,
+          sheenColor: new THREE.Color(0xFFFFFF),
+        });
       }
+    };
 
-      if (isMini) bz += 0.08;
+    const mats = [
+      getBalloonMat(color1),
+      getBalloonMat(color2),
+      getBalloonMat(color3),
+    ];
 
-      sphereMesh.position.set(bx, by, bz);
+    const sharedSphereGeo = new THREE.SphereGeometry(1, 22, 22);
+
+    if (isSingle) {
+      const radius = Math.min(w, h) * 0.44;
+      const sphereMesh = new THREE.Mesh(sharedSphereGeo, mats[0]);
+      sphereMesh.scale.set(radius * 0.95, radius * 1.15, radius * 0.95);
       sphereMesh.castShadow = true;
       sphereMesh.receiveShadow = true;
       sphereMesh.userData = { elementId: el.id };
       group.add(sphereMesh);
+
+      // Nó do balão na base
+      const knotGeo = new THREE.ConeGeometry(radius * 0.16, radius * 0.2, 16);
+      const knotMesh = new THREE.Mesh(knotGeo, mats[0]);
+      knotMesh.position.y = -radius * 1.15;
+      knotMesh.rotation.x = Math.PI;
+      knotMesh.castShadow = true;
+      knotMesh.userData = { elementId: el.id };
+      group.add(knotMesh);
+    } else {
+      const specs = getBalloonSpecsForShape(el.shapeType);
+      const instances = generate3DBalloonInstances(specs, w, h, invert);
+
+      instances.forEach((inst) => {
+        const mat = mats[inst.slot - 1];
+        const mesh = new THREE.Mesh(sharedSphereGeo, mat);
+        mesh.position.set(inst.x, inst.y, inst.z);
+        // Formato orgânico de gota/balão real (ligeira elongação vertical)
+        mesh.scale.set(inst.radius * 0.96, inst.radius * 1.12, inst.radius * 0.96);
+        mesh.rotation.set(inst.tiltX, inst.tiltY, inst.tiltZ);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData = { elementId: el.id };
+        group.add(mesh);
+      });
     }
   }
 

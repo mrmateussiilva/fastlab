@@ -187,131 +187,14 @@ const ClippedArtworkImage = ({
   );
 };
 
+import {
+  BalloonSpec,
+  getBalloonSpecsForShape,
+} from '@/lib/balloon-specs';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPOSIÇÃO DE BALÕES ORGÂNICOS (Acabamentos: Matte, Chrome, Pearl e 3 Cores)
 // ─────────────────────────────────────────────────────────────────────────────
-
-interface BalloonSpec {
-  nx: number;
-  ny: number;
-  nr: number;
-  slot: 1 | 2 | 3;
-  z: number;
-}
-
-// 1. Arco em L Desconstruído (Emoldura painéis com subida lateral e topo horizontal)
-const L_ARCH_SPECS: BalloonSpec[] = [
-  // Base do chão
-  { nx: 0.12, ny: 0.94, nr: 0.15, slot: 1, z: 1 },
-  { nx: 0.24, ny: 0.92, nr: 0.13, slot: 2, z: 2 },
-  { nx: 0.08, ny: 0.88, nr: 0.11, slot: 3, z: 2 },
-  { nx: 0.18, ny: 0.87, nr: 0.07, slot: 1, z: 5 },
-  { nx: 0.17, ny: 0.80, nr: 0.14, slot: 1, z: 1 },
-  { nx: 0.09, ny: 0.76, nr: 0.11, slot: 2, z: 3 },
-  { nx: 0.25, ny: 0.74, nr: 0.10, slot: 3, z: 2 },
-  { nx: 0.16, ny: 0.72, nr: 0.06, slot: 2, z: 5 },
-  // Coluna vertical
-  { nx: 0.16, ny: 0.65, nr: 0.14, slot: 1, z: 1 },
-  { nx: 0.07, ny: 0.60, nr: 0.10, slot: 3, z: 2 },
-  { nx: 0.24, ny: 0.58, nr: 0.12, slot: 2, z: 3 },
-  { nx: 0.15, ny: 0.54, nr: 0.06, slot: 1, z: 5 },
-  { nx: 0.14, ny: 0.47, nr: 0.13, slot: 1, z: 1 },
-  { nx: 0.23, ny: 0.43, nr: 0.11, slot: 3, z: 2 },
-  { nx: 0.08, ny: 0.40, nr: 0.10, slot: 2, z: 3 },
-  { nx: 0.16, ny: 0.38, nr: 0.06, slot: 3, z: 5 },
-  { nx: 0.18, ny: 0.31, nr: 0.14, slot: 1, z: 2 },
-  { nx: 0.09, ny: 0.27, nr: 0.11, slot: 2, z: 1 },
-  { nx: 0.26, ny: 0.25, nr: 0.12, slot: 3, z: 3 },
-  { nx: 0.17, ny: 0.23, nr: 0.07, slot: 2, z: 5 },
-  // Cotovelo / Curva
-  { nx: 0.20, ny: 0.15, nr: 0.15, slot: 1, z: 1 },
-  { nx: 0.12, ny: 0.13, nr: 0.11, slot: 3, z: 2 },
-  { nx: 0.28, ny: 0.14, nr: 0.12, slot: 2, z: 3 },
-  { nx: 0.22, ny: 0.09, nr: 0.07, slot: 1, z: 5 },
-  // Braço superior horizontal
-  { nx: 0.36, ny: 0.13, nr: 0.14, slot: 1, z: 1 },
-  { nx: 0.44, ny: 0.10, nr: 0.11, slot: 2, z: 2 },
-  { nx: 0.50, ny: 0.15, nr: 0.12, slot: 3, z: 3 },
-  { nx: 0.42, ny: 0.17, nr: 0.06, slot: 3, z: 5 },
-  { nx: 0.58, ny: 0.12, nr: 0.13, slot: 1, z: 1 },
-  { nx: 0.65, ny: 0.15, nr: 0.11, slot: 2, z: 2 },
-  { nx: 0.72, ny: 0.11, nr: 0.12, slot: 3, z: 3 },
-  { nx: 0.64, ny: 0.08, nr: 0.06, slot: 2, z: 5 },
-  { nx: 0.79, ny: 0.13, nr: 0.12, slot: 1, z: 2 },
-  { nx: 0.86, ny: 0.11, nr: 0.10, slot: 2, z: 1 },
-  { nx: 0.92, ny: 0.14, nr: 0.09, slot: 3, z: 3 },
-  { nx: 0.84, ny: 0.16, nr: 0.05, slot: 1, z: 5 },
-  { nx: 0.97, ny: 0.12, nr: 0.07, slot: 2, z: 2 },
-];
-
-// 2. Guirlanda Superior / Meio Arco (Contorna topo de painel redondo/romano)
-const HALF_ARCH_SPECS: BalloonSpec[] = [
-  { nx: 0.06, ny: 0.70, nr: 0.13, slot: 1, z: 1 },
-  { nx: 0.12, ny: 0.55, nr: 0.14, slot: 2, z: 2 },
-  { nx: 0.08, ny: 0.42, nr: 0.11, slot: 3, z: 1 },
-  { nx: 0.14, ny: 0.45, nr: 0.07, slot: 1, z: 5 },
-  { nx: 0.20, ny: 0.34, nr: 0.15, slot: 1, z: 2 },
-  { nx: 0.27, ny: 0.24, nr: 0.13, slot: 2, z: 1 },
-  { nx: 0.32, ny: 0.30, nr: 0.11, slot: 3, z: 3 },
-  { nx: 0.25, ny: 0.20, nr: 0.06, slot: 2, z: 5 },
-  { nx: 0.40, ny: 0.18, nr: 0.15, slot: 1, z: 2 },
-  { nx: 0.48, ny: 0.15, nr: 0.16, slot: 2, z: 1 },
-  { nx: 0.55, ny: 0.16, nr: 0.14, slot: 3, z: 3 },
-  { nx: 0.47, ny: 0.23, nr: 0.07, slot: 1, z: 5 },
-  { nx: 0.63, ny: 0.20, nr: 0.15, slot: 1, z: 2 },
-  { nx: 0.70, ny: 0.26, nr: 0.13, slot: 2, z: 1 },
-  { nx: 0.75, ny: 0.32, nr: 0.12, slot: 3, z: 3 },
-  { nx: 0.68, ny: 0.22, nr: 0.06, slot: 3, z: 5 },
-  { nx: 0.82, ny: 0.40, nr: 0.14, slot: 1, z: 2 },
-  { nx: 0.88, ny: 0.52, nr: 0.13, slot: 2, z: 1 },
-  { nx: 0.94, ny: 0.65, nr: 0.11, slot: 3, z: 2 },
-  { nx: 0.86, ny: 0.48, nr: 0.07, slot: 2, z: 5 },
-];
-
-// 3. Cascata Vertical (Coluna desconstruída com volume na base)
-const CASCADE_SPECS: BalloonSpec[] = [
-  { nx: 0.50, ny: 0.06, nr: 0.12, slot: 1, z: 1 },
-  { nx: 0.58, ny: 0.11, nr: 0.10, slot: 2, z: 2 },
-  { nx: 0.42, ny: 0.14, nr: 0.11, slot: 3, z: 1 },
-  { nx: 0.52, ny: 0.16, nr: 0.06, slot: 1, z: 5 },
-  { nx: 0.48, ny: 0.23, nr: 0.14, slot: 1, z: 2 },
-  { nx: 0.60, ny: 0.28, nr: 0.12, slot: 2, z: 1 },
-  { nx: 0.38, ny: 0.32, nr: 0.13, slot: 3, z: 3 },
-  { nx: 0.53, ny: 0.34, nr: 0.07, slot: 2, z: 5 },
-  { nx: 0.50, ny: 0.42, nr: 0.16, slot: 1, z: 1 },
-  { nx: 0.36, ny: 0.48, nr: 0.13, slot: 2, z: 2 },
-  { nx: 0.62, ny: 0.50, nr: 0.14, slot: 3, z: 3 },
-  { nx: 0.46, ny: 0.53, nr: 0.07, slot: 1, z: 5 },
-  { nx: 0.52, ny: 0.61, nr: 0.15, slot: 1, z: 2 },
-  { nx: 0.38, ny: 0.66, nr: 0.13, slot: 3, z: 1 },
-  { nx: 0.64, ny: 0.68, nr: 0.12, slot: 2, z: 3 },
-  { nx: 0.51, ny: 0.70, nr: 0.07, slot: 3, z: 5 },
-  { nx: 0.45, ny: 0.78, nr: 0.17, slot: 1, z: 1 },
-  { nx: 0.62, ny: 0.82, nr: 0.15, slot: 2, z: 2 },
-  { nx: 0.32, ny: 0.85, nr: 0.14, slot: 3, z: 3 },
-  { nx: 0.48, ny: 0.87, nr: 0.08, slot: 2, z: 5 },
-  { nx: 0.50, ny: 0.94, nr: 0.18, slot: 1, z: 1 },
-  { nx: 0.34, ny: 0.95, nr: 0.15, slot: 2, z: 2 },
-  { nx: 0.66, ny: 0.95, nr: 0.16, slot: 3, z: 2 },
-  { nx: 0.55, ny: 0.96, nr: 0.09, slot: 1, z: 5 },
-];
-
-// 4. Cacho Orgânico / Buquê (Cluster compacto e volumoso)
-const CLUSTER_SPECS: BalloonSpec[] = [
-  { nx: 0.40, ny: 0.35, nr: 0.24, slot: 1, z: 1 },
-  { nx: 0.62, ny: 0.38, nr: 0.22, slot: 2, z: 2 },
-  { nx: 0.35, ny: 0.60, nr: 0.25, slot: 3, z: 1 },
-  { nx: 0.65, ny: 0.62, nr: 0.23, slot: 1, z: 3 },
-  { nx: 0.50, ny: 0.50, nr: 0.18, slot: 2, z: 4 },
-  { nx: 0.24, ny: 0.45, nr: 0.16, slot: 2, z: 2 },
-  { nx: 0.76, ny: 0.48, nr: 0.15, slot: 3, z: 1 },
-  { nx: 0.48, ny: 0.24, nr: 0.17, slot: 1, z: 3 },
-  { nx: 0.52, ny: 0.76, nr: 0.19, slot: 2, z: 2 },
-  { nx: 0.38, ny: 0.46, nr: 0.09, slot: 3, z: 5 },
-  { nx: 0.60, ny: 0.52, nr: 0.08, slot: 1, z: 5 },
-  { nx: 0.46, ny: 0.62, nr: 0.09, slot: 2, z: 5 },
-  { nx: 0.56, ny: 0.34, nr: 0.08, slot: 3, z: 5 },
-];
 
 const renderSingleOrganicBalloon = (
   bx: number,
@@ -960,16 +843,7 @@ const ElementShape = ({
       case 'balloon-small':
       case 'balloon-mid':
       case 'balloon-arch': {
-        let specs: BalloonSpec[];
-        if (el.shapeType === 'balloon-arch-l' || el.shapeType === 'balloon-arch') {
-          specs = L_ARCH_SPECS;
-        } else if (el.shapeType === 'balloon-arch-half') {
-          specs = HALF_ARCH_SPECS;
-        } else if (el.shapeType === 'balloon-cascade') {
-          specs = CASCADE_SPECS;
-        } else {
-          specs = CLUSTER_SPECS;
-        }
+        const specs = getBalloonSpecsForShape(el.shapeType);
 
         const color1 = el.fill || '#E2B1B6';
         const color2 = el.balloonSecondaryFill || '#F5EBE0';
