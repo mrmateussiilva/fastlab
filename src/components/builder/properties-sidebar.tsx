@@ -70,6 +70,7 @@ export default function PropertiesSidebar({
 }: PropertiesSidebarProps) {
   const bgFileInputRef = useRef<HTMLInputElement>(null);
   const artFileInputRef = useRef<HTMLInputElement>(null);
+  const topArtFileInputRef = useRef<HTMLInputElement>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isRemovingBg, setIsRemovingBg] = useState(false);
 
@@ -131,6 +132,39 @@ export default function PropertiesSidebar({
       fillScale: undefined,
       fillOffsetX: undefined,
       fillOffsetY: undefined,
+    });
+  };
+
+  const handleTopArtUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Formato inválido. Use PNG, JPG ou WEBP.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        onUpdateElement({
+          topImageSrc: dataUrl,
+          includeTopArtwork: false,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+
+    if (topArtFileInputRef.current) {
+      topArtFileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveTopArtwork = () => {
+    onUpdateElement({
+      topImageSrc: undefined,
     });
   };
 
@@ -754,79 +788,126 @@ export default function PropertiesSidebar({
 
         {/* Opções de Acabamento do Tampo para Cilindros de Festa */}
         {selectedElement.shapeType.includes('cylinder') && (
-          <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200/80 space-y-2.5">
+          <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200/80 space-y-3">
+            <input
+              ref={topArtFileInputRef}
+              type="file"
+              accept="image/png, image/jpeg, image/webp"
+              onChange={handleTopArtUpload}
+              className="hidden"
+            />
+
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-semibold text-zinc-800 tracking-wide font-sans flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 bg-white inline-block shadow-2xs" />
-                Acabamento do Tampo
+                Acabamento da Tampa (Tampo)
               </label>
-              {selectedElement.topFill && (
+              {(selectedElement.topFill || selectedElement.topImageSrc) && (
                 <button
                   type="button"
-                  onClick={() => onUpdateElement({ topFill: undefined })}
+                  onClick={() => onUpdateElement({ topFill: undefined, topImageSrc: undefined })}
                   className="text-[10px] text-zinc-500 hover:text-zinc-800 underline cursor-pointer"
                 >
-                  Mesma cor do corpo
+                  Restaurar padrão
                 </button>
               )}
             </div>
 
-            <div className="space-y-2">
-              <span className="text-[10px] text-zinc-500 font-sans block">Cor do tampo superior:</span>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {[
-                  { name: 'Branco Neve', value: '#FFFFFF' },
-                  { name: 'Pinus Claro', value: '#E7DFD5' },
-                  { name: 'Madeira Natural', value: '#CDBCA8' },
-                  { name: 'Dourado Festa', value: '#D4AF37' },
-                  { name: 'Off-White', value: '#F5EBE0' },
-                  { name: 'Preto Fosco', value: '#1E1E24' },
-                  { name: 'Rosa Bebê', value: '#F2D5D9' },
-                  { name: 'Azul Céu', value: '#BFDBFE' },
-                  { name: 'Verde Menta', value: '#BBF7D0' },
-                ].map((c) => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    title={c.name}
-                    disabled={isLocked}
-                    onClick={() => onUpdateElement({ topFill: c.value })}
-                    className={`w-6 h-6 rounded-full border transition-all cursor-pointer ${
-                      (selectedElement.topFill || selectedElement.fill).toLowerCase() === c.value.toLowerCase()
-                        ? 'ring-2 ring-orange-500 ring-offset-1 scale-110 border-transparent'
-                        : 'border-zinc-300 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: c.value }}
-                  />
-                ))}
+            {/* Opção A: Enviar Arte/Imagem Exclusiva para a Tampa */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isLocked}
+                  onClick={() => topArtFileInputRef.current?.click()}
+                  className="flex-1 text-xs h-8 border-orange-200 text-orange-800 hover:bg-orange-50 font-sans cursor-pointer justify-center"
+                >
+                  <UploadCloud className="w-3.5 h-3.5 mr-1.5 text-orange-600" />
+                  {selectedElement.topImageSrc ? 'Trocar arte da tampa' : 'Enviar arte da tampa (arquivo redondo)'}
+                </Button>
 
-                <div className="relative inline-flex items-center">
-                  <input
-                    type="color"
+                {selectedElement.topImageSrc && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     disabled={isLocked}
-                    value={selectedElement.topFill || selectedElement.fill || '#FFFFFF'}
-                    onChange={(e) => onUpdateElement({ topFill: e.target.value })}
-                    className="w-6 h-6 rounded-full border border-zinc-300 cursor-pointer p-0 overflow-hidden"
-                    title="Cor personalizada do tampo"
-                  />
+                    onClick={handleRemoveTopArtwork}
+                    className="text-xs h-8 border-red-200 text-red-600 hover:bg-red-50 font-sans cursor-pointer px-2"
+                    title="Remover arte da tampa"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+              <p className="text-[10px] text-zinc-400 font-sans leading-tight">
+                Ideal para o arquivo redondo do kit de sublimação (estrelas, nuvens, madeira, nome).
+              </p>
+            </div>
+
+            {/* Opção B: Usar a Mesma Estampa da Lateral (se houver estampa na lateral e não tiver arte própria na tampa) */}
+            {selectedElement.fillImageSrc && !selectedElement.topImageSrc && (
+              <label className="flex items-center gap-2 pt-1 border-t border-zinc-200/60 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  disabled={isLocked}
+                  checked={!!selectedElement.includeTopArtwork}
+                  onChange={(e) => onUpdateElement({ includeTopArtwork: e.target.checked })}
+                  className="w-3.5 h-3.5 accent-orange-600 rounded cursor-pointer"
+                />
+                <span className="text-[11px] text-zinc-700 font-sans leading-tight">
+                  Usar a mesma estampa da lateral na tampa
+                </span>
+              </label>
+            )}
+
+            {/* Opção C: Cores e Acabamentos Lisos (Madeira, Roxo, Dourado, Branco, etc) */}
+            {!selectedElement.topImageSrc && (
+              <div className="space-y-1.5 pt-2 border-t border-zinc-200/60">
+                <span className="text-[10px] text-zinc-500 font-sans block">Ou escolha uma cor / acabamento que combine:</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    { name: 'Roxo Festa', value: '#582B7D' },
+                    { name: 'Lilás Suave', value: '#C4B5FD' },
+                    { name: 'Branco Neve', value: '#FFFFFF' },
+                    { name: 'Pinus Claro', value: '#E7DFD5' },
+                    { name: 'Madeira Natural', value: '#CDBCA8' },
+                    { name: 'Dourado Festa', value: '#D4AF37' },
+                    { name: 'Off-White', value: '#F5EBE0' },
+                    { name: 'Preto Fosco', value: '#1E1E24' },
+                    { name: 'Rosa Bebê', value: '#F2D5D9' },
+                    { name: 'Azul Céu', value: '#BFDBFE' },
+                  ].map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      title={c.name}
+                      disabled={isLocked}
+                      onClick={() => onUpdateElement({ topFill: c.value, includeTopArtwork: false })}
+                      className={`w-6 h-6 rounded-full border transition-all cursor-pointer ${
+                        (selectedElement.topFill || selectedElement.fill).toLowerCase() === c.value.toLowerCase()
+                          ? 'ring-2 ring-orange-500 ring-offset-1 scale-110 border-transparent'
+                          : 'border-zinc-300 hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: c.value }}
+                    />
+                  ))}
+
+                  <div className="relative inline-flex items-center">
+                    <input
+                      type="color"
+                      disabled={isLocked}
+                      value={selectedElement.topFill || selectedElement.fill || '#FFFFFF'}
+                      onChange={(e) => onUpdateElement({ topFill: e.target.value, includeTopArtwork: false })}
+                      className="w-6 h-6 rounded-full border border-zinc-300 cursor-pointer p-0 overflow-hidden"
+                      title="Cor personalizada da tampa"
+                    />
+                  </div>
                 </div>
               </div>
-
-              {selectedElement.fillImageSrc && (
-                <label className="flex items-center gap-2 pt-2 border-t border-zinc-200/60 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    disabled={isLocked}
-                    checked={!!selectedElement.includeTopArtwork}
-                    onChange={(e) => onUpdateElement({ includeTopArtwork: e.target.checked })}
-                    className="w-3.5 h-3.5 accent-orange-600 rounded cursor-pointer"
-                  />
-                  <span className="text-[11px] text-zinc-700 font-sans leading-tight">
-                    Aplicar estampa no tampo também (estampa contínua)
-                  </span>
-                </label>
-              )}
-            </div>
+            )}
           </div>
         )}
 

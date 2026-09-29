@@ -503,8 +503,8 @@ const ElementShape = ({
               strokeWidth={strokeWidth}
             />
 
-            {/* Se o usuário marcou para a estampa cobrir o tampo também */}
-            {el.includeTopArtwork && el.fillImageSrc && (
+            {/* Imagem dedicada para o Tampo OU estampa contínua da lateral */}
+            {(el.topImageSrc || (el.includeTopArtwork && el.fillImageSrc)) && (
               <Group
                 clipFunc={(ctx) => {
                   ctx.beginPath();
@@ -513,13 +513,13 @@ const ElementShape = ({
                 }}
               >
                 <ClippedArtworkImage
-                  url={el.fillImageSrc}
+                  url={el.topImageSrc || el.fillImageSrc!}
                   boxX={0}
                   boxY={0}
                   boxWidth={w}
                   boxHeight={ry * 2}
                   fillMode="cover"
-                  fillScale={el.fillScale}
+                  fillScale={el.topImageSrc ? 1 : el.fillScale}
                 />
               </Group>
             )}
@@ -674,6 +674,25 @@ const ElementShape = ({
               strokeWidth={1.5}
               opacity={0.85}
             />
+            {el.topImageSrc && (
+              <Group
+                clipFunc={(ctx) => {
+                  ctx.beginPath();
+                  ctx.ellipse(w / 2, ry, w / 2, ry, 0, 0, Math.PI * 2, false);
+                  ctx.closePath();
+                }}
+              >
+                <ClippedArtworkImage
+                  url={el.topImageSrc}
+                  boxX={0}
+                  boxY={0}
+                  boxWidth={w}
+                  boxHeight={ry * 2}
+                  fillMode="cover"
+                  fillScale={1}
+                />
+              </Group>
+            )}
             <Ellipse
               x={w / 2}
               y={ry}

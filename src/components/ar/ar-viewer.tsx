@@ -38,14 +38,15 @@ function createMeshForElement(el: CanvasElement, textureLoader: THREE.TextureLoa
       sideMat.map = textureLoader.load(el.fillImageSrc);
     }
     const topColor = el.topFill ? new THREE.Color(el.topFill) : color;
+    const topTextureUrl = el.topImageSrc || (el.includeTopArtwork ? el.fillImageSrc : undefined);
     const topMat = new THREE.MeshStandardMaterial({
-      color: (el.includeTopArtwork && el.fillImageSrc) ? new THREE.Color(0xFFFFFF) : topColor,
+      color: topTextureUrl ? new THREE.Color(0xFFFFFF) : topColor,
       roughness: 0.35,
       transparent: el.opacity < 1,
       opacity: el.opacity,
     });
-    if (el.includeTopArtwork && el.fillImageSrc) {
-      topMat.map = textureLoader.load(el.fillImageSrc);
+    if (topTextureUrl) {
+      topMat.map = textureLoader.load(topTextureUrl);
     }
     const bottomMat = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
     const mesh = new THREE.Mesh(geometry, [sideMat, topMat, bottomMat]);

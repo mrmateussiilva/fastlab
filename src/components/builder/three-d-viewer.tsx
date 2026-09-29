@@ -1486,14 +1486,15 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
 
       // Material para o Tampo Superior (Sem distorção da arte lateral)
       const topColor = el.topFill ? new THREE.Color(el.topFill) : threeColor;
+      const topTextureUrl = el.topImageSrc || (el.includeTopArtwork ? el.fillImageSrc : undefined);
       const topMat = new THREE.MeshStandardMaterial({
-        color: (el.includeTopArtwork && el.fillImageSrc) ? new THREE.Color(0xFFFFFF) : topColor,
+        color: topTextureUrl ? new THREE.Color(0xFFFFFF) : topColor,
         roughness: 0.35,
         metalness: 0.05,
       });
 
-      if (el.includeTopArtwork && el.fillImageSrc) {
-        textureLoader.load(el.fillImageSrc, (tex) => {
+      if (topTextureUrl) {
+        textureLoader.load(topTextureUrl, (tex) => {
           tex.colorSpace = THREE.SRGBColorSpace;
           topMat.map = tex;
           topMat.needsUpdate = true;

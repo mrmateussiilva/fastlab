@@ -102,6 +102,7 @@ export interface CanvasElement {
   fillOffsetY?: number;
   // Propriedades específicas para Cilindros de Festa
   topFill?: string;
+  topImageSrc?: string;
   includeTopArtwork?: boolean;
 }
 
