@@ -100,6 +100,9 @@ export interface CanvasElement {
   fillScale?: number;
   fillOffsetX?: number;
   fillOffsetY?: number;
+  // Propriedades específicas para Cilindros de Festa
+  topFill?: string;
+  includeTopArtwork?: boolean;
 }
 
 export const ARTWORK_SUPPORTED_SHAPES: ShapeType[] = [
@@ -107,6 +110,10 @@ export const ARTWORK_SUPPORTED_SHAPES: ShapeType[] = [
   'panel-round',
   'panel-rect',
   'panel-wavy',
+  'cylinder-low',
+  'cylinder-mid',
+  'cylinder-high',
+  'acrylic-cylinder',
 ];
 
 export function isArtworkSupported(shapeType: ShapeType): boolean {

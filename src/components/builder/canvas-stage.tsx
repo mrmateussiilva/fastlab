@@ -379,31 +379,312 @@ const ElementShape = ({
       case 'cylinder-low':
       case 'cylinder-mid':
       case 'cylinder-high': {
-        const ry = 14;
-        const bodyH = h - ry;
+        // Proporção de perspectiva realista para cilindros de festa
+        const ry = Math.max(16, Math.min(w * 0.16, 32));
+        const bodyTopY = ry;
+        const bodyBottomY = h - ry;
+        const topColor = el.topFill || el.fill || '#FFFFFF';
+
         return (
           <>
-            <Ellipse x={w / 2} y={bodyH} radiusX={w / 2} radiusY={ry} fill={el.fill} stroke={strokeColor} strokeWidth={strokeWidth} />
-            <Rect x={0} y={ry} width={w} height={bodyH - ry} fill={el.fill} />
-            <Line points={[0, ry, 0, bodyH]} stroke={strokeColor} strokeWidth={strokeWidth} />
-            <Line points={[w, ry, w, bodyH]} stroke={strokeColor} strokeWidth={strokeWidth} />
-            <Ellipse x={w / 2} y={ry} radiusX={w / 2} radiusY={ry} fill={el.fill} stroke={strokeColor} strokeWidth={strokeWidth} />
-            <Ellipse x={w / 2} y={ry} radiusX={w / 2 * 0.85} radiusY={ry * 0.85} stroke="#FFFFFF" strokeWidth={1} opacity={0.4} />
+            {/* 1. Sombra suave de contato com o chão */}
+            <Ellipse
+              x={w / 2}
+              y={h - ry * 0.35}
+              radiusX={w / 2 * 0.95}
+              radiusY={ry * 0.55}
+              fill="#000000"
+              opacity={0.16}
+              listening={false}
+            />
+
+            {/* 2. Base do Corpo (Fundo inferior do cilindro) */}
+            <Ellipse
+              x={w / 2}
+              y={bodyBottomY}
+              radiusX={w / 2}
+              radiusY={ry}
+              fill={el.fill}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+            />
+
+            {/* 3. Corpo Lateral do Cilindro */}
+            <Rect
+              x={0}
+              y={bodyTopY}
+              width={w}
+              height={bodyBottomY - bodyTopY}
+              fill={el.fill}
+            />
+
+            {/* Curva inferior de fechamento do corpo para acompanhar a base */}
+            <Path
+              data={`M 0 ${bodyBottomY} A ${w / 2} ${ry} 0 0 0 ${w} ${bodyBottomY} L ${w} ${bodyTopY} L 0 ${bodyTopY} Z`}
+              fill={el.fill}
+            />
+
+            {/* 4. Arte / Estampa da Capa Sublimada (Veste-Fácil) no corpo */}
+            {el.fillImageSrc && (
+              <Group
+                clipFunc={(ctx) => {
+                  ctx.beginPath();
+                  ctx.moveTo(0, bodyTopY);
+                  ctx.lineTo(w, bodyTopY);
+                  ctx.lineTo(w, bodyBottomY);
+                  ctx.ellipse(w / 2, bodyBottomY, w / 2, ry, 0, 0, Math.PI, false);
+                  ctx.lineTo(0, bodyTopY);
+                  ctx.closePath();
+                }}
+              >
+                <ClippedArtworkImage
+                  url={el.fillImageSrc}
+                  boxX={0}
+                  boxY={bodyTopY}
+                  boxWidth={w}
+                  boxHeight={h - bodyTopY}
+                  fillMode={el.fillMode || 'cover'}
+                  fillScale={el.fillScale}
+                  fillOffsetX={el.fillOffsetX}
+                  fillOffsetY={el.fillOffsetY}
+                />
+              </Group>
+            )}
+
+            {/* 5. Iluminação e Sombra Cilíndrica 3D Realista (Dá o efeito de tubo arredondado) */}
+            <Group
+              clipFunc={(ctx) => {
+                ctx.beginPath();
+                ctx.moveTo(0, bodyTopY);
+                ctx.lineTo(w, bodyTopY);
+                ctx.lineTo(w, bodyBottomY);
+                ctx.ellipse(w / 2, bodyBottomY, w / 2, ry, 0, 0, Math.PI, false);
+                ctx.lineTo(0, bodyTopY);
+                ctx.closePath();
+              }}
+              listening={false}
+            >
+              <Rect
+                x={0}
+                y={bodyTopY}
+                width={w}
+                height={h - bodyTopY}
+                fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                fillLinearGradientEndPoint={{ x: w, y: 0 }}
+                fillLinearGradientColorStops={[
+                  0.0, 'rgba(0, 0, 0, 0.32)',
+                  0.12, 'rgba(0, 0, 0, 0.08)',
+                  0.4, 'rgba(255, 255, 255, 0.22)',
+                  0.7, 'rgba(0, 0, 0, 0.04)',
+                  1.0, 'rgba(0, 0, 0, 0.36)',
+                ]}
+                listening={false}
+              />
+            </Group>
+
+            {/* 6. Linhas de contorno lateral e da curva da base */}
+            <Line points={[0, bodyTopY, 0, bodyBottomY]} stroke={strokeColor} strokeWidth={strokeWidth} />
+            <Line points={[w, bodyTopY, w, bodyBottomY]} stroke={strokeColor} strokeWidth={strokeWidth} />
+            <Path
+              data={`M ${w} ${bodyBottomY} A ${w / 2} ${ry} 0 0 1 0 ${bodyBottomY}`}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+              fillEnabled={false}
+            />
+
+            {/* 7. O TAMPO (Tampa Superior) */}
+            <Ellipse
+              x={w / 2}
+              y={ry}
+              radiusX={w / 2}
+              radiusY={ry}
+              fill={topColor}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+            />
+
+            {/* Se o usuário marcou para a estampa cobrir o tampo também */}
+            {el.includeTopArtwork && el.fillImageSrc && (
+              <Group
+                clipFunc={(ctx) => {
+                  ctx.beginPath();
+                  ctx.ellipse(w / 2, ry, w / 2, ry, 0, 0, Math.PI * 2, false);
+                  ctx.closePath();
+                }}
+              >
+                <ClippedArtworkImage
+                  url={el.fillImageSrc}
+                  boxX={0}
+                  boxY={0}
+                  boxWidth={w}
+                  boxHeight={ry * 2}
+                  fillMode="cover"
+                  fillScale={el.fillScale}
+                />
+              </Group>
+            )}
+
+            {/* Borda do Tampo com acabamento e brilho de costura/reflexo */}
+            <Ellipse
+              x={w / 2}
+              y={ry}
+              radiusX={w / 2}
+              radiusY={ry}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+              fillEnabled={false}
+            />
+            <Ellipse
+              x={w / 2}
+              y={ry}
+              radiusX={w / 2 * 0.9}
+              radiusY={ry * 0.86}
+              stroke="#FFFFFF"
+              strokeWidth={1.2}
+              opacity={0.45}
+              fillEnabled={false}
+              listening={false}
+            />
           </>
         );
       }
 
       case 'acrylic-cylinder': {
-        const ry = 14;
-        const bodyH = h - ry;
+        const ry = Math.max(16, Math.min(w * 0.16, 32));
+        const bodyTopY = ry;
+        const bodyBottomY = h - ry;
+
         return (
           <>
-            <Ellipse x={w / 2} y={bodyH} radiusX={w / 2} radiusY={ry} fill="#E3EDF8" stroke="#90B6DE" strokeWidth={1.5} opacity={0.6} />
-            <Rect x={0} y={ry} width={w} height={bodyH - ry} fill="#E3EDF8" opacity={0.4} />
-            <Line points={[0, ry, 0, bodyH]} stroke="#90B6DE" strokeWidth={1.5} />
-            <Line points={[w, ry, w, bodyH]} stroke="#90B6DE" strokeWidth={1.5} />
-            <Line points={[w * 0.15, ry + 10, w * 0.15, bodyH - 10]} stroke="#FFFFFF" strokeWidth={2} opacity={0.7} />
-            <Ellipse x={w / 2} y={ry} radiusX={w / 2} radiusY={ry} fill="#EDF4FC" stroke="#90B6DE" strokeWidth={1.5} opacity={0.8} />
+            {/* Sombra de apoio no chão */}
+            <Ellipse
+              x={w / 2}
+              y={h - ry * 0.35}
+              radiusX={w / 2 * 0.9}
+              radiusY={ry * 0.5}
+              fill="#000000"
+              opacity={0.12}
+              listening={false}
+            />
+
+            {/* Base translúcida */}
+            <Ellipse
+              x={w / 2}
+              y={bodyBottomY}
+              radiusX={w / 2}
+              radiusY={ry}
+              fill="#E3EDF8"
+              stroke="#90B6DE"
+              strokeWidth={1.5}
+              opacity={0.5}
+            />
+
+            {/* Corpo acrílico com transparência */}
+            <Rect
+              x={0}
+              y={bodyTopY}
+              width={w}
+              height={bodyBottomY - bodyTopY}
+              fill="#E3EDF8"
+              opacity={0.35}
+            />
+            <Path
+              data={`M 0 ${bodyBottomY} A ${w / 2} ${ry} 0 0 0 ${w} ${bodyBottomY} L ${w} ${bodyTopY} L 0 ${bodyTopY} Z`}
+              fill="#E3EDF8"
+              opacity={0.35}
+            />
+
+            {/* Arte da Capa ou Adesivo no Acrílico */}
+            {el.fillImageSrc && (
+              <Group
+                clipFunc={(ctx) => {
+                  ctx.beginPath();
+                  ctx.moveTo(0, bodyTopY);
+                  ctx.lineTo(w, bodyTopY);
+                  ctx.lineTo(w, bodyBottomY);
+                  ctx.ellipse(w / 2, bodyBottomY, w / 2, ry, 0, 0, Math.PI, false);
+                  ctx.lineTo(0, bodyTopY);
+                  ctx.closePath();
+                }}
+              >
+                <ClippedArtworkImage
+                  url={el.fillImageSrc}
+                  boxX={0}
+                  boxY={bodyTopY}
+                  boxWidth={w}
+                  boxHeight={h - bodyTopY}
+                  fillMode={el.fillMode || 'cover'}
+                  fillScale={el.fillScale}
+                  fillOffsetX={el.fillOffsetX}
+                  fillOffsetY={el.fillOffsetY}
+                />
+              </Group>
+            )}
+
+            {/* Gradiente de reflexo vítreo / acrílico */}
+            <Group
+              clipFunc={(ctx) => {
+                ctx.beginPath();
+                ctx.moveTo(0, bodyTopY);
+                ctx.lineTo(w, bodyTopY);
+                ctx.lineTo(w, bodyBottomY);
+                ctx.ellipse(w / 2, bodyBottomY, w / 2, ry, 0, 0, Math.PI, false);
+                ctx.lineTo(0, bodyTopY);
+                ctx.closePath();
+              }}
+              listening={false}
+            >
+              <Rect
+                x={0}
+                y={bodyTopY}
+                width={w}
+                height={h - bodyTopY}
+                fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                fillLinearGradientEndPoint={{ x: w, y: 0 }}
+                fillLinearGradientColorStops={[
+                  0.0, 'rgba(144, 182, 222, 0.4)',
+                  0.2, 'rgba(255, 255, 255, 0.55)',
+                  0.5, 'rgba(227, 237, 248, 0.1)',
+                  0.85, 'rgba(255, 255, 255, 0.35)',
+                  1.0, 'rgba(144, 182, 222, 0.45)',
+                ]}
+                listening={false}
+              />
+            </Group>
+
+            {/* Contornos e reflexos brancos */}
+            <Line points={[0, bodyTopY, 0, bodyBottomY]} stroke="#90B6DE" strokeWidth={1.5} />
+            <Line points={[w, bodyTopY, w, bodyBottomY]} stroke="#90B6DE" strokeWidth={1.5} />
+            <Line points={[w * 0.18, bodyTopY + 8, w * 0.18, bodyBottomY - 8]} stroke="#FFFFFF" strokeWidth={2} opacity={0.7} />
+            <Path
+              data={`M ${w} ${bodyBottomY} A ${w / 2} ${ry} 0 0 1 0 ${bodyBottomY}`}
+              stroke="#90B6DE"
+              strokeWidth={1.5}
+              fillEnabled={false}
+            />
+
+            {/* Tampo de Acrílico */}
+            <Ellipse
+              x={w / 2}
+              y={ry}
+              radiusX={w / 2}
+              radiusY={ry}
+              fill={el.topFill || '#EDF4FC'}
+              stroke="#90B6DE"
+              strokeWidth={1.5}
+              opacity={0.85}
+            />
+            <Ellipse
+              x={w / 2}
+              y={ry}
+              radiusX={w / 2 * 0.88}
+              radiusY={ry * 0.85}
+              stroke="#FFFFFF"
+              strokeWidth={1.5}
+              opacity={0.65}
+              fillEnabled={false}
+              listening={false}
+            />
           </>
         );
       }

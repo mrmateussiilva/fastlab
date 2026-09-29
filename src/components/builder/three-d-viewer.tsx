@@ -1452,12 +1452,12 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
   if (el.shapeType.includes('cylinder')) {
     const radius = w / 2;
     const isAcrylic = el.shapeType === 'acrylic-cylinder';
+    const cylGeo = new THREE.CylinderGeometry(radius, radius, h, 64);
 
-    const cylGeo = new THREE.CylinderGeometry(radius, radius, h, 48);
+    let cylMesh: THREE.Mesh;
 
-    let cylMat: THREE.Material;
-    if (isAcrylic) {
-      cylMat = new THREE.MeshPhysicalMaterial({
+    if (isAcrylic && !el.fillImageSrc) {
+      const cylMat = new THREE.MeshPhysicalMaterial({
         color: new THREE.Color(0x70A5E0),
         transparent: true,
         opacity: 0.6,
@@ -1465,32 +1465,63 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
         metalness: 0.1,
         transmission: 0.75,
       });
+      cylMesh = new THREE.Mesh(cylGeo, cylMat);
     } else {
-      cylMat = new THREE.MeshStandardMaterial({
-        color: threeColor,
-        roughness: 0.55,
+      // Material para a Lateral / Corpo (Capa veste-fácil)
+      const sideMat = new THREE.MeshStandardMaterial({
+        color: el.fillImageSrc ? new THREE.Color(0xFFFFFF) : threeColor,
+        roughness: 0.52,
         metalness: 0.05,
       });
 
       if (el.fillImageSrc) {
         textureLoader.load(el.fillImageSrc, (tex) => {
           tex.colorSpace = THREE.SRGBColorSpace;
-          (cylMat as THREE.MeshStandardMaterial).map = tex;
-          cylMat.needsUpdate = true;
+          tex.wrapS = THREE.ClampToEdgeWrapping;
+          tex.wrapT = THREE.ClampToEdgeWrapping;
+          sideMat.map = tex;
+          sideMat.needsUpdate = true;
         });
       }
+
+      // Material para o Tampo Superior (Sem distorção da arte lateral)
+      const topColor = el.topFill ? new THREE.Color(el.topFill) : threeColor;
+      const topMat = new THREE.MeshStandardMaterial({
+        color: (el.includeTopArtwork && el.fillImageSrc) ? new THREE.Color(0xFFFFFF) : topColor,
+        roughness: 0.35,
+        metalness: 0.05,
+      });
+
+      if (el.includeTopArtwork && el.fillImageSrc) {
+        textureLoader.load(el.fillImageSrc, (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          topMat.map = tex;
+          topMat.needsUpdate = true;
+        });
+      }
+
+      // Material para a Base
+      const bottomMat = new THREE.MeshStandardMaterial({
+        color: threeColor,
+        roughness: 0.85,
+      });
+
+      // Three.js CylinderGeometry grupos: 0 = lateral (corpo), 1 = tampo (top), 2 = base (bottom)
+      cylMesh = new THREE.Mesh(cylGeo, [sideMat, topMat, bottomMat]);
     }
 
-    const cylMesh = new THREE.Mesh(cylGeo, cylMat);
     cylMesh.castShadow = true;
     cylMesh.receiveShadow = true;
     cylMesh.userData = { elementId: el.id };
     group.add(cylMesh);
 
-    // Borda superior sutil
-    const rimGeo = new THREE.TorusGeometry(radius, 0.006, 16, 48);
+    // Borda superior sutil (Costura / friso de acabamento do tampo)
+    const rimGeo = new THREE.TorusGeometry(radius, 0.005, 16, 64);
     rimGeo.rotateX(Math.PI / 2);
-    const rimMat = new THREE.MeshStandardMaterial({ color: isAcrylic ? 0x90C0F0 : 0xE0DDD5, roughness: 0.3 });
+    const rimColor = el.topFill 
+      ? new THREE.Color(el.topFill) 
+      : (isAcrylic ? new THREE.Color(0x90C0F0) : new THREE.Color(0xE0DDD5));
+    const rimMat = new THREE.MeshStandardMaterial({ color: rimColor, roughness: 0.35 });
     const rimMesh = new THREE.Mesh(rimGeo, rimMat);
     rimMesh.position.y = h / 2;
     rimMesh.userData = { elementId: el.id };

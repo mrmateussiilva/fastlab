@@ -26,20 +26,41 @@ function createMeshForElement(el: CanvasElement, textureLoader: THREE.TextureLoa
 
   const color = new THREE.Color(el.fill !== 'transparent' ? el.fill : '#ffffff');
 
-  if (el.shapeType.includes('cylinder') || el.shapeType.includes('round')) {
-    if (el.shapeType.includes('cylinder')) {
-      geometry = new THREE.CylinderGeometry(w/2, w/2, h, 32);
-    } else {
-      geometry = new THREE.CylinderGeometry(w/2, w/2, depth, 32);
-      geometry.rotateX(Math.PI / 2);
+  if (el.shapeType.includes('cylinder')) {
+    geometry = new THREE.CylinderGeometry(w / 2, w / 2, h, 48);
+    const sideMat = new THREE.MeshStandardMaterial({
+      color: el.fillImageSrc ? new THREE.Color(0xFFFFFF) : color,
+      roughness: 0.55,
+      transparent: el.opacity < 1,
+      opacity: el.opacity,
+    });
+    if (el.fillImageSrc) {
+      sideMat.map = textureLoader.load(el.fillImageSrc);
     }
-    
-    material = new THREE.MeshStandardMaterial({ 
+    const topColor = el.topFill ? new THREE.Color(el.topFill) : color;
+    const topMat = new THREE.MeshStandardMaterial({
+      color: (el.includeTopArtwork && el.fillImageSrc) ? new THREE.Color(0xFFFFFF) : topColor,
+      roughness: 0.35,
+      transparent: el.opacity < 1,
+      opacity: el.opacity,
+    });
+    if (el.includeTopArtwork && el.fillImageSrc) {
+      topMat.map = textureLoader.load(el.fillImageSrc);
+    }
+    const bottomMat = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
+    const mesh = new THREE.Mesh(geometry, [sideMat, topMat, bottomMat]);
+    mesh.position.set(x3d, y3d, z3d);
+    mesh.rotation.z = -el.rotation * (Math.PI / 180);
+    return mesh;
+  } else if (el.shapeType.includes('round')) {
+    geometry = new THREE.CylinderGeometry(w / 2, w / 2, depth, 32);
+    geometry.rotateX(Math.PI / 2);
+    material = new THREE.MeshStandardMaterial({
       color,
       transparent: el.opacity < 1,
       opacity: el.opacity,
       roughness: 0.7,
-      metalness: 0.1
+      metalness: 0.1,
     });
   } else if (el.shapeType.includes('rect') || el.shapeType.includes('box') || el.shapeType.includes('table') || el.shapeType.includes('arch') || el.shapeType.includes('wavy')) {
     const d = el.shapeType.includes('table') ? w/1.5 : depth; // mesas são mais fundas
