@@ -21,6 +21,7 @@ import { FESTA_TEMPLATES, FestaTemplate } from '@/lib/templates';
 import ImageComparator from '@/components/image-comparator';
 import { SignInButton, UserButton, useAuth } from '@clerk/nextjs';
 import ProjectsDashboard from '@/components/projects-dashboard';
+import { ThemeGallery } from '@/components/themes/theme-gallery';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'upload' | 'builder') => void;
@@ -332,31 +333,12 @@ export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelect
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FESTA_TEMPLATES.map((template) => (
-              <div
-                key={template.id}
-                onClick={() => handleSelectTemplate(template)}
-                className="group bg-white rounded-2xl border border-zinc-200 overflow-hidden cursor-pointer hover:border-orange-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
-              >
-                <div className={`w-full h-48 bg-gradient-to-br ${template.previewColor} flex items-center justify-center relative overflow-hidden`}>
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-10 bg-black transition-opacity" />
-                  <Layers className="w-12 h-12 text-white/40 group-hover:scale-110 transition-transform duration-300" />
-                  <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-3 py-1 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                    Usar modelo
-                  </div>
-                </div>
-                <div className="p-5 flex-1 flex flex-col">
-                  <h4 className="text-base font-semibold text-zinc-900 mb-1.5">{template.name}</h4>
-                  <p className="text-sm text-zinc-500 leading-relaxed flex-1">{template.description}</p>
-                  <div className="mt-4 flex items-center text-sm font-semibold text-orange-600 group-hover:text-orange-700">
-                    Usar este modelo
-                    <ArrowRight className="w-4 h-4 ml-1.5 transform group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ThemeGallery onSelectTheme={(theme) => {
+            // we map the selected Theme to what handleSelectTemplate expects, or just start empty project for now
+            // since themes now represent character themes, they might just start empty with specific colors.
+            // Let's just start from scratch when selecting a theme for now, we can pre-configure colors later.
+            handleSelectTemplate(null);
+          }} />
         </div>
       </section>
 

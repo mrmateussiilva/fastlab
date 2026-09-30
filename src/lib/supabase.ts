@@ -30,3 +30,18 @@ export type Project = {
   created_at: string;
   updated_at: string;
 };
+
+export type Theme = {
+  id: string;
+  name: string;
+  category: string;
+  tags: string[];
+  description: string | null;
+  cover_image_url: string;
+  gallery_images: string[];
+  elements: unknown;
+  environment: unknown;
+  is_published: boolean;
+  sort_order: number;
+  created_at: string;
+};
