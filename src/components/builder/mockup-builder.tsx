@@ -31,6 +31,7 @@ import MobileQuickActions from './mobile-quick-actions';
 import MobileQuickAdd from './mobile-quick-add';
 import MobileBottomNav from './mobile-bottom-nav';
 import ARManager from '../ar/ar-manager';
+import { useAuth, useClerk } from '@clerk/nextjs';
 
 // Importação dinâmica do CanvasStage para evitar erros de SSR com Konva/Canvas
 const CanvasStage = dynamic(() => import('./canvas-stage'), {
@@ -148,6 +149,8 @@ const QUICK_ADD_IDS = [
 const QUICK_ADD_ITEMS = ELEMENT_LIBRARY.filter((el) => QUICK_ADD_IDS.includes(el.id));
 
 export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
+  const { isSignedIn } = useAuth();
+  const { openSignIn } = useClerk();
   const limitData = useGenerationLimit();
   const isOnline = useOnline();
   const [isUploadingItem, setIsUploadingItem] = useState(false);
@@ -219,6 +222,11 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   }, [isOnline]);
 
   const handleOpenGenerateModal = useCallback(() => {
+    // Gate: exige login para abrir o modal de geração de IA
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
     if (!isOnline) {
       setError(
         'Sem internet: a geração de imagem exige conexão. A edição do projeto continua funcionando offline.'
@@ -233,7 +241,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
       }
     }
     setIsGenerateModalOpen(true);
-  }, [isOnline, viewMode]);
+  }, [isOnline, viewMode, isSignedIn, openSignIn]);
 
   const handleOpenARMode = useCallback(() => {
     setSelectedId(null);
@@ -692,6 +700,12 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
 
   // Exportar Mockup diretamente como imagem PNG
   const handleExportMockup = () => {
+    // Gate: exige login para exportar
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
+
     if (!canvasRef.current) return;
     setSelectedId(null);
 
@@ -710,6 +724,12 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
 
   // Gerar Imagem Realista a partir do Canvas ou do 3D com Opções
   const handleGenerateRealistic = async (options: RealisticPromptOptions) => {
+    // Gate: exige login para usar a IA
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
+
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setError('Sem internet: a geração de imagem exige conexão. Tente novamente quando estiver online.');
       setIsGenerateModalOpen(false);
@@ -855,6 +875,7 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
           setViewMode((prev) => (prev === '2d' ? '3d' : '2d'));
         }}
         limitData={limitData}
+        isSignedIn={!!isSignedIn}
       />
 
       {/* Faixa de status offline */}

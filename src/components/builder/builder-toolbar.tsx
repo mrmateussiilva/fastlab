@@ -16,6 +16,7 @@ import {
   Share2,
   Pencil,
   Check,
+  Lock,
 } from 'lucide-react';
 import { GenerationLimitData } from '@/hooks/use-generation-limit';
 import GenerationLimitBadge from '@/components/generation-limit-badge';
@@ -38,6 +39,7 @@ interface BuilderToolbarProps {
   viewMode?: '2d' | '3d';
   onToggleViewMode?: () => void;
   limitData?: GenerationLimitData;
+  isSignedIn?: boolean;
 }
 
 export default function BuilderToolbar({
@@ -58,6 +60,7 @@ export default function BuilderToolbar({
   viewMode = '2d',
   onToggleViewMode,
   limitData,
+  isSignedIn = true,
 }: BuilderToolbarProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(projectName);
@@ -255,15 +258,21 @@ export default function BuilderToolbar({
           disabled={
             elementCount === 0 ||
             isGenerating ||
-            limitData?.remaining === 0 ||
-            limitData?.globalLimitReached
+            (isSignedIn && (limitData?.remaining === 0 || limitData?.globalLimitReached))
           }
+          title={!isSignedIn ? 'Faça login para gerar imagens com IA' : 'Gerar imagem com IA'}
           className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-semibold bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
         >
           {isGenerating ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               <span className="hidden sm:inline">Gerando...</span>
+            </>
+          ) : !isSignedIn ? (
+            <>
+              <Lock className="w-4 h-4" />
+              <span className="hidden sm:inline">Gerar com IA</span>
+              <span className="sm:hidden">IA</span>
             </>
           ) : (
             <>
