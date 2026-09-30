@@ -32,6 +32,7 @@ import MobileQuickAdd from './mobile-quick-add';
 import MobileBottomNav from './mobile-bottom-nav';
 import ARManager from '../ar/ar-manager';
 import { useAuth, useClerk } from '@clerk/nextjs';
+import { useProjects } from '@/hooks/use-projects';
 
 // Importação dinâmica do CanvasStage para evitar erros de SSR com Konva/Canvas
 const CanvasStage = dynamic(() => import('./canvas-stage'), {
@@ -56,6 +57,7 @@ const ThreeDViewer = dynamic(() => import('./three-d-viewer'), {
 
 interface MockupBuilderProps {
   onBackToHome: () => void;
+  projectId?: string;
 }
 
 const INITIAL_ELEMENTS: CanvasElement[] = [
@@ -148,9 +150,11 @@ const QUICK_ADD_IDS = [
 ];
 const QUICK_ADD_ITEMS = ELEMENT_LIBRARY.filter((el) => QUICK_ADD_IDS.includes(el.id));
 
-export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
+export default function MockupBuilder({ onBackToHome, projectId }: MockupBuilderProps) {
   const { isSignedIn } = useAuth();
   const { openSignIn } = useClerk();
+  const { saveProject, loadProject, saving } = useProjects();
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId ?? null);
   const limitData = useGenerationLimit();
   const isOnline = useOnline();
   const [isUploadingItem, setIsUploadingItem] = useState(false);
@@ -211,6 +215,32 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
   const [mobileSheet, setMobileSheet] = useState<'items' | 'environment' | 'properties' | null>(null);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+
+  // Carrega projeto da nuvem se um projectId foi fornecido
+  useEffect(() => {
+    if (!projectId) return;
+    loadProject(projectId).then((project) => {
+      if (!project) return;
+      setElements(project.elements as CanvasElement[]);
+      setEnvironment(project.environment as typeof DEFAULT_ENVIRONMENT);
+      setProjectName(project.name);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  // Salva o projeto na nuvem
+  const handleSaveProject = useCallback(async () => {
+    if (!isSignedIn) { openSignIn(); return; }
+    const thumbnail = canvasRef.current?.exportImage() ?? null;
+    const saved = await saveProject({
+      id: currentProjectId ?? undefined,
+      name: projectName,
+      elements,
+      environment,
+      thumbnail_url: thumbnail,
+    });
+    if (saved) setCurrentProjectId(saved.id);
+  }, [isSignedIn, openSignIn, saveProject, currentProjectId, projectName, elements, environment]);
 
   const handleStartRenderFrom3D = useCallback((snapshotDataUrl: string) => {
     if (!isOnline) {
@@ -876,6 +906,8 @@ export default function MockupBuilder({ onBackToHome }: MockupBuilderProps) {
         }}
         limitData={limitData}
         isSignedIn={!!isSignedIn}
+        onSave={isSignedIn ? handleSaveProject : undefined}
+        saving={saving}
       />
 
       {/* Faixa de status offline */}

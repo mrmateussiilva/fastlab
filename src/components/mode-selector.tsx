@@ -9,12 +9,14 @@ import InstallPrompt from '@/components/pwa/install-prompt';
 import { FESTA_TEMPLATES, FestaTemplate } from '@/lib/templates';
 import ImageComparator from '@/components/image-comparator';
 import { SignInButton, UserButton, useAuth } from '@clerk/nextjs';
+import ProjectsDashboard from '@/components/projects-dashboard';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'upload' | 'builder') => void;
+  onOpenProject?: (projectId: string) => void;
 }
 
-export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
+export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelectorProps) {
   const { isSignedIn } = useAuth();
 
   const handleSelectTemplate = (template: FestaTemplate | null) => {
@@ -275,6 +277,12 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
           </Button>
         </div>
       </section>
+
+      {/* PROJECTS DASHBOARD — visível apenas para usuários logados */}
+      <ProjectsDashboard
+        onNewProject={() => handleSelectTemplate(null)}
+        onOpenProject={onOpenProject ?? (() => {})}
+      />
 
       {/* FOOTER */}
       <footer className="w-full bg-white border-t border-zinc-100 py-8 mt-auto">

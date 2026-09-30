@@ -17,6 +17,7 @@ import {
   Pencil,
   Check,
   Lock,
+  Save,
 } from 'lucide-react';
 import { GenerationLimitData } from '@/hooks/use-generation-limit';
 import GenerationLimitBadge from '@/components/generation-limit-badge';
@@ -40,6 +41,8 @@ interface BuilderToolbarProps {
   onToggleViewMode?: () => void;
   limitData?: GenerationLimitData;
   isSignedIn?: boolean;
+  onSave?: () => void;
+  saving?: boolean;
 }
 
 export default function BuilderToolbar({
@@ -61,6 +64,8 @@ export default function BuilderToolbar({
   onToggleViewMode,
   limitData,
   isSignedIn = true,
+  onSave,
+  saving = false,
 }: BuilderToolbarProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(projectName);
@@ -237,6 +242,20 @@ export default function BuilderToolbar({
             <span>3D</span>
           </button>
         </div>
+
+        {/* Save button */}
+        {onSave && (
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            title="Salvar projeto na nuvem"
+            className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200 transition-all cursor-pointer disabled:opacity-40"
+          >
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            <span>{saving ? 'Salvando...' : 'Salvar'}</span>
+          </button>
+        )}
 
         {/* Export dropdown button */}
         <button
