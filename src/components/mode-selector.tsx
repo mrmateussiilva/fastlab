@@ -8,13 +8,15 @@ import { Button } from '@/components/ui/button';
 import InstallPrompt from '@/components/pwa/install-prompt';
 import { FESTA_TEMPLATES, FestaTemplate } from '@/lib/templates';
 import ImageComparator from '@/components/image-comparator';
-import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { SignInButton, UserButton, useAuth } from '@clerk/nextjs';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'upload' | 'builder') => void;
 }
 
 export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
+  const { isSignedIn } = useAuth();
+
   const handleSelectTemplate = (template: FestaTemplate | null) => {
     if (template) {
       localStorage.setItem('festalab_project_elements', JSON.stringify(template.elements));
@@ -60,16 +62,15 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
             }} className="hover:text-zinc-900 transition-colors cursor-pointer">Exemplos</button>
           </nav>
           <div className="flex items-center gap-4">
-            <SignedOut>
+            {!isSignedIn ? (
               <SignInButton mode="modal">
                 <Button variant="ghost" className="h-9 px-4 font-medium cursor-pointer">
                   Entrar
                 </Button>
               </SignInButton>
-            </SignedOut>
-            <SignedIn>
+            ) : (
               <UserButton appearance={{ elements: { avatarBox: "w-9 h-9" } }} />
-            </SignedIn>
+            )}
             <Button
               onClick={() => handleSelectTemplate(null)}
               className="h-9 px-5 text-sm font-medium bg-zinc-900 hover:bg-zinc-800 text-white rounded-md transition-colors cursor-pointer"
