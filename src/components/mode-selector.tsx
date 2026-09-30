@@ -117,7 +117,12 @@ export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelect
                 </Button>
               </SignInButton>
             ) : (
-              <UserButton appearance={{ elements: { avatarBox: 'w-8 h-8' } }} />
+              <div className="flex items-center gap-4">
+                <Link href="/dashboard" className="text-sm font-medium text-zinc-600 hover:text-orange-600 transition-colors">
+                  Minha Área
+                </Link>
+                <UserButton appearance={{ elements: { avatarBox: 'w-8 h-8' } }} />
+              </div>
             )}
             <Button
               onClick={() => handleSelectTemplate(null)}

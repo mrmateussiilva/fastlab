@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   ArrowLeft,
   Download,
@@ -100,7 +101,7 @@ export default function BuilderToolbar({
         </button>
 
         {/* Logo mark */}
-        <div className="flex items-center gap-1.5 px-1">
+        <Link href="/dashboard" className="flex items-center gap-1.5 px-1 hover:opacity-80 transition-opacity">
           <Image
             src="/logo-icon.png"
             alt="FestaLab"
@@ -111,7 +112,7 @@ export default function BuilderToolbar({
           <span className="font-serif font-medium text-sm text-zinc-900 hidden sm:block tracking-tight">
             FestaLab
           </span>
-        </div>
+        </Link>
 
         {/* Divider */}
         <div className="w-px h-5 bg-zinc-200 mx-1 hidden sm:block" />
