@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 import RegisterSW from "@/components/pwa/register-sw";
+import { ClerkProvider } from '@clerk/nextjs';
+import { ptBR } from '@clerk/localizations';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,14 +50,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-[#FAFAF8] text-zinc-900">
-        {children}
-        <RegisterSW />
-      </body>
-    </html>
+    <ClerkProvider localization={ptBR}>
+      <html
+        lang="pt-BR"
+        className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
+      >
+        <body className="min-h-full flex flex-col bg-[#FAFAF8] text-zinc-900">
+          {children}
+          <RegisterSW />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

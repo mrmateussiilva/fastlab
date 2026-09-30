@@ -2,17 +2,23 @@ import { NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
 import { toFile } from 'openai';
 import { REALISTIC_PARTY_PROMPT, buildRealisticPartyPrompt } from '@/lib/prompts';
+import { auth } from '@clerk/nextjs/server';
 import {
-  getClientIp,
   reserveGenerationSlot,
-  rollbackIpGeneration,
+  rollbackGenerationSlot,
   recordSuccessfulGeneration,
 } from '@/lib/rate-limit';
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  const ip = getClientIp(req);
+  const { userId } = await auth();
+
+  if (!userId) {
+    return NextResponse.json({ error: 'Você precisa estar logado para gerar imagens.' }, { status: 401 });
+  }
+
+  const identifier = userId;
   let slotReserved = false;
 
   try {
@@ -23,8 +29,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Identificar IP e reservar atomicamente o slot de geração
-    const reservation = await reserveGenerationSlot(ip);
+    // 1. Identificar Usuário e reservar atomicamente o slot de geração
+    const reservation = await reserveGenerationSlot(identifier);
 
     if (!reservation.allowed) {
       if (reservation.error === 'GLOBAL_LIMIT') {
@@ -61,20 +67,20 @@ export async function POST(req: Request) {
     const image = formData.get('image');
 
     if (!image || !(image instanceof File)) {
-      if (slotReserved) await rollbackIpGeneration(ip);
+      if (slotReserved) await rollbackGenerationSlot(identifier);
       return NextResponse.json({ error: 'Arquivo de imagem é obrigatório.' }, { status: 400 });
     }
 
     // Validate size (10MB limit)
     if (image.size > 10 * 1024 * 1024) {
-      if (slotReserved) await rollbackIpGeneration(ip);
+      if (slotReserved) await rollbackGenerationSlot(identifier);
       return NextResponse.json({ error: 'O arquivo deve ter no máximo 10MB.' }, { status: 400 });
     }
 
     // Validate MIME type
     const validTypes = ['image/png', 'image/jpeg', 'image/webp'];
     if (!validTypes.includes(image.type)) {
-      if (slotReserved) await rollbackIpGeneration(ip);
+      if (slotReserved) await rollbackGenerationSlot(identifier);
       return NextResponse.json(
         { error: 'Formato inválido. Apenas PNG, JPG e WEBP são permitidos.' },
         { status: 400 }
@@ -128,7 +134,7 @@ export async function POST(req: Request) {
     // Se houve erro antes de produzir uma imagem válida, devolve a tentativa ao usuário
     if (slotReserved) {
       try {
-        await rollbackIpGeneration(ip);
+        await rollbackGenerationSlot(identifier);
       } catch (rollbackErr) {
         console.error('Failed to rollback rate limit slot:', rollbackErr);
       }

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import InstallPrompt from '@/components/pwa/install-prompt';
 import { FESTA_TEMPLATES, FestaTemplate } from '@/lib/templates';
 import ImageComparator from '@/components/image-comparator';
+import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'upload' | 'builder') => void;
@@ -58,7 +59,17 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
               if (el) el.scrollIntoView({ behavior: 'smooth' });
             }} className="hover:text-zinc-900 transition-colors cursor-pointer">Exemplos</button>
           </nav>
-          <div>
+          <div className="flex items-center gap-4">
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button variant="ghost" className="h-9 px-4 font-medium cursor-pointer">
+                  Entrar
+                </Button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton appearance={{ elements: { avatarBox: "w-9 h-9" } }} />
+            </SignedIn>
             <Button
               onClick={() => handleSelectTemplate(null)}
               className="h-9 px-5 text-sm font-medium bg-zinc-900 hover:bg-zinc-800 text-white rounded-md transition-colors cursor-pointer"

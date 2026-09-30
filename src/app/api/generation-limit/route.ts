@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getClientIp, getGenerationStatus } from '@/lib/rate-limit';
+import { getGenerationStatus } from '@/lib/rate-limit';
+import { auth } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
-    const ip = getClientIp(req);
-    const status = await getGenerationStatus(ip);
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const status = await getGenerationStatus(userId);
 
     return NextResponse.json(status);
   } catch (error) {

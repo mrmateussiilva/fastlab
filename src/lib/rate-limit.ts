@@ -70,9 +70,9 @@ export type ReservationResult =
     };
 
 /**
- * Consulta o status atual de gerações para um IP
+ * Consulta o status atual de gerações para um identificador (usuário)
  */
-export async function getGenerationStatus(ip: string): Promise<LimitStatus> {
+export async function getGenerationStatus(identifier: string): Promise<LimitStatus> {
   const redis = getRedis();
 
   if (!redis) {
@@ -90,10 +90,10 @@ export async function getGenerationStatus(ip: string): Promise<LimitStatus> {
     const globalCount = (await redis.get<number>('festalab:generation:global:total')) || 0;
     const globalLimitReached = Number(globalCount) >= GLOBAL_LIMIT;
 
-    const ipKey = `festalab:generation:ip:${ip}`;
+    const userKey = `festalab:generation:user:${identifier}`;
     const [usedRaw, ttlRaw] = await Promise.all([
-      redis.get<number>(ipKey),
-      redis.ttl(ipKey),
+      redis.get<number>(userKey),
+      redis.ttl(userKey),
     ]);
 
     const used = Number(usedRaw) || 0;
@@ -126,10 +126,10 @@ export async function getGenerationStatus(ip: string): Promise<LimitStatus> {
 }
 
 /**
- * Tenta reservar atomicamente um slot de geração para o IP.
+ * Tenta reservar atomicamente um slot de geração para o identificador.
  * Utiliza script Lua para garantir atomicidade sem condição de corrida.
  */
-export async function reserveGenerationSlot(ip: string): Promise<ReservationResult> {
+export async function reserveGenerationSlot(identifier: string): Promise<ReservationResult> {
   const redis = getRedis();
 
   if (!redis) {
@@ -156,8 +156,8 @@ export async function reserveGenerationSlot(ip: string): Promise<ReservationResu
     console.error('[RateLimit] Failed to check global limit:', err);
   }
 
-  // 2. Verificar e Incrementar IP atomicamente usando Lua Script
-  const ipKey = `festalab:generation:ip:${ip}`;
+  // 2. Verificar e Incrementar Usuário atomicamente usando Lua Script
+  const userKey = `festalab:generation:user:${identifier}`;
   const luaScript = `
     local current = redis.call('GET', KEYS[1])
     if current and tonumber(current) >= tonumber(ARGV[1]) then
@@ -176,7 +176,7 @@ export async function reserveGenerationSlot(ip: string): Promise<ReservationResu
   try {
     const rawRes = await redis.eval(
       luaScript,
-      [ipKey],
+      [userKey],
       [LIMIT_PER_HOUR, WINDOW_SECONDS]
     );
 
@@ -218,20 +218,20 @@ export async function reserveGenerationSlot(ip: string): Promise<ReservationResu
 }
 
 /**
- * Reverte o slot do IP caso a chamada à OpenAI falhe.
+ * Reverte o slot do usuário caso a chamada à OpenAI falhe.
  */
-export async function rollbackIpGeneration(ip: string): Promise<void> {
+export async function rollbackGenerationSlot(identifier: string): Promise<void> {
   const redis = getRedis();
   if (!redis) return;
 
   try {
-    const ipKey = `festalab:generation:ip:${ip}`;
-    const val = await redis.decr(ipKey);
+    const userKey = `festalab:generation:user:${identifier}`;
+    const val = await redis.decr(userKey);
     if (val <= 0) {
-      await redis.del(ipKey);
+      await redis.del(userKey);
     }
   } catch (err) {
-    console.error('[RateLimit] Failed to rollback IP generation slot:', err);
+    console.error('[RateLimit] Failed to rollback generation slot:', err);
   }
 }
 
