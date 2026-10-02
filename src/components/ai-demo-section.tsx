@@ -173,7 +173,7 @@ export default function AIDemoSection() {
                 Mockup no editor
               </div>
               <img
-                src="/demo-mockup.jpg"
+                src="/demo-mockup.png?v=3"
                 alt="Mockup criado no editor FestaLab"
                 className="w-full aspect-[16/9] object-cover block"
               />
@@ -194,7 +194,7 @@ export default function AIDemoSection() {
           {phase === 'generating' && (
             <div className="relative bg-zinc-950">
               <img
-                src="/demo-mockup.jpg"
+                src="/demo-mockup.png?v=3"
                 alt="Mockup sendo processado"
                 className="w-full aspect-[16/9] object-cover block opacity-30"
               />
@@ -254,12 +254,12 @@ export default function AIDemoSection() {
           {phase === 'result' && (
             <div className="relative overflow-hidden">
               <img
-                src="/demo-mockup.jpg"
+                src="/demo-mockup.png?v=3"
                 alt="Mockup original"
                 className="w-full aspect-[16/9] object-cover block"
               />
               <img
-                src="/demo-real.jpg"
+                src="/demo-real.png?v=3"
                 alt="Resultado gerado pela IA"
                 className="absolute inset-0 w-full h-full object-cover result-reveal"
               />
@@ -280,23 +280,18 @@ export default function AIDemoSection() {
               onPointerLeave={handlePointerUp}
             >
               <img
-                src="/demo-mockup.jpg"
+                src="/demo-mockup.png?v=3"
                 alt="Mockup criado no FestaLab"
                 className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                 draggable={false}
               />
-              <div
-                className="absolute inset-0 overflow-hidden pointer-events-none"
-                style={{ width: `${sliderPos}%` }}
-              >
-                <img
-                  src="/demo-real.jpg"
-                  alt="Resultado fotorrealista gerado por IA"
-                  className="absolute inset-0 h-full object-cover pointer-events-none"
-                  style={{ width: containerRef.current?.clientWidth ?? '100vw' }}
-                  draggable={false}
-                />
-              </div>
+              <img
+                src="/demo-real.png?v=3"
+                alt="Resultado fotorrealista gerado por IA"
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
+                draggable={false}
+              />
               <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-orange-700 shadow-sm flex items-center gap-1.5 border border-orange-200/60 pointer-events-none">
                 <Sparkles className="w-3.5 h-3.5 text-orange-600" />
                 Resultado IA
