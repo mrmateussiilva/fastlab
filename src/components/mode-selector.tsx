@@ -21,7 +21,7 @@ import { FESTA_TEMPLATES, FestaTemplate } from '@/lib/templates';
 import ImageComparator from '@/components/image-comparator';
 import { SignInButton, UserButton, useAuth } from '@clerk/nextjs';
 import ProjectsDashboard from '@/components/projects-dashboard';
-import { ThemeGallery } from '@/components/themes/theme-gallery';
+import { TemplateGallery } from '@/components/templates/template-gallery';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'upload' | 'builder') => void;
@@ -333,12 +333,7 @@ export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelect
             </Button>
           </div>
 
-          <ThemeGallery onSelectTheme={(theme) => {
-            // we map the selected Theme to what handleSelectTemplate expects, or just start empty project for now
-            // since themes now represent character themes, they might just start empty with specific colors.
-            // Let's just start from scratch when selecting a theme for now, we can pre-configure colors later.
-            handleSelectTemplate(null);
-          }} />
+          <TemplateGallery onSelectTemplate={(template) => handleSelectTemplate(template)} />
         </div>
       </section>
 
