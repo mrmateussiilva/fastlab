@@ -18,7 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import InstallPrompt from '@/components/pwa/install-prompt';
 import { FESTA_TEMPLATES, FestaTemplate } from '@/lib/templates';
-import ImageComparator from '@/components/image-comparator';
+import AIDemoSection from '@/components/ai-demo-section';
 import { SignInButton, UserButton, useAuth } from '@clerk/nextjs';
 import ProjectsDashboard from '@/components/projects-dashboard';
 import { TemplateGallery } from '@/components/templates/template-gallery';
@@ -265,17 +265,7 @@ export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelect
             </p>
           </div>
 
-          <ImageComparator
-            pairs={[
-              {
-                id: '1',
-                name: 'Decoração Inicial',
-                mockupUrl: '/demo-mockup.jpg',
-                realUrl: '/demo-real.jpg',
-                isComparable: false,
-              }
-            ]}
-          />
+          <AIDemoSection />
         </div>
       </section>
 
