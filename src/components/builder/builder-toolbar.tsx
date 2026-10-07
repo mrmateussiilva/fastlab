@@ -19,6 +19,7 @@ import {
   Check,
   Lock,
   Save,
+  Camera,
 } from 'lucide-react';
 import { GenerationLimitData } from '@/hooks/use-generation-limit';
 import GenerationLimitBadge from '@/components/generation-limit-badge';
@@ -44,6 +45,13 @@ interface BuilderToolbarProps {
   isSignedIn?: boolean;
   onSave?: () => void;
   saving?: boolean;
+  adminMode?: {
+    themeName: string;
+    onSaveModel: () => void;
+    onSetCoverFromCanvas?: () => void;
+    savingModel?: boolean;
+    savingCover?: boolean;
+  };
 }
 
 export default function BuilderToolbar({
@@ -67,6 +75,7 @@ export default function BuilderToolbar({
   isSignedIn = true,
   onSave,
   saving = false,
+  adminMode,
 }: BuilderToolbarProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(projectName);
@@ -179,13 +188,19 @@ export default function BuilderToolbar({
             <Pencil className="w-3 h-3 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
           </button>
         )}
+
+        {adminMode && (
+          <span className="hidden lg:inline-flex items-center gap-1 ml-2 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+            Admin • Modelo Oficial
+          </span>
+        )}
       </div>
 
       {/* ── RIGHT: Actions ── */}
       <div className="flex items-center gap-1.5 shrink-0">
 
         {/* Generation limit badge */}
-        {limitData && (
+        {limitData && !adminMode && (
           <div className="hidden md:flex items-center">
             <GenerationLimitBadge limitData={limitData} compact />
           </div>
@@ -244,8 +259,36 @@ export default function BuilderToolbar({
           </button>
         </div>
 
-        {/* Save button */}
-        {onSave && (
+        {/* Botão Admin: Definir Canvas como Foto de Capa da Landing Page */}
+        {adminMode?.onSetCoverFromCanvas && (
+          <button
+            type="button"
+            onClick={adminMode.onSetCoverFromCanvas}
+            disabled={adminMode.savingCover || elementCount === 0}
+            title="Tirar foto do canvas e atualizar a foto de capa exibida na landing page"
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-300 transition-all cursor-pointer disabled:opacity-40"
+          >
+            {adminMode.savingCover ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{adminMode.savingCover ? 'Atualizando Capa...' : 'Definir Capa'}</span>
+          </button>
+        )}
+
+        {/* Botão Admin: Salvar Modelo Oficial */}
+        {adminMode && (
+          <button
+            type="button"
+            onClick={adminMode.onSaveModel}
+            disabled={adminMode.savingModel}
+            title="Salvar alterações do modelo oficial no catálogo"
+            className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 shadow-sm transition-all cursor-pointer disabled:opacity-40"
+          >
+            {adminMode.savingModel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5 text-orange-400" />}
+            <span>{adminMode.savingModel ? 'Salvando...' : 'Salvar Modelo'}</span>
+          </button>
+        )}
+
+        {/* Save button (Normal user project) */}
+        {onSave && !adminMode && (
           <button
             type="button"
             onClick={onSave}

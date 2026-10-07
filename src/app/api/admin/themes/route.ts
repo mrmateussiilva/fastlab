@@ -1,26 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { v4 as uuidv4 } from 'uuid';
+import { checkAdminAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-function checkAuth(req: Request) {
-  const authHeader = req.headers.get('Authorization');
-  const expectedPassword = process.env.ADMIN_PASSWORD;
-
-  if (!expectedPassword) {
-    console.error('ADMIN_PASSWORD not set in environment variables');
-    return false;
-  }
-
-  if (authHeader === `Bearer ${expectedPassword}`) {
-    return true;
-  }
-  return false;
-}
-
 export async function GET(req: Request) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!checkAdminAuth(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -34,45 +21,92 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!checkAdminAuth(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
-    const formData = await req.formData();
-    
-    const name = formData.get('name') as string;
-    const category = formData.get('category') as string;
-    const tagsStr = formData.get('tags') as string;
-    const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
-    const description = formData.get('description') as string;
-    const is_published = formData.get('is_published') === 'true';
-    
-    // File upload handling
-    const coverFile = formData.get('cover_image') as File | null;
-    let cover_image_url = formData.get('cover_image_url') as string || '';
-
     const supabase = getSupabaseAdmin();
+    const contentType = req.headers.get('content-type') || '';
 
-    if (coverFile && coverFile.size > 0) {
-      const ext = coverFile.name.split('.').pop();
-      const filename = `${uuidv4()}.${ext}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('themes')
-        .upload(filename, coverFile);
+    let name = '';
+    let category = 'Infantil Unissex';
+    let tags: string[] = [];
+    let description = '';
+    let is_published = true;
+    let cover_image_url = '';
+    let elements: unknown = null;
+    let environment: unknown = null;
 
-      if (uploadError) throw new Error(`Cover upload failed: ${uploadError.message}`);
-      
-      const { data: publicUrlData } = supabase.storage.from('themes').getPublicUrl(filename);
-      cover_image_url = publicUrlData.publicUrl;
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      name = (formData.get('name') as string) || '';
+      category = (formData.get('category') as string) || 'Infantil Unissex';
+      const tagsStr = (formData.get('tags') as string) || '';
+      tags = tagsStr ? tagsStr.split(',').map((t) => t.trim()).filter(Boolean) : [];
+      description = (formData.get('description') as string) || '';
+      is_published = formData.get('is_published') === 'true';
+
+      const elementsRaw = formData.get('elements');
+      if (elementsRaw && typeof elementsRaw === 'string') {
+        try { elements = JSON.parse(elementsRaw); } catch { /* ignore */ }
+      }
+
+      const envRaw = formData.get('environment');
+      if (envRaw && typeof envRaw === 'string') {
+        try { environment = JSON.parse(envRaw); } catch { /* ignore */ }
+      }
+
+      const coverFile = formData.get('cover_image') as File | null;
+      cover_image_url = (formData.get('cover_image_url') as string) || '';
+
+      if (coverFile && coverFile.size > 0) {
+        const ext = coverFile.name.split('.').pop() || 'png';
+        const filename = `${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('themes')
+          .upload(filename, coverFile);
+
+        if (uploadError) throw new Error(`Falha no upload da capa: ${uploadError.message}`);
+
+        const { data: publicUrlData } = supabase.storage.from('themes').getPublicUrl(filename);
+        cover_image_url = publicUrlData.publicUrl;
+      }
+    } else {
+      // JSON payload
+      const body = await req.json();
+      name = body.name || '';
+      category = body.category || 'Infantil Unissex';
+      tags = Array.isArray(body.tags) ? body.tags : (body.tags ? body.tags.split(',').map((t: string) => t.trim()) : []);
+      description = body.description || '';
+      is_published = body.is_published ?? true;
+      cover_image_url = body.cover_image_url || '';
+      elements = body.elements || null;
+      environment = body.environment || null;
+
+      // Suporte para upload de imagem em base64 vinda do canvas
+      if (body.cover_image_base64 && typeof body.cover_image_base64 === 'string') {
+        const matches = body.cover_image_base64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+        if (matches) {
+          const mime = matches[1];
+          const buffer = Buffer.from(matches[2], 'base64');
+          const ext = mime.split('/')[1] || 'png';
+          const filename = `${crypto.randomUUID()}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from('themes')
+            .upload(filename, buffer, { contentType: mime });
+
+          if (uploadError) throw new Error(`Falha no upload da capa em base64: ${uploadError.message}`);
+
+          const { data: publicUrlData } = supabase.storage.from('themes').getPublicUrl(filename);
+          cover_image_url = publicUrlData.publicUrl;
+        }
+      }
     }
 
-    if (!cover_image_url) {
-      return NextResponse.json({ error: 'Cover image is required' }, { status: 400 });
+    if (!name.trim()) {
+      return NextResponse.json({ error: 'O nome do modelo é obrigatório.' }, { status: 400 });
     }
-
-    // Gallery images
-    const gallery_images: string[] = [];
-    // Currently, only handling cover image in this basic POST to avoid too much complexity. 
-    // We can expand this later.
 
     const { data, error } = await supabase
       .from('themes')
@@ -81,8 +115,10 @@ export async function POST(req: Request) {
         category,
         tags,
         description,
-        cover_image_url,
-        gallery_images,
+        cover_image_url: cover_image_url || '/logo-icon.png',
+        gallery_images: [],
+        elements,
+        environment,
         is_published,
       })
       .select()
@@ -92,7 +128,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+    console.error('[AdminThemes POST Error]:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erro ao processar requisição' },
+      { status: 500 }
+    );
   }
 }

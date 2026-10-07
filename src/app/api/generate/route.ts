@@ -107,7 +107,7 @@ export async function POST(req: Request) {
     const response = await openai.images.edit({
       image: file,
       prompt: promptToUse,
-      model: 'gpt-image-1',
+      model: (process.env.OPENAI_IMAGE_MODEL as 'dall-e-2') || 'dall-e-2',
       n: 1,
       size: '1024x1024',
     });

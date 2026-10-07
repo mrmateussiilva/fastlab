@@ -22,6 +22,7 @@ import AIDemoSection from '@/components/ai-demo-section';
 import { SignInButton, UserButton, useAuth } from '@clerk/nextjs';
 import ProjectsDashboard from '@/components/projects-dashboard';
 import { TemplateGallery } from '@/components/templates/template-gallery';
+import { ThemeGallery } from '@/components/themes/theme-gallery';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'upload' | 'builder') => void;
@@ -66,6 +67,7 @@ function FloatingOrb({ className }: { className: string }) {
 export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelectorProps) {
   const { isSignedIn } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+  const [galleryTab, setGalleryTab] = useState<'themes' | 'templates'>('themes');
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -323,7 +325,53 @@ export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelect
             </Button>
           </div>
 
-          <TemplateGallery onSelectTemplate={(template) => handleSelectTemplate(template)} />
+          <div className="mb-8 flex items-center justify-start">
+            <div className="inline-flex p-1 bg-zinc-100 rounded-xl border border-zinc-200">
+              <button
+                type="button"
+                onClick={() => setGalleryTab('themes')}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  galleryTab === 'themes'
+                    ? 'bg-white text-zinc-900 shadow-xs'
+                    : 'text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                Modelos Oficiais
+              </button>
+              <button
+                type="button"
+                onClick={() => setGalleryTab('templates')}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  galleryTab === 'templates'
+                    ? 'bg-white text-zinc-900 shadow-xs'
+                    : 'text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                Templates Rápidos
+              </button>
+            </div>
+          </div>
+
+          {galleryTab === 'themes' ? (
+            <ThemeGallery
+              onSelectTheme={(theme) => {
+                if (theme.elements && Array.isArray(theme.elements) && theme.elements.length > 0) {
+                  localStorage.setItem('festalab_project_elements', JSON.stringify(theme.elements));
+                  if (theme.environment) {
+                    localStorage.setItem('festalab_environment_state', JSON.stringify(theme.environment));
+                  } else {
+                    localStorage.removeItem('festalab_environment_state');
+                  }
+                  localStorage.setItem('festalab_project_name', theme.name);
+                  onSelectMode('builder');
+                } else {
+                  handleSelectTemplate(null);
+                }
+              }}
+            />
+          ) : (
+            <TemplateGallery onSelectTemplate={(template) => handleSelectTemplate(template)} />
+          )}
         </div>
       </section>
 

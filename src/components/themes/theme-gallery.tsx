@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Loader2, Search, ArrowRight, Layers } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Loader2, Search, Layers } from 'lucide-react';
 import { Theme } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
 
 interface ThemeGalleryProps {
   onSelectTheme: (theme: Theme) => void;
@@ -27,11 +26,7 @@ export function ThemeGallery({ onSelectTheme }: ThemeGalleryProps) {
   const [category, setCategory] = useState('Todos');
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetchThemes();
-  }, [category]);
-
-  const fetchThemes = async () => {
+  const fetchThemes = useCallback(async () => {
     setLoading(true);
     try {
       const url = new URL('/api/themes', window.location.origin);
@@ -48,7 +43,11 @@ export function ThemeGallery({ onSelectTheme }: ThemeGalleryProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [category]);
+
+  useEffect(() => {
+    fetchThemes();
+  }, [fetchThemes]);
 
   const filteredThemes = themes.filter(t => 
     search ? t.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -96,7 +95,7 @@ export function ThemeGallery({ onSelectTheme }: ThemeGalleryProps) {
         </div>
       ) : filteredThemes.length === 0 ? (
         <div className="py-20 text-center text-zinc-500">
-          <p>Nenhum tema encontrado para "{search || category}".</p>
+          <p>Nenhum tema encontrado para &quot;{search || category}&quot;.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">

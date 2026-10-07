@@ -55,9 +55,20 @@ const ThreeDViewer = dynamic(() => import('./three-d-viewer'), {
   ),
 });
 
-interface MockupBuilderProps {
+export interface AdminThemeConfig {
+  themeId: string;
+  themeName: string;
+  onSaveModel: (elements: CanvasElement[], environment: EnvironmentConfig, thumbnailBase64?: string) => Promise<boolean>;
+  onSetCoverFromCanvas?: (thumbnailBase64: string) => Promise<boolean>;
+}
+
+export interface MockupBuilderProps {
   onBackToHome: () => void;
   projectId?: string;
+  initialElements?: CanvasElement[];
+  initialEnvironment?: EnvironmentConfig;
+  initialProjectName?: string;
+  adminThemeConfig?: AdminThemeConfig;
 }
 
 const INITIAL_ELEMENTS: CanvasElement[] = [
@@ -150,7 +161,14 @@ const QUICK_ADD_IDS = [
 ];
 const QUICK_ADD_ITEMS = ELEMENT_LIBRARY.filter((el) => QUICK_ADD_IDS.includes(el.id));
 
-export default function MockupBuilder({ onBackToHome, projectId }: MockupBuilderProps) {
+export default function MockupBuilder({
+  onBackToHome,
+  projectId,
+  initialElements,
+  initialEnvironment,
+  initialProjectName,
+  adminThemeConfig,
+}: MockupBuilderProps) {
   const { isSignedIn } = useAuth();
   const { openSignIn } = useClerk();
   const { saveProject, loadProject, saving } = useProjects();
@@ -160,12 +178,14 @@ export default function MockupBuilder({ onBackToHome, projectId }: MockupBuilder
   const [isUploadingItem, setIsUploadingItem] = useState(false);
   const [removingBgId, setRemovingBgId] = useState<string | null>(null);
 
+  const canvasRef = useRef<CanvasStageRef>(null);
   const [isARModeOpen, setIsARModeOpen] = useState(false);
   const [arImageUrl, setArImageUrl] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
 
-  // Carrega estado salvo do localStorage com fallback
+  // Carrega estado salvo com fallback para initialElements ou localStorage
   const [elements, setElements] = useState<CanvasElement[]>(() => {
+    if (initialElements && initialElements.length > 0) return initialElements;
     if (typeof window === 'undefined') return INITIAL_ELEMENTS;
     try {
       const saved = localStorage.getItem('festalab_project_elements');
@@ -176,6 +196,7 @@ export default function MockupBuilder({ onBackToHome, projectId }: MockupBuilder
   });
 
   const [environment, setEnvironment] = useState<EnvironmentConfig>(() => {
+    if (initialEnvironment) return initialEnvironment;
     if (typeof window === 'undefined') return DEFAULT_ENVIRONMENT;
     try {
       const saved = localStorage.getItem('festalab_environment_state');
@@ -186,6 +207,8 @@ export default function MockupBuilder({ onBackToHome, projectId }: MockupBuilder
   });
 
   const [projectName, setProjectName] = useState(() => {
+    if (initialProjectName) return initialProjectName;
+    if (adminThemeConfig?.themeName) return adminThemeConfig.themeName;
     if (typeof window === 'undefined') return 'Decoração Principal';
     try {
       return localStorage.getItem('festalab_project_name') || 'Decoração Principal';
@@ -193,6 +216,78 @@ export default function MockupBuilder({ onBackToHome, projectId }: MockupBuilder
       return 'Decoração Principal';
     }
   });
+
+  // Estado de operações do painel admin
+  const [savingAdminModel, setSavingAdminModel] = useState(false);
+  const [savingAdminCover, setSavingAdminCover] = useState(false);
+  const [adminFeedback, setAdminFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Sincroniza se os dados iniciais chegarem assincronamente
+  useEffect(() => {
+    if (initialElements && initialElements.length > 0) {
+      setElements(initialElements);
+      setHistory([initialElements]);
+      setHistoryIndex(0);
+    }
+  }, [initialElements]);
+
+  useEffect(() => {
+    if (initialEnvironment) {
+      setEnvironment(initialEnvironment);
+    }
+  }, [initialEnvironment]);
+
+  useEffect(() => {
+    if (initialProjectName) {
+      setProjectName(initialProjectName);
+    } else if (adminThemeConfig?.themeName) {
+      setProjectName(adminThemeConfig.themeName);
+    }
+  }, [initialProjectName, adminThemeConfig?.themeName]);
+
+  const handleAdminSaveModel = useCallback(async () => {
+    if (!adminThemeConfig) return;
+    setSavingAdminModel(true);
+    setAdminFeedback(null);
+    try {
+      const thumbnail = canvasRef.current?.exportImage();
+      const success = await adminThemeConfig.onSaveModel(elements, environment, thumbnail);
+      if (success) {
+        setAdminFeedback({ message: 'Modelo salvo com sucesso no catálogo!', type: 'success' });
+        setTimeout(() => setAdminFeedback(null), 4000);
+      } else {
+        setAdminFeedback({ message: 'Falha ao salvar modelo.', type: 'error' });
+      }
+    } catch (err) {
+      setAdminFeedback({ message: err instanceof Error ? err.message : 'Erro ao salvar', type: 'error' });
+    } finally {
+      setSavingAdminModel(false);
+    }
+  }, [adminThemeConfig, elements, environment]);
+
+  const handleAdminSetCover = useCallback(async () => {
+    if (!adminThemeConfig?.onSetCoverFromCanvas) return;
+    setSavingAdminCover(true);
+    setAdminFeedback(null);
+    try {
+      const thumbnail = canvasRef.current?.exportImage();
+      if (!thumbnail) {
+        setAdminFeedback({ message: 'Não foi possível capturar o canvas.', type: 'error' });
+        return;
+      }
+      const success = await adminThemeConfig.onSetCoverFromCanvas(thumbnail);
+      if (success) {
+        setAdminFeedback({ message: 'Foto de capa da landing page atualizada com sucesso!', type: 'success' });
+        setTimeout(() => setAdminFeedback(null), 4000);
+      } else {
+        setAdminFeedback({ message: 'Falha ao atualizar foto de capa.', type: 'error' });
+      }
+    } catch (err) {
+      setAdminFeedback({ message: err instanceof Error ? err.message : 'Erro ao atualizar foto', type: 'error' });
+    } finally {
+      setSavingAdminCover(false);
+    }
+  }, [adminThemeConfig]);
 
   // Histórico de Undo / Redo
   const [history, setHistory] = useState<CanvasElement[][]>([elements]);
@@ -317,8 +412,6 @@ export default function MockupBuilder({ onBackToHome, projectId }: MockupBuilder
       // ignora falha de persistência
     }
   }, []);
-
-  const canvasRef = useRef<CanvasStageRef>(null);
 
   // Carrega uploads do IndexedDB na montagem
   useEffect(() => {
@@ -908,7 +1001,26 @@ export default function MockupBuilder({ onBackToHome, projectId }: MockupBuilder
         isSignedIn={!!isSignedIn}
         onSave={isSignedIn ? handleSaveProject : undefined}
         saving={saving}
+        adminMode={adminThemeConfig ? {
+          themeName: adminThemeConfig.themeName,
+          onSaveModel: handleAdminSaveModel,
+          onSetCoverFromCanvas: handleAdminSetCover,
+          savingModel: savingAdminModel,
+          savingCover: savingAdminCover,
+        } : undefined}
       />
+
+      {/* Notificação de Feedback do Modo Admin */}
+      {adminFeedback && (
+        <div className={`w-full py-2.5 px-4 text-xs font-medium flex items-center justify-center gap-2 shadow-sm transition-all z-50 ${
+          adminFeedback.type === 'success' 
+            ? 'bg-emerald-600 text-white' 
+            : 'bg-red-600 text-white'
+        }`}>
+          <span>{adminFeedback.type === 'success' ? '✓' : '⚠'}</span>
+          <span>{adminFeedback.message}</span>
+        </div>
+      )}
 
       {/* Faixa de status offline */}
       {!isOnline && (
