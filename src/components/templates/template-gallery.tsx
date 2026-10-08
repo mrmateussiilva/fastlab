@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowRight, Search, Layers } from 'lucide-react';
 import { FESTA_TEMPLATES, FestaTemplate } from '@/lib/templates';
 
@@ -11,11 +11,23 @@ interface TemplateGalleryProps {
 }
 
 export function TemplateGallery({ onSelectTemplate }: TemplateGalleryProps) {
+  const [templates, setTemplates] = useState<FestaTemplate[]>(FESTA_TEMPLATES);
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [search, setSearch] = useState('');
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const filtered = FESTA_TEMPLATES.filter((t) => {
+  useEffect(() => {
+    fetch('/api/templates')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data) && data.length > 0) {
+          setTemplates(data);
+        }
+      })
+      .catch((err) => console.warn('[TemplateGallery] Usando templates padrão:', err));
+  }, []);
+
+  const filtered = templates.filter((t) => {
     const matchCat = activeCategory === 'Todos' || t.category === activeCategory;
     const q = search.toLowerCase();
     const matchSearch = !q || t.name.toLowerCase().includes(q) || t.tags.some((tag) => tag.includes(q));
