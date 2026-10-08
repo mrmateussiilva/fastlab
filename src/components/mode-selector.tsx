@@ -304,33 +304,33 @@ export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelect
       </section>
 
       {/* ── TEMPLATES ── */}
-      <section id="exemplos" className="w-full bg-[#FAFAF8] py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <section id="exemplos" className="w-full bg-[#FAFAF8] py-14 sm:py-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="mb-6 sm:mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
             <div>
-              <p className="text-orange-600 text-sm font-semibold tracking-widest uppercase mb-3">Templates prontos</p>
-              <h2 className="font-serif text-3xl md:text-5xl font-medium tracking-tight text-zinc-900">
+              <p className="text-orange-600 text-xs sm:text-sm font-semibold tracking-widest uppercase mb-2 sm:mb-3">Templates prontos</p>
+              <h2 className="font-serif text-2xl sm:text-3xl md:text-5xl font-medium tracking-tight text-zinc-900">
                 Comece por um modelo
               </h2>
-              <p className="text-zinc-500 text-lg mt-3">
+              <p className="text-zinc-500 text-sm sm:text-lg mt-2 sm:mt-3">
                 Projetos estruturados para você editar e transformar no seu estilo.
               </p>
             </div>
             <Button
               variant="outline"
               onClick={() => handleSelectTemplate(null)}
-              className="bg-white h-10 px-6 border-zinc-200 text-zinc-800 hover:bg-zinc-50 rounded-full cursor-pointer shrink-0"
+              className="bg-white h-10 px-5 sm:px-6 border-zinc-200 text-zinc-800 hover:bg-zinc-50 rounded-full cursor-pointer shrink-0 self-start md:self-auto text-xs sm:text-sm active:scale-95 transition-transform"
             >
               Criar do zero
             </Button>
           </div>
 
-          <div className="mb-8 flex items-center justify-start">
-            <div className="inline-flex p-1 bg-zinc-100 rounded-xl border border-zinc-200">
+          <div className="mb-6 sm:mb-8 flex items-center justify-start">
+            <div className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex p-1 bg-zinc-100 rounded-xl border border-zinc-200 shadow-xs">
               <button
                 type="button"
                 onClick={() => setGalleryTab('themes')}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer min-h-[44px] sm:min-h-0 flex items-center justify-center ${
                   galleryTab === 'themes'
                     ? 'bg-white text-zinc-900 shadow-xs'
                     : 'text-zinc-600 hover:text-zinc-900'
@@ -341,7 +341,7 @@ export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelect
               <button
                 type="button"
                 onClick={() => setGalleryTab('templates')}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer min-h-[44px] sm:min-h-0 flex items-center justify-center ${
                   galleryTab === 'templates'
                     ? 'bg-white text-zinc-900 shadow-xs'
                     : 'text-zinc-600 hover:text-zinc-900'

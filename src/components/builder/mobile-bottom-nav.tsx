@@ -59,7 +59,7 @@ export default function MobileBottomNav({
   // -------------------------------------------------------------------
   if (viewMode === '3d') {
     return (
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-zinc-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-2 py-2 flex items-center justify-between gap-1 select-none">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-zinc-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-1 select-none">
         
         {/* 1. Voltar ao Editor 2D */}
         <button
@@ -140,7 +140,7 @@ export default function MobileBottomNav({
   // Barra Padrão para o MODO 2D (Canva)
   // -------------------------------------------------------------------
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-zinc-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-2 py-2 flex items-center justify-between gap-1 select-none">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-zinc-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-1 select-none">
       
       {/* 1. Botão Ambiente */}
       <button
