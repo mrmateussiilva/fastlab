@@ -11,6 +11,85 @@ import {
 
 export const maxDuration = 60;
 
+// Modelos suportados pela OpenAI para edição/renderização de imagens
+const CANDIDATE_IMAGE_MODELS = [
+  'gpt-image-2',
+  'gpt-image-2.5-sunburst',
+  'gpt-image-1.5',
+  'chatgpt-image-latest',
+];
+
+function isModelAvailabilityError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const errObj = err as Record<string, unknown>;
+  const msg = (typeof errObj.message === 'string' ? errObj.message : '').toLowerCase();
+  const code = (typeof errObj.code === 'string' ? errObj.code : '').toLowerCase();
+
+  return (
+    code.includes('model_not_found') ||
+    code.includes('model_unsupported') ||
+    (msg.includes('model') &&
+      (msg.includes('does not exist') ||
+        msg.includes('not exist') ||
+        msg.includes('not found') ||
+        msg.includes('deprecated') ||
+        msg.includes('unsupported') ||
+        msg.includes('permission') ||
+        msg.includes('access') ||
+        msg.includes('not available')))
+  );
+}
+
+async function executeImageEdit(
+  buffer: Buffer,
+  fileName: string,
+  fileType: string,
+  prompt: string
+) {
+  const envModel = process.env.OPENAI_IMAGE_MODEL?.trim();
+  // 'dall-e-2' foi aposentado pela OpenAI. Se estiver configurado na env, descarta.
+  const configuredModel = envModel && envModel !== 'dall-e-2' ? envModel : undefined;
+
+  // Monta lista de modelos para tentar em ordem
+  const candidateModels: (string | undefined)[] = [
+    ...(configuredModel ? [configuredModel] : []),
+    ...CANDIDATE_IMAGE_MODELS,
+    undefined, // Fallback final: permite que o endpoint da OpenAI use seu modelo padrão
+  ].filter((item, index, self) => self.indexOf(item) === index);
+
+  let lastError: unknown = null;
+
+  for (const model of candidateModels) {
+    try {
+      console.log(`[Generate API] Tentando gerar com modelo OpenAI: ${model ?? '(padrão do servidor)'}`);
+      const file = await toFile(buffer, fileName, { type: fileType });
+
+      const response = await openai.images.edit({
+        image: file,
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        ...(model ? { model: model as any } : {}),
+      });
+      console.log(`[Generate API] Sucesso na geração com o modelo: ${model ?? '(padrão do servidor)'}`);
+      return response;
+    } catch (err: unknown) {
+      lastError = err;
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.warn(`[Generate API] Modelo ${model ?? '(padrão)'} falhou: ${errMsg}`);
+
+      if (isModelAvailabilityError(err)) {
+        continue;
+      }
+
+      // Se for outro tipo de erro (ex: violação de política/moderação, limite de taxa ou rede), aborta imediatamente
+      throw err;
+    }
+  }
+
+  throw lastError;
+}
+
 export async function POST(req: Request) {
   const { userId } = await auth();
 
@@ -102,15 +181,10 @@ export async function POST(req: Request) {
 
     const arrayBuffer = await image.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const file = await toFile(buffer, image.name || 'mockup.png', { type: image.type || 'image/png' });
+    const fileName = image.name || 'mockup.png';
+    const fileType = image.type || 'image/png';
 
-    const response = await openai.images.edit({
-      image: file,
-      prompt: promptToUse,
-      model: (process.env.OPENAI_IMAGE_MODEL as 'dall-e-2') || 'dall-e-2',
-      n: 1,
-      size: '1024x1024',
-    });
+    const response = await executeImageEdit(buffer, fileName, fileType, promptToUse);
 
     const b64Json = response.data?.[0]?.b64_json;
     const url = response.data?.[0]?.url;
@@ -122,9 +196,13 @@ export async function POST(req: Request) {
     // Sucesso: incrementa contador global de gerações realizadas com êxito
     await recordSuccessfulGeneration();
 
+    const imageUrl = b64Json
+      ? (b64Json.startsWith('data:') ? b64Json : `data:image/png;base64,${b64Json}`)
+      : url;
+
     return NextResponse.json({
       success: true,
-      image: b64Json ? `data:image/png;base64,${b64Json}` : url,
+      image: imageUrl,
       remaining: reservation.remaining,
     });
 
