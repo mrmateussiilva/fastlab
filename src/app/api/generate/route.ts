@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
 import { toFile } from 'openai';
-import { REALISTIC_PARTY_PROMPT, buildRealisticPartyPrompt } from '@/lib/prompts';
+import {
+  REALISTIC_PARTY_PROMPT,
+  buildRealisticPartyPrompt,
+  buildVisionAnalysisPrompt,
+  RealisticPromptOptions,
+} from '@/lib/prompts';
 import { auth } from '@clerk/nextjs/server';
 import {
   reserveGenerationSlot,
@@ -11,83 +16,286 @@ import {
 
 export const maxDuration = 60;
 
-// Modelos suportados pela OpenAI para edição/renderização de imagens
-const CANDIDATE_IMAGE_MODELS = [
-  'gpt-image-2',
-  'gpt-image-2.5-sunburst',
-  'gpt-image-1.5',
-  'chatgpt-image-latest',
-];
-
-function isModelAvailabilityError(err: unknown): boolean {
-  if (!err || typeof err !== 'object') return false;
-  const errObj = err as Record<string, unknown>;
-  const msg = (typeof errObj.message === 'string' ? errObj.message : '').toLowerCase();
-  const code = (typeof errObj.code === 'string' ? errObj.code : '').toLowerCase();
-
-  return (
-    code.includes('model_not_found') ||
-    code.includes('model_unsupported') ||
-    (msg.includes('model') &&
-      (msg.includes('does not exist') ||
-        msg.includes('not exist') ||
-        msg.includes('not found') ||
-        msg.includes('deprecated') ||
-        msg.includes('unsupported') ||
-        msg.includes('permission') ||
-        msg.includes('access') ||
-        msg.includes('not available')))
-  );
+interface GenerateResult {
+  imageUrl: string;
+  modelUsed: string;
 }
 
-async function executeImageEdit(
+/**
+ * Geração via GPT-4o Vision + DALL-E 3 (Padrão oficial OpenAI)
+ * Como o DALL-E 3 não possui endpoint de image-to-image direto com imagem bruta,
+ * o GPT-4o Vision analisa minuciosamente a maquete 2D (cores dos balões, painel temático,
+ * pedestais cilíndricos, bandejas, displays de chão) e formula um prompt fotográfico
+ * de altíssima fidelidade para o DALL-E 3 gerar a fotografia realista da festa.
+ */
+async function generateViaVisionAndDalle(
+  buffer: Buffer,
+  fileType: string,
+  options?: RealisticPromptOptions,
+  customPromptFallback?: string
+): Promise<GenerateResult> {
+  const isOpenRouter = process.env.OPENAI_BASE_URL?.includes('openrouter.ai');
+  const visionModel = process.env.OPENAI_VISION_MODEL || (isOpenRouter ? 'openai/gpt-4o' : 'gpt-4o');
+  const imageModel = process.env.OPENAI_IMAGE_MODEL || (isOpenRouter ? 'openai/dall-e-3' : 'dall-e-3');
+  const base64Image = buffer.toString('base64');
+  const dataUrl = `data:${fileType};base64,${base64Image}`;
+
+  console.log(`[Generate API] Analisando maquete com Vision (${visionModel})...`);
+
+  let refinedPrompt = customPromptFallback || REALISTIC_PARTY_PROMPT;
+
+  try {
+    const visionSystemPrompt = buildVisionAnalysisPrompt(options);
+
+    const visionResponse = await openai.chat.completions.create({
+      model: visionModel,
+      messages: [
+        {
+          role: 'system',
+          content: visionSystemPrompt,
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Here is the 2D party decoration mockup created by the decorator. Analyze all elements and output the photorealistic DALL-E 3 prompt.',
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: dataUrl,
+                detail: 'high',
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 600,
+      temperature: 0.7,
+    });
+
+    const visionContent = visionResponse.choices?.[0]?.message?.content?.trim();
+    if (visionContent && visionContent.length > 20) {
+      refinedPrompt = visionContent;
+      console.log(`[Generate API] Prompt refinado via Vision com sucesso (${refinedPrompt.length} caracteres)`);
+    }
+  } catch (visionErr) {
+    console.warn('[Generate API] Aviso: Análise via Vision falhou, prosseguindo com prompt estruturado padrão:', visionErr);
+  }
+
+  let b64Json: string | undefined;
+  let url: string | undefined;
+
+  if (isOpenRouter) {
+    console.log(`[Generate API] Gerando imagem via OpenRouter Unified Image API (${imageModel})...`);
+    const openRouterApiKey = process.env.OPENAI_API_KEY;
+    const imgRes = await fetch('https://openrouter.ai/api/v1/images', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openRouterApiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://festalab.app',
+        'X-Title': 'FestaLab',
+      },
+      body: JSON.stringify({
+        model: imageModel,
+        prompt: refinedPrompt,
+        aspect_ratio: '1:1',
+      }),
+    });
+
+    if (!imgRes.ok) {
+      const errText = await imgRes.text();
+      throw new Error(`OpenRouter Image API Error (${imgRes.status}): ${errText}`);
+    }
+
+    const openRouterJson = await imgRes.json();
+    b64Json = openRouterJson.data?.[0]?.b64_json;
+    url = openRouterJson.data?.[0]?.url;
+  } else {
+    console.log(`[Generate API] Gerando imagem fotográfica realista com ${imageModel}...`);
+    const dalleResponse = await openai.images.generate({
+      model: imageModel,
+      prompt: refinedPrompt,
+      n: 1,
+      size: '1024x1024',
+      quality: (process.env.OPENAI_IMAGE_QUALITY as 'standard' | 'hd') || 'standard',
+    });
+
+    b64Json = dalleResponse.data?.[0]?.b64_json;
+    url = dalleResponse.data?.[0]?.url;
+  }
+
+  if (!b64Json && !url) {
+    throw new Error('Nenhuma imagem foi retornada pela API de imagem.');
+  }
+
+  const imageUrl = b64Json
+    ? (b64Json.startsWith('data:') ? b64Json : `data:image/png;base64,${b64Json}`)
+    : url!;
+
+  return { imageUrl, modelUsed: `${visionModel} + ${imageModel}` };
+}
+
+/**
+ * Geração via endpoint direto de edit (openai.images.edit)
+ * Utilizado quando configurado explicitamente (OPENAI_IMAGE_MODE=edit)
+ * ou quando apontando para um endpoint/gateway compatível com OpenAI.
+ */
+async function executeDirectImageEdit(
   buffer: Buffer,
   fileName: string,
   fileType: string,
   prompt: string
-) {
-  const envModel = process.env.OPENAI_IMAGE_MODEL?.trim();
-  // 'dall-e-2' foi aposentado pela OpenAI. Se estiver configurado na env, descarta.
-  const configuredModel = envModel && envModel !== 'dall-e-2' ? envModel : undefined;
+): Promise<GenerateResult> {
+  const model = process.env.OPENAI_IMAGE_MODEL?.trim() || undefined;
+  console.log(`[Generate API] Tentando endpoint images.edit com modelo: ${model ?? '(padrão do servidor)'}`);
 
-  // Monta lista de modelos para tentar em ordem
-  const candidateModels: (string | undefined)[] = [
-    ...(configuredModel ? [configuredModel] : []),
-    ...CANDIDATE_IMAGE_MODELS,
-    undefined, // Fallback final: permite que o endpoint da OpenAI use seu modelo padrão
-  ].filter((item, index, self) => self.indexOf(item) === index);
+  const file = await toFile(buffer, fileName, { type: fileType });
+  const response = await openai.images.edit({
+    image: file,
+    prompt,
+    n: 1,
+    size: '1024x1024',
+    ...(model ? { model: model as Parameters<typeof openai.images.edit>[0]['model'] } : {}),
+  });
 
-  let lastError: unknown = null;
+  const b64Json = response.data?.[0]?.b64_json;
+  const url = response.data?.[0]?.url;
 
-  for (const model of candidateModels) {
-    try {
-      console.log(`[Generate API] Tentando gerar com modelo OpenAI: ${model ?? '(padrão do servidor)'}`);
-      const file = await toFile(buffer, fileName, { type: fileType });
+  if (!b64Json && !url) {
+    throw new Error('Nenhuma imagem foi retornada pelo endpoint de edição.');
+  }
 
-      const response = await openai.images.edit({
-        image: file,
+  const imageUrl = b64Json
+    ? (b64Json.startsWith('data:') ? b64Json : `data:image/png;base64,${b64Json}`)
+    : url!;
+
+  return { imageUrl, modelUsed: model || 'openai-images-edit' };
+}
+
+/**
+ * Geração opcional via Replicate (ex: Flux / SDXL) caso configurado
+ */
+async function executeReplicateGeneration(
+  buffer: Buffer,
+  fileType: string,
+  prompt: string
+): Promise<GenerateResult> {
+  const token = process.env.REPLICATE_API_TOKEN;
+  if (!token) {
+    throw new Error('REPLICATE_API_TOKEN não está configurado.');
+  }
+
+  const modelVersion = process.env.REPLICATE_MODEL || 'black-forest-labs/flux-schnell';
+  const dataUrl = `data:${fileType};base64,${buffer.toString('base64')}`;
+
+  console.log(`[Generate API] Enviando requisição para Replicate (${modelVersion})...`);
+
+  const startRes = await fetch('https://api.replicate.com/v1/predictions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'wait',
+    },
+    body: JSON.stringify({
+      version: process.env.REPLICATE_VERSION_ID || undefined,
+      model: !process.env.REPLICATE_VERSION_ID ? modelVersion : undefined,
+      input: {
+        image: dataUrl,
         prompt,
-        n: 1,
-        size: '1024x1024',
-        ...(model ? { model: model as any } : {}),
-      });
-      console.log(`[Generate API] Sucesso na geração com o modelo: ${model ?? '(padrão do servidor)'}`);
-      return response;
-    } catch (err: unknown) {
-      lastError = err;
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.warn(`[Generate API] Modelo ${model ?? '(padrão)'} falhou: ${errMsg}`);
+        prompt_strength: 0.8,
+      },
+    }),
+  });
 
-      if (isModelAvailabilityError(err)) {
-        continue;
-      }
+  if (!startRes.ok) {
+    const errText = await startRes.text();
+    throw new Error(`Replicate API error (${startRes.status}): ${errText}`);
+  }
 
-      // Se for outro tipo de erro (ex: violação de política/moderação, limite de taxa ou rede), aborta imediatamente
-      throw err;
+  let prediction = await startRes.json();
+
+  const maxAttempts = 30;
+  let attempts = 0;
+  while (
+    prediction.status !== 'succeeded' &&
+    prediction.status !== 'failed' &&
+    prediction.status !== 'canceled' &&
+    attempts < maxAttempts
+  ) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const checkRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    prediction = await checkRes.json();
+    attempts++;
+  }
+
+  if (prediction.status !== 'succeeded') {
+    throw new Error(`Replicate generation failed with status: ${prediction.status}`);
+  }
+
+  const output = prediction.output;
+  const imageUrl = Array.isArray(output) ? output[0] : output;
+  if (!imageUrl) {
+    throw new Error('Nenhuma imagem retornada pelo Replicate.');
+  }
+
+  return { imageUrl, modelUsed: `replicate/${modelVersion}` };
+}
+
+/**
+ * Orquestrador principal de geração fotorrealista
+ */
+async function generateRealisticImage(
+  buffer: Buffer,
+  fileName: string,
+  fileType: string,
+  promptToUse: string,
+  options?: RealisticPromptOptions
+): Promise<GenerateResult> {
+  const provider = (process.env.AI_PROVIDER || 'openai').toLowerCase();
+  const imageMode = (process.env.OPENAI_IMAGE_MODE || 'auto').toLowerCase();
+
+  // 1. Provedor Replicate
+  if (provider === 'replicate' || (process.env.REPLICATE_API_TOKEN && provider !== 'openai')) {
+    try {
+      return await executeReplicateGeneration(buffer, fileType, promptToUse);
+    } catch (replicateErr) {
+      console.warn('[Generate API] Falha no Replicate, tentando fallback para OpenAI:', replicateErr);
+      if (!process.env.OPENAI_API_KEY) throw replicateErr;
     }
   }
 
-  throw lastError;
+  // 2. Provedor OpenAI com modo explícito 'edit'
+  if (imageMode === 'edit') {
+    return await executeDirectImageEdit(buffer, fileName, fileType, promptToUse);
+  }
+
+  // 3. Provedor OpenAI com modo 'auto'
+  if (imageMode === 'auto') {
+    // Se o usuário configurou OPENAI_BASE_URL (proxy / endpoint customizado) e um modelo de edit específico (não dall-e-3)
+    const isCustomGateway = Boolean(process.env.OPENAI_BASE_URL);
+    const configuredModel = process.env.OPENAI_IMAGE_MODEL?.toLowerCase();
+    const isExplicitEditModel = configuredModel && !configuredModel.includes('dall-e');
+
+    if (isCustomGateway && isExplicitEditModel) {
+      try {
+        return await executeDirectImageEdit(buffer, fileName, fileType, promptToUse);
+      } catch (editErr) {
+        console.warn('[Generate API] Erro no endpoint customizado de edit, tentando fallback vision_generate:', editErr);
+      }
+    }
+
+    // Padrão robusto para OpenAI oficial: GPT-4o Vision + DALL-E 3
+    return await generateViaVisionAndDalle(buffer, fileType, options, promptToUse);
+  }
+
+  // 4. Modo padrão: Vision + DALL-E 3
+  return await generateViaVisionAndDalle(buffer, fileType, options, promptToUse);
 }
 
 export async function POST(req: Request) {
@@ -101,9 +309,9 @@ export async function POST(req: Request) {
   let slotReserved = false;
 
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.OPENAI_API_KEY && !process.env.REPLICATE_API_TOKEN) {
       return NextResponse.json(
-        { error: 'A chave OPENAI_API_KEY não foi configurada no servidor. Adicione a variável de ambiente na Vercel.' },
+        { error: 'A chave OPENAI_API_KEY (ou REPLICATE_API_TOKEN) não foi configurada no servidor. Adicione a variável de ambiente.' },
         { status: 500 }
       );
     }
@@ -169,11 +377,14 @@ export async function POST(req: Request) {
     // Parse optional generation options or custom prompt
     const optionsRaw = formData.get('options');
     let promptToUse = REALISTIC_PARTY_PROMPT;
+    let parsedOptions: RealisticPromptOptions | undefined;
 
     if (optionsRaw && typeof optionsRaw === 'string') {
       try {
-        const parsed = JSON.parse(optionsRaw);
-        promptToUse = buildRealisticPartyPrompt(parsed);
+        parsedOptions = JSON.parse(optionsRaw);
+        if (parsedOptions) {
+          promptToUse = buildRealisticPartyPrompt(parsedOptions);
+        }
       } catch (err) {
         console.warn('Could not parse generation options, using default prompt', err);
       }
@@ -184,30 +395,20 @@ export async function POST(req: Request) {
     const fileName = image.name || 'mockup.png';
     const fileType = image.type || 'image/png';
 
-    const response = await executeImageEdit(buffer, fileName, fileType, promptToUse);
-
-    const b64Json = response.data?.[0]?.b64_json;
-    const url = response.data?.[0]?.url;
-
-    if (!b64Json && !url) {
-      throw new Error('Nenhuma imagem foi retornada pela API da OpenAI.');
-    }
+    const result = await generateRealisticImage(buffer, fileName, fileType, promptToUse, parsedOptions);
 
     // Sucesso: incrementa contador global de gerações realizadas com êxito
     await recordSuccessfulGeneration();
 
-    const imageUrl = b64Json
-      ? (b64Json.startsWith('data:') ? b64Json : `data:image/png;base64,${b64Json}`)
-      : url;
-
     return NextResponse.json({
       success: true,
-      image: imageUrl,
+      image: result.imageUrl,
+      model: result.modelUsed,
       remaining: reservation.remaining,
     });
 
   } catch (error: unknown) {
-    console.error('OpenAI / Generation Error:', error);
+    console.error('AI Generation Error:', error);
 
     // Se houve erro antes de produzir uma imagem válida, devolve a tentativa ao usuário
     if (slotReserved) {
@@ -222,7 +423,6 @@ export async function POST(req: Request) {
     let errorMessage = 'Erro ao gerar imagem com a Inteligência Artificial.';
 
     if (error && typeof error === 'object') {
-      // Tratamento refinado para erros do SDK da OpenAI ou erros de rede/timeout
       const errObj = error as Record<string, unknown>;
       if ('status' in errObj && typeof errObj.status === 'number') {
         status = errObj.status;
@@ -245,4 +445,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

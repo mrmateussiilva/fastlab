@@ -1,4 +1,4 @@
-import { buildRealisticPartyPrompt, REALISTIC_PARTY_PROMPT } from '@/lib/prompts';
+import { buildRealisticPartyPrompt, buildVisionAnalysisPrompt, REALISTIC_PARTY_PROMPT } from '@/lib/prompts';
 
 describe('prompts generator', () => {
   test('REALISTIC_PARTY_PROMPT is a non-empty string', () => {
@@ -20,4 +20,17 @@ describe('prompts generator', () => {
     expect(creativePrompt).toContain('Warm golden party lighting');
     expect(creativePrompt).toContain('Inside a luxury contemporary residence salon');
   });
+
+  test('buildVisionAnalysisPrompt produces structured vision directives', () => {
+    const visionPrompt = buildVisionAnalysisPrompt({
+      fidelity: 'high',
+      lighting: 'studio',
+      environment: 'party_hall',
+    });
+
+    expect(visionPrompt).toContain('High-end studio flash lighting');
+    expect(visionPrompt).toContain('Inside a luxury indoor party hall');
+    expect(visionPrompt).toContain('Strictly replicate the exact arrangement');
+  });
 });
+

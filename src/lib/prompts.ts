@@ -92,3 +92,44 @@ The final image should look like a professionally photographed real-world party 
 High-end event photography. Professional camera. Sharp focus. Photorealistic. Elegant and clean.
 Do not turn it into an illustration. Do not make it look like CGI.`;
 }
+
+export function buildVisionAnalysisPrompt(options?: RealisticPromptOptions): string {
+  const fidelity = options?.fidelity || 'high';
+  const lighting = options?.lighting || 'natural';
+  const environment = options?.environment || 'party_hall';
+
+  const lightingText = {
+    natural: 'Natural soft indoor daylight with gentle realistic shadows and delicate highlights',
+    warm: 'Warm golden party lighting with atmospheric ambient glow and elegant reflections',
+    studio: 'High-end studio flash lighting with crisp contrast and balanced fill',
+  }[lighting];
+
+  const environmentText = {
+    party_hall: 'Inside a luxury indoor party hall or modern event venue with polished floor',
+    studio: 'In a minimalist photography studio setting with clean architectural background',
+    residence: 'Inside a luxury contemporary residence salon with upscale architectural finishes',
+  }[environment];
+
+  const fidelityText = {
+    high: 'Strictly replicate the exact arrangement, colors, balloon arches, cylinder tables, backdrop graphics, and prop positions without inventing or adding extra furniture.',
+    balanced: 'Faithfully preserve the composition and objects while rendering them with organic, lifelike event depth.',
+    creative: 'Preserve the main theme and decorative arrangement while elevating styling details to look like an award-winning event photograph.',
+  }[fidelity];
+
+  return `You are a world-class party decorator and expert AI prompt engineer for photographic image generation (DALL-E 3).
+
+Analyze this 2D party decoration mockup created by an event decorator:
+1. Examine all visual components: backdrop panel themes/prints, balloon arches (exact colors and placement), pedestals/cylinder tables, character cutouts, cake stands, and floor props.
+2. Note the precise color palette, geometry, and placement.
+3. Formulate a single, highly descriptive prompt in English for DALL-E 3 to produce a photorealistic indoor photograph of this EXACT party decoration setup.
+
+Key Directives:
+- Composition Fidelity: ${fidelityText}
+- Lighting: ${lightingText}.
+- Venue: ${environmentText}.
+- Materials: Balloons must look realistically inflated with specular glossy highlights; fabric backdrops must look like printed tension fabric or canvas; acrylic/pedestals must have real physical textures and soft floor reflections.
+- Absolute Rule: It must look like a high-end, real-world photograph taken with a professional full-frame camera. NOT a 3D render, NOT an illustration, NOT CGI.
+
+Return ONLY the final prompt text for DALL-E 3. Do not include introductory notes, explanations, or quotes.`;
+}
+
