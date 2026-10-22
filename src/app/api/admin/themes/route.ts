@@ -6,7 +6,16 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   if (!checkAdminAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const isPasswordConfigured = Boolean(process.env.ADMIN_PASSWORD?.trim());
+    return NextResponse.json(
+      {
+        error: 'Unauthorized',
+        message: isPasswordConfigured
+          ? 'Senha de administrador incorreta.'
+          : 'A variável ADMIN_PASSWORD não foi encontrada no ambiente da Vercel. É necessário fazer um "Redeploy" na Vercel após adicionar uma nova variável de ambiente.',
+      },
+      { status: 401 }
+    );
   }
 
   const supabase = getSupabaseAdmin();
@@ -16,7 +25,15 @@ export async function GET(req: Request) {
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    return NextResponse.json(
+      {
+        error: 'DatabaseError',
+        message: `Falha no Supabase: ${error.message}. Verifique se a tabela 'themes' existe e se as credenciais do Supabase estão configuradas.`,
+      },
+      { status: 500 }
+    );
+  }
   return NextResponse.json(data);
 }
 

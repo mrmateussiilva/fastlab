@@ -146,7 +146,17 @@ export default function AdminThemesPage() {
       if (!themesRes.ok) {
         sessionStorage.removeItem('festalab_admin_token');
         setIsAuthenticated(false);
-        setError('Senha de administrador incorreta.');
+        const errData = await themesRes.json().catch(() => ({}));
+        if (themesRes.status === 401) {
+          setError(
+            errData.message ||
+            'Senha de administrador incorreta. (Se você configurou na Vercel recentemente, lembre-se de fazer um Redeploy).'
+          );
+        } else {
+          setError(
+            `Erro no servidor (${themesRes.status}): ${errData.message || errData.error || 'Falha ao conectar com o banco de dados Supabase.'}`
+          );
+        }
         return;
       }
       setIsAuthenticated(true);

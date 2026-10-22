@@ -14,7 +14,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Client para uso no servidor (API routes) - usa a service role key para bypass de RLS
 export function getSupabaseAdmin() {
   const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key';
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    supabaseAnonKey;
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
