@@ -125,7 +125,7 @@ export default function ThreeDViewer({
   const [floorType, setFloorType] = useState<FloorType>('wood');
   const [lightingPreset, setLightingPreset] = useState<LightingPreset>('natural');
   const [showDimensions, setShowDimensions] = useState(false);
-  const [showCake, setShowCake] = useState(true);
+  const [showCake, setShowCake] = useState(false);
   const [showFairyLights, setShowFairyLights] = useState(false);
 
   // Sincroniza seleção externa
@@ -481,7 +481,7 @@ export default function ThreeDViewer({
     const sorted = [...elements].sort((a, b) => a.zIndex - b.zIndex);
 
     sorted.forEach((el) => {
-      const meshGroup = build3DElement(el, textureLoader);
+      const meshGroup = build3DElement(el, textureLoader, elements);
       if (meshGroup) {
         meshGroup.userData = { elementId: el.id };
         elementsGroup.add(meshGroup);
@@ -592,6 +592,9 @@ export default function ThreeDViewer({
 
     if (!showCake) return;
 
+    // Se já existir bolo cenográfico adicionado aos elementos, não gerar bolo procedural duplicado
+    if (elements.some((el) => el.shapeType === 'cake-tiered')) return;
+
     // Encontra a mesa ou cilindro central
     const candidateTables = elements.filter(
       (el) => el.shapeType.includes('cylinder') || el.shapeType.includes('table')
@@ -656,8 +659,8 @@ export default function ThreeDViewer({
 
     group.add(cakeGroup);
 
-    // 2. Bandejas de doces em cilindros adjacentes
-    const sideTables = candidateTables.filter((el) => el.id !== centerTable.id);
+    // 2. Bandejas de doces apenas em mesas ou cilindros lisos (sem arte sublimada)
+    const sideTables = candidateTables.filter((el) => el.id !== centerTable.id && !el.fillImageSrc);
     sideTables.slice(0, 2).forEach((side) => {
       const sx = (side.x + side.width / 2 - CANVAS_CENTER_X) * PX_TO_M;
       const sh = side.height * PX_TO_M;
@@ -1432,7 +1435,7 @@ export default function ThreeDViewer({
 // -------------------------------------------------------------
 // Função Construtora de Malhas 3D para cada Tipo de Elemento
 // -------------------------------------------------------------
-function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): THREE.Group {
+function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader, allElements: CanvasElement[] = []): THREE.Group {
   const group = new THREE.Group();
 
   const w = el.width * PX_TO_M;
@@ -1441,24 +1444,58 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
   // Posição X: centralizada em 0
   const x = (el.x + el.width / 2 - CANVAS_CENTER_X) * PX_TO_M;
 
-  // Posição Y: calculada a partir do piso (floorY = 560)
-  const yBottom = Math.max(0, (FLOOR_Y_2D - (el.y + el.height)) * PX_TO_M);
-  const yCenter = yBottom + h / 2;
+  // Identificação do tipo de elemento
+  const isTableOrCyl = el.shapeType.includes('table') || el.shapeType.includes('cylinder');
+  const isPanel = el.shapeType.includes('panel');
+  const isRug = el.shapeType.includes('rug');
+  const isBalloon = el.shapeType.includes('balloon');
 
-  // Posição Z (Profundidade)
+  // Posição Y padrão calculada a partir do piso
+  let yBottom = Math.max(0, (FLOOR_Y_2D - (el.y + el.height)) * PX_TO_M);
+
+  // Posição Z (Profundidade base)
   let baseZ = 0;
-  if (el.shapeType.includes('panel')) {
+  if (isPanel) {
     baseZ = -0.55;
-  } else if (el.shapeType.includes('rug')) {
+  } else if (isRug) {
     baseZ = 0.45;
-  } else if (el.shapeType.includes('table') || el.shapeType.includes('cylinder')) {
+  } else if (isTableOrCyl) {
     baseZ = 0.15;
-  } else if (el.shapeType.includes('balloon')) {
+  } else if (isBalloon) {
     baseZ = -0.2;
   } else {
     baseZ = 0.35;
   }
-  const z = baseZ + (el.zIndex || 0) * 0.025;
+  let z = baseZ + (el.zIndex || 0) * 0.025;
+
+  // Se for um elemento de apoio (bolo, flores, doces, etc.) que deve repousar sobre mesa/cilindro:
+  if (!isTableOrCyl && !isPanel && !isRug && !isBalloon) {
+    const elCenterX = el.x + el.width / 2;
+    const elBottomY = el.y + el.height;
+
+    // Procura mesa ou cilindro que esteja logo abaixo do elemento em 2D
+    const hostTable = allElements.find((t) => {
+      if (t.id === el.id) return false;
+      const isHost = t.shapeType.includes('table') || t.shapeType.includes('cylinder');
+      if (!isHost) return false;
+      const insideX = elCenterX >= t.x - 20 && elCenterX <= t.x + t.width + 20;
+      // Em 2D, elementos sobre o tampo ficam na porção superior da mesa
+      const nearTableTop = elBottomY >= t.y - 40 && elBottomY <= t.y + t.height * 0.75;
+      return insideX && nearTableTop;
+    });
+
+    if (hostTable) {
+      const hostH = hostTable.height * PX_TO_M;
+      const hostYBottom = Math.max(0, (FLOOR_Y_2D - (hostTable.y + hostTable.height)) * PX_TO_M);
+      const hostTopY = hostYBottom + hostH;
+      // Repousa perfeitamente sobre a superfície da mesa/cilindro
+      yBottom = hostTopY;
+      const hostBaseZ = (hostTable.shapeType.includes('table') || hostTable.shapeType.includes('cylinder')) ? 0.15 : 0;
+      z = hostBaseZ + (hostTable.zIndex || 0) * 0.025 + 0.03;
+    }
+  }
+
+  const yCenter = yBottom + h / 2;
 
   const hexColor = el.fill && el.fill !== 'transparent' ? el.fill : '#FFFFFF';
   const threeColor = new THREE.Color(hexColor);
@@ -1482,11 +1519,28 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
       });
       cylMesh = new THREE.Mesh(cylGeo, cylMat);
     } else {
+      // Ajustar UVs da lateral para projeção frontal panorâmica da arte sublimada
+      const posAttr = cylGeo.attributes.position;
+      const uvAttr = cylGeo.attributes.uv;
+      const sideVertexCount = 65 * 2;
+      for (let i = 0; i < sideVertexCount; i++) {
+        const vx = posAttr.getX(i);
+        const vz = posAttr.getZ(i);
+        // Ângulo em torno do eixo Y: 0 é a frente (+Z)
+        const angle = Math.atan2(vx, vz);
+        // Mapear arco frontal de ~210° para [0, 1] com caimento suave
+        const maxAngle = Math.PI * 0.58;
+        let uFront = (angle / (maxAngle * 2)) + 0.5;
+        uFront = Math.max(0, Math.min(1, uFront));
+        uvAttr.setX(i, uFront);
+      }
+      uvAttr.needsUpdate = true;
+
       // Material para a Lateral / Corpo (Capa veste-fácil)
       const sideMat = new THREE.MeshStandardMaterial({
         color: el.fillImageSrc ? new THREE.Color(0xFFFFFF) : threeColor,
         roughness: 0.52,
-        metalness: 0.05,
+        metalness: 0.04,
       });
 
       if (el.fillImageSrc) {
@@ -1501,7 +1555,7 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
 
       // Material para o Tampo Superior (Sem distorção da arte lateral)
       const topColor = el.topFill ? new THREE.Color(el.topFill) : threeColor;
-      const topTextureUrl = el.topImageSrc || (el.includeTopArtwork ? el.fillImageSrc : undefined);
+      const topTextureUrl = el.topImageSrc;
       const topMat = new THREE.MeshStandardMaterial({
         color: topTextureUrl ? new THREE.Color(0xFFFFFF) : topColor,
         roughness: 0.35,
@@ -1518,11 +1572,10 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
 
       // Material para a Base
       const bottomMat = new THREE.MeshStandardMaterial({
-        color: threeColor,
+        color: 0x222222,
         roughness: 0.85,
       });
 
-      // Three.js CylinderGeometry grupos: 0 = lateral (corpo), 1 = tampo (top), 2 = base (bottom)
       cylMesh = new THREE.Mesh(cylGeo, [sideMat, topMat, bottomMat]);
     }
 
@@ -1536,7 +1589,7 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
     rimGeo.rotateX(Math.PI / 2);
     const rimColor = el.topFill 
       ? new THREE.Color(el.topFill) 
-      : (isAcrylic ? new THREE.Color(0x90C0F0) : new THREE.Color(0xE0DDD5));
+      : (isAcrylic ? new THREE.Color(0x90C0F0) : new THREE.Color(0xD8D4CB));
     const rimMat = new THREE.MeshStandardMaterial({ color: rimColor, roughness: 0.35 });
     const rimMesh = new THREE.Mesh(rimGeo, rimMat);
     rimMesh.position.y = h / 2;
@@ -1546,7 +1599,7 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
 
   // 2. PAINEL ARQUEADO (Arch Panel)
   else if (el.shapeType === 'panel-arch') {
-    const depth = 0.04;
+    const depth = 0.035;
     const shape = new THREE.Shape();
     const halfW = w / 2;
     const halfH = h / 2;
@@ -1559,35 +1612,60 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
     shape.absarc(0, -halfH + straightH, archRadius, 0, Math.PI, false);
     shape.lineTo(-halfW, -halfH);
 
-    const extrudeGeo = new THREE.ExtrudeGeometry(shape, {
-      depth,
-      bevelEnabled: true,
-      bevelSegments: 3,
-      steps: 1,
-      bevelSize: 0.006,
-      bevelThickness: 0.006,
-    });
-    extrudeGeo.center();
+    // 1. Face Frontal Plana com UVs perfeitamente normalizadas [0, 1] x [0, 1]
+    const frontArchGeo = new THREE.ShapeGeometry(shape, 32);
+    const posFront = frontArchGeo.attributes.position;
+    const uvsFront = frontArchGeo.attributes.uv;
+    for (let i = 0; i < posFront.count; i++) {
+      const vx = posFront.getX(i);
+      const vy = posFront.getY(i);
+      const u = (vx + halfW) / w;
+      const v = (vy + halfH) / h;
+      uvsFront.setXY(i, Math.max(0, Math.min(1, u)), Math.max(0, Math.min(1, v)));
+    }
+    uvsFront.needsUpdate = true;
 
-    const archMat = new THREE.MeshStandardMaterial({
-      color: threeColor,
-      roughness: 0.7,
-      metalness: 0.05,
+    const frontArchMat = new THREE.MeshStandardMaterial({
+      color: el.fillImageSrc ? 0xffffff : threeColor,
+      roughness: 0.65,
+      metalness: 0.02,
+      side: THREE.FrontSide,
     });
 
     if (el.fillImageSrc) {
       textureLoader.load(el.fillImageSrc, (tex) => {
         tex.colorSpace = THREE.SRGBColorSpace;
-        archMat.map = tex;
-        archMat.needsUpdate = true;
+        frontArchMat.map = tex;
+        frontArchMat.needsUpdate = true;
       });
     }
 
-    const archMesh = new THREE.Mesh(extrudeGeo, archMat);
-    archMesh.castShadow = true;
-    archMesh.receiveShadow = true;
-    archMesh.userData = { elementId: el.id };
-    group.add(archMesh);
+    const frontArchMesh = new THREE.Mesh(frontArchGeo, frontArchMat);
+    frontArchMesh.position.z = depth / 2 + 0.001;
+    frontArchMesh.castShadow = true;
+    frontArchMesh.receiveShadow = true;
+    frontArchMesh.userData = { elementId: el.id };
+    group.add(frontArchMesh);
+
+    // 2. Estrutura do painel (MDF chanfrado com acabamento sólido limpo)
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: threeColor,
+      roughness: 0.75,
+      metalness: 0.05,
+    });
+    const extrudeGeo = new THREE.ExtrudeGeometry(shape, {
+      depth,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      steps: 1,
+      bevelSize: 0.005,
+      bevelThickness: 0.005,
+    });
+    extrudeGeo.center();
+    const bodyMesh = new THREE.Mesh(extrudeGeo, bodyMat);
+    bodyMesh.castShadow = true;
+    bodyMesh.receiveShadow = true;
+    group.add(bodyMesh);
 
     // Pés de suporte metálicos atrás
     const footGeo = new THREE.BoxGeometry(0.02, 0.02, 0.3);
@@ -1602,28 +1680,54 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
   // 3. PAINEL REDONDO (Round Panel com pedestal)
   else if (el.shapeType === 'panel-round') {
     const radius = Math.min(w, h) / 2;
-    const discGeo = new THREE.CylinderGeometry(radius, radius, 0.03, 64);
-    discGeo.rotateX(Math.PI / 2);
 
-    const discMat = new THREE.MeshStandardMaterial({
-      color: threeColor,
-      roughness: 0.7,
-      metalness: 0.05,
+    // 1. Face Frontal CircleGeometry: nativamente em pé no plano XY, voltada para +Z
+    // UVs perfeitas: u = (x/r + 1)/2, v = (y/r + 1)/2
+    const frontGeo = new THREE.CircleGeometry(radius, 64);
+    const frontMat = new THREE.MeshStandardMaterial({
+      color: el.fillImageSrc ? 0xffffff : threeColor,
+      roughness: 0.65,
+      metalness: 0.02,
+      side: THREE.FrontSide,
     });
 
     if (el.fillImageSrc) {
       textureLoader.load(el.fillImageSrc, (tex) => {
         tex.colorSpace = THREE.SRGBColorSpace;
-        discMat.map = tex;
-        discMat.needsUpdate = true;
+        frontMat.map = tex;
+        frontMat.needsUpdate = true;
       });
     }
 
-    const discMesh = new THREE.Mesh(discGeo, discMat);
-    discMesh.castShadow = true;
-    discMesh.receiveShadow = true;
-    discMesh.userData = { elementId: el.id };
-    group.add(discMesh);
+    const frontMesh = new THREE.Mesh(frontGeo, frontMat);
+    frontMesh.position.z = 0.012;
+    frontMesh.castShadow = true;
+    frontMesh.receiveShadow = true;
+    frontMesh.userData = { elementId: el.id };
+    group.add(frontMesh);
+
+    // 2. Aro tubular metálico (moldura redonda profissional de festa)
+    const rimGeo = new THREE.TorusGeometry(radius, 0.010, 16, 64);
+    const rimMat = new THREE.MeshStandardMaterial({
+      color: 0x222222,
+      metalness: 0.85,
+      roughness: 0.25,
+    });
+    const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+    rimMesh.position.z = 0.004;
+    rimMesh.castShadow = true;
+    group.add(rimMesh);
+
+    // 3. Fundo traseiro fechado
+    const backGeo = new THREE.CircleGeometry(radius, 64);
+    const backMat = new THREE.MeshStandardMaterial({
+      color: 0x1a1a1a,
+      roughness: 0.85,
+      side: THREE.BackSide,
+    });
+    const backMesh = new THREE.Mesh(backGeo, backMat);
+    backMesh.position.z = -0.008;
+    group.add(backMesh);
 
     // Suporte / Tripé de metal
     const standH = yCenter;
@@ -1708,6 +1812,7 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
       group.add(baseMesh);
     } else if (el.shapeType === 'table-ruffle' || el.shapeType === 'table-cloth') {
       const isRuffle = el.shapeType === 'table-ruffle';
+      const topThickness = 0.02; // Tampo com espessura realista de 4cm
       const fabricMat = new THREE.MeshStandardMaterial({
         color: threeColor,
         roughness: 0.85,
@@ -1724,22 +1829,20 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
       topMesh.userData = { elementId: el.id };
       group.add(topMesh);
 
-      // 2. Saia Plissada / Babado 3D (Frontal)
+      // 2. Saia Plissada / Babado 3D (Frontal) com ondas suaves e caimento natural
       const skirtH = h - topThickness;
       const skirtCenterY = -topThickness / 2;
-      const segX = Math.max(48, Math.round(w * 60));
+      const segX = Math.max(48, Math.round(w * 50));
       const segY = 16;
-      const pleatFreq = isRuffle ? 36 : 14;
-      const pleatAmp = isRuffle ? 0.016 : 0.008;
+      const pleatFreq = isRuffle ? 26 : 14;
 
-      // Geometria da saia frontal com ondas de drapeado/plissado
       const frontSkirtGeo = new THREE.PlaneGeometry(w, skirtH, segX, segY);
       const posFront = frontSkirtGeo.attributes.position;
       for (let i = 0; i < posFront.count; i++) {
         const vx = posFront.getX(i);
-        const vy = posFront.getY(i); // de -skirtH/2 a +skirtH/2
-        const bottomFactor = 0.5 + 0.5 * (0.5 - vy / skirtH);
-        const foldZ = Math.sin(vx * pleatFreq) * pleatAmp * bottomFactor;
+        const vy = posFront.getY(i);
+        const bottomFactor = 0.45 + 0.55 * (0.5 - vy / skirtH);
+        const foldZ = (Math.sin(vx * pleatFreq) * 0.010 + Math.sin(vx * pleatFreq * 2) * 0.003) * bottomFactor;
         posFront.setZ(i, foldZ);
       }
       frontSkirtGeo.computeVertexNormals();
@@ -1751,14 +1854,14 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
       group.add(frontSkirtMesh);
 
       // 3. Saias laterais (Esquerda e Direita)
-      const sideSegX = Math.max(24, Math.round(depth * 45));
+      const sideSegX = Math.max(24, Math.round(depth * 40));
       const leftSkirtGeo = new THREE.PlaneGeometry(depth, skirtH, sideSegX, segY);
       const posLeft = leftSkirtGeo.attributes.position;
       for (let i = 0; i < posLeft.count; i++) {
         const vx = posLeft.getX(i);
         const vy = posLeft.getY(i);
-        const bottomFactor = 0.5 + 0.5 * (0.5 - vy / skirtH);
-        const foldZ = Math.sin(vx * pleatFreq) * pleatAmp * bottomFactor;
+        const bottomFactor = 0.45 + 0.55 * (0.5 - vy / skirtH);
+        const foldZ = (Math.sin(vx * pleatFreq) * 0.010 + Math.sin(vx * pleatFreq * 2) * 0.003) * bottomFactor;
         posLeft.setZ(i, foldZ);
       }
       leftSkirtGeo.computeVertexNormals();
@@ -1775,8 +1878,8 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
       for (let i = 0; i < posRight.count; i++) {
         const vx = posRight.getX(i);
         const vy = posRight.getY(i);
-        const bottomFactor = 0.5 + 0.5 * (0.5 - vy / skirtH);
-        const foldZ = Math.sin(vx * pleatFreq) * pleatAmp * bottomFactor;
+        const bottomFactor = 0.45 + 0.55 * (0.5 - vy / skirtH);
+        const foldZ = (Math.sin(vx * pleatFreq) * 0.010 + Math.sin(vx * pleatFreq * 2) * 0.003) * bottomFactor;
         posRight.setZ(i, foldZ);
       }
       rightSkirtGeo.computeVertexNormals();
@@ -1788,57 +1891,57 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
       rightSkirtMesh.userData = { elementId: el.id };
       group.add(rightSkirtMesh);
 
-      // 4. Se for Mesa de Babado, adicionar a segunda camada superior (Sobre-babado / Pelmet)
+      // 4. Se for Mesa de Babado, adicionar sobre-babado superior proporcional (28% da altura)
       if (isRuffle) {
-        const upperH = skirtH * 0.48;
-        const upperGeo = new THREE.PlaneGeometry(w * 1.01, upperH, segX, 10);
+        const upperH = skirtH * 0.28;
+        const upperGeo = new THREE.PlaneGeometry(w * 1.008, upperH, segX, 10);
         const posUpper = upperGeo.attributes.position;
         for (let i = 0; i < posUpper.count; i++) {
           const vx = posUpper.getX(i);
           const vy = posUpper.getY(i);
-          const bottomFactor = 0.6 + 0.4 * (0.5 - vy / upperH);
-          const foldZ = Math.sin(vx * pleatFreq) * (pleatAmp * 1.25) * bottomFactor;
+          const bottomFactor = 0.5 + 0.5 * (0.5 - vy / upperH);
+          const foldZ = (Math.sin(vx * pleatFreq) * 0.013 + Math.sin(vx * pleatFreq * 2) * 0.004) * bottomFactor;
           posUpper.setZ(i, foldZ);
         }
         upperGeo.computeVertexNormals();
         const upperMesh = new THREE.Mesh(upperGeo, fabricMat);
-        upperMesh.position.set(0, (h / 2 - topThickness) - upperH / 2, depth / 2 + 0.012);
+        upperMesh.position.set(0, (h / 2 - topThickness) - upperH / 2, depth / 2 + 0.010);
         upperMesh.castShadow = true;
         upperMesh.receiveShadow = true;
         upperMesh.userData = { elementId: el.id };
         group.add(upperMesh);
 
         // Laterais do sobre-babado
-        const upperLeftGeo = new THREE.PlaneGeometry(depth * 1.01, upperH, sideSegX, 10);
+        const upperLeftGeo = new THREE.PlaneGeometry(depth * 1.008, upperH, sideSegX, 10);
         const posUpperL = upperLeftGeo.attributes.position;
         for (let i = 0; i < posUpperL.count; i++) {
           const vx = posUpperL.getX(i);
           const vy = posUpperL.getY(i);
-          const bottomFactor = 0.6 + 0.4 * (0.5 - vy / upperH);
-          const foldZ = Math.sin(vx * pleatFreq) * (pleatAmp * 1.25) * bottomFactor;
+          const bottomFactor = 0.5 + 0.5 * (0.5 - vy / upperH);
+          const foldZ = (Math.sin(vx * pleatFreq) * 0.013 + Math.sin(vx * pleatFreq * 2) * 0.004) * bottomFactor;
           posUpperL.setZ(i, foldZ);
         }
         upperLeftGeo.computeVertexNormals();
         const upperLeftMesh = new THREE.Mesh(upperLeftGeo, fabricMat);
-        upperLeftMesh.position.set(-w / 2 - 0.006, (h / 2 - topThickness) - upperH / 2, 0);
+        upperLeftMesh.position.set(-w / 2 - 0.005, (h / 2 - topThickness) - upperH / 2, 0);
         upperLeftMesh.rotation.y = -Math.PI / 2;
         upperLeftMesh.castShadow = true;
         upperLeftMesh.receiveShadow = true;
         upperLeftMesh.userData = { elementId: el.id };
         group.add(upperLeftMesh);
 
-        const upperRightGeo = new THREE.PlaneGeometry(depth * 1.01, upperH, sideSegX, 10);
+        const upperRightGeo = new THREE.PlaneGeometry(depth * 1.008, upperH, sideSegX, 10);
         const posUpperR = upperRightGeo.attributes.position;
         for (let i = 0; i < posUpperR.count; i++) {
           const vx = posUpperR.getX(i);
           const vy = posUpperR.getY(i);
-          const bottomFactor = 0.6 + 0.4 * (0.5 - vy / upperH);
-          const foldZ = Math.sin(vx * pleatFreq) * (pleatAmp * 1.25) * bottomFactor;
+          const bottomFactor = 0.5 + 0.5 * (0.5 - vy / upperH);
+          const foldZ = (Math.sin(vx * pleatFreq) * 0.013 + Math.sin(vx * pleatFreq * 2) * 0.004) * bottomFactor;
           posUpperR.setZ(i, foldZ);
         }
         upperRightGeo.computeVertexNormals();
         const upperRightMesh = new THREE.Mesh(upperRightGeo, fabricMat);
-        upperRightMesh.position.set(w / 2 + 0.006, (h / 2 - topThickness) - upperH / 2, 0);
+        upperRightMesh.position.set(w / 2 + 0.005, (h / 2 - topThickness) - upperH / 2, 0);
         upperRightMesh.rotation.y = Math.PI / 2;
         upperRightMesh.castShadow = true;
         upperRightMesh.receiveShadow = true;
