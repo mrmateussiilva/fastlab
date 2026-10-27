@@ -2,6 +2,43 @@ export interface RealisticPromptOptions {
   fidelity?: 'high' | 'balanced' | 'creative';
   lighting?: 'natural' | 'warm' | 'studio';
   environment?: 'party_hall' | 'studio' | 'residence';
+  /** Lista dos elementos do mockup (gerada automaticamente a partir do editor). */
+  sceneDescription?: string;
+  /** Notas livres do decorador sobre tema, materiais e detalhes (ex.: xadrez, laços, bolo). */
+  themeNotes?: string;
+}
+
+const MAX_NOTES_LENGTH = 1200;
+const MAX_SCENE_LENGTH = 3000;
+
+/**
+ * Bloco com o conteúdo real das peças. O mockup 2D usa formas simplificadas (ex.: um arranjo de flores
+ * aparece como círculos), então o nome/descrição de cada peça é a fonte da verdade.
+ */
+function buildSceneContextBlock(options?: RealisticPromptOptions): string {
+  const scene =
+    typeof options?.sceneDescription === 'string'
+      ? options.sceneDescription.trim().slice(0, MAX_SCENE_LENGTH)
+      : '';
+  const notes =
+    typeof options?.themeNotes === 'string'
+      ? options.themeNotes.trim().slice(0, MAX_NOTES_LENGTH)
+      : '';
+  if (!scene && !notes) return '';
+
+  const blocks: string[] = [];
+  if (scene) {
+    blocks.push(
+      `ELEMENT LIST (the mockup draws simplified placeholder shapes; interpret each item by its NAME, not by how the shape looks, and keep the same position, size and colors):\n${scene}`
+    );
+  }
+  if (notes) {
+    blocks.push(`DECORATOR NOTES (theme, materials and details that MUST appear in the photo):\n${notes}`);
+  }
+  blocks.push(
+    'Items in the element list and decorator notes override the rule "do not add objects": render them as real, detailed objects (real flowers, real cake, real fabric textures and patterns) while keeping the layout of the mockup.'
+  );
+  return blocks.join('\n\n');
 }
 
 export const REALISTIC_PARTY_PROMPT = `Use the uploaded image as the primary visual and composition reference.
@@ -72,6 +109,8 @@ ${fidelityDirective}
 
 Preserve the appearance, colors, proportions and visual identity of any user-provided decorative assets and character cutouts as closely as possible. Do not replace or substantially redesign imported objects.
 
+${buildSceneContextBlock(options)}
+
 Do not redesign the decoration. Do not add unnecessary objects.
 The objective is not to create a different party setup. The objective is to make the existing project look real.
 
@@ -116,12 +155,14 @@ export function buildVisionAnalysisPrompt(options?: RealisticPromptOptions): str
     creative: 'Preserve the main theme and decorative arrangement while elevating styling details to look like an award-winning event photograph.',
   }[fidelity];
 
-  return `You are a world-class party decorator and expert AI prompt engineer for photographic image generation (DALL-E 3).
+  return `You are a world-class party decorator and expert AI prompt engineer for photographic image generation.
 
 Analyze this 2D party decoration mockup created by an event decorator:
 1. Examine all visual components: backdrop panel themes/prints, balloon arches (exact colors and placement), pedestals/cylinder tables, character cutouts, cake stands, and floor props.
 2. Note the precise color palette, geometry, and placement.
-3. Formulate a single, highly descriptive prompt in English for DALL-E 3 to produce a photorealistic indoor photograph of this EXACT party decoration setup.
+3. Formulate a single, highly descriptive prompt in English for an image model to produce a photorealistic indoor photograph of this EXACT party decoration setup.
+
+${buildSceneContextBlock(options)}
 
 Key Directives:
 - Composition Fidelity: ${fidelityText}
@@ -130,6 +171,6 @@ Key Directives:
 - Materials: Balloons must look realistically inflated with specular glossy highlights; fabric backdrops must look like printed tension fabric or canvas; acrylic/pedestals must have real physical textures and soft floor reflections.
 - Absolute Rule: It must look like a high-end, real-world photograph taken with a professional full-frame camera. NOT a 3D render, NOT an illustration, NOT CGI.
 
-Return ONLY the final prompt text for DALL-E 3. Do not include introductory notes, explanations, or quotes.`;
+Return ONLY the final prompt text for the image model. Do not include introductory notes, explanations, or quotes.`;
 }
 

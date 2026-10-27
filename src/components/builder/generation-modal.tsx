@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { RealisticPromptOptions } from '@/lib/prompts';
-import { Sparkles, X, Sliders, Sun, Building2, Loader2 } from 'lucide-react';
+import { Sparkles, X, Sliders, Sun, Building2, Loader2, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GenerationLimitData } from '@/hooks/use-generation-limit';
 import GenerationLimitBadge from '@/components/generation-limit-badge';
@@ -25,11 +25,12 @@ export default function GenerationModal({
   const [fidelity, setFidelity] = useState<'high' | 'balanced' | 'creative'>('high');
   const [lighting, setLighting] = useState<'natural' | 'warm' | 'studio'>('natural');
   const [environment, setEnvironment] = useState<'party_hall' | 'studio' | 'residence'>('party_hall');
+  const [themeNotes, setThemeNotes] = useState('');
 
   if (!isOpen) return null;
 
   const handleGenerate = () => {
-    onConfirm({ fidelity, lighting, environment });
+    onConfirm({ fidelity, lighting, environment, themeNotes: themeNotes.trim() || undefined });
   };
 
   return (
@@ -158,6 +159,27 @@ export default function GenerationModal({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Opção 4: Tema e detalhes */}
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Palette className="w-3.5 h-3.5 text-zinc-500" />
+              <label htmlFor="theme-notes" className="text-xs font-semibold text-zinc-800 font-sans">
+                Tema e detalhes <span className="font-normal text-zinc-400">(opcional)</span>
+              </label>
+            </div>
+            <textarea
+              id="theme-notes"
+              value={themeNotes}
+              onChange={(e) => setThemeNotes(e.target.value.slice(0, 600))}
+              rows={3}
+              placeholder="Ex.: tema jardim lilás; toalha e cilindros em xadrez lilás e branco; laços de cetim; bolo de 2 andares na mesa; flores reais nos arranjos; tapete oval com borda ondulada."
+              className="w-full resize-none rounded-xl border border-zinc-200/80 bg-white p-3 text-xs text-zinc-800 font-sans placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+            />
+            <p className="mt-1 text-[10px] text-zinc-400 font-sans">
+              O mockup usa formas simples. Descreva aqui o que cada peça é de verdade para a IA reproduzir fielmente.
+            </p>
           </div>
 
           {/* Dica de Preservação */}

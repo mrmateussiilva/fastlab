@@ -14,6 +14,7 @@ import {
 } from '@/lib/builder-elements';
 import { idbGetAll, idbSave, idbDelete } from '@/lib/idb';
 import { RealisticPromptOptions } from '@/lib/prompts';
+import { describeScene } from '@/lib/scene-description';
 import BuilderToolbar from './builder-toolbar';
 import ElementsSidebar from './elements-sidebar';
 import PropertiesSidebar from './properties-sidebar';
@@ -202,7 +203,7 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   {
     id: 'flowers-left',
     elementId: 'balloon-small',
-    name: 'Arranjo Esquerdo',
+    name: 'Arranjo de Flores Reais (esquerda)',
     shapeType: 'balloon-small',
     x: 268,
     y: 285,
@@ -220,7 +221,7 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   {
     id: 'flowers-right',
     elementId: 'balloon-small',
-    name: 'Arranjo Direito',
+    name: 'Arranjo de Flores Reais (direita)',
     shapeType: 'balloon-small',
     x: 616,
     y: 285,
@@ -240,7 +241,7 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   {
     id: 'table-1',
     elementId: 'table-cloth',
-    name: 'Mesa do Bolo',
+    name: 'Mesa do Bolo com toalha xadrez lilás e branca e saia plissada',
     shapeType: 'table-cloth',
     x: 375,
     y: 410,
@@ -256,7 +257,7 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   {
     id: 'cake-1',
     elementId: 'balloon-small',
-    name: 'Bolo e Doces',
+    name: 'Bolo de 2 andares com doces e cupcakes sobre a mesa',
     shapeType: 'balloon-small',
     x: 440,
     y: 335,
@@ -275,7 +276,7 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   {
     id: 'cyl-mid-left',
     elementId: 'cylinder-mid',
-    name: 'Pedestal Esquerdo',
+    name: 'Pedestal xadrez lilás e branco (esquerda)',
     shapeType: 'cylinder-mid',
     x: 150,
     y: 420,
@@ -291,7 +292,7 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   {
     id: 'cyl-mid-right',
     elementId: 'cylinder-mid',
-    name: 'Pedestal Direito',
+    name: 'Pedestal xadrez lilás e branco (direita)',
     shapeType: 'cylinder-mid',
     x: 766,
     y: 420,
@@ -307,7 +308,7 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   {
     id: 'ball-left',
     elementId: 'balloon-small',
-    name: 'Balão Esquerdo',
+    name: 'Bola listrada lilás e branca com laço de cetim (esquerda)',
     shapeType: 'balloon-small',
     x: 142,
     y: 335,
@@ -325,7 +326,7 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   {
     id: 'ball-right',
     elementId: 'balloon-small',
-    name: 'Balão Direito',
+    name: 'Bola listrada lilás e branca com laço de cetim (direita)',
     shapeType: 'balloon-small',
     x: 758,
     y: 335,
@@ -345,7 +346,7 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   {
     id: 'floor-flowers-left',
     elementId: 'balloon-cluster',
-    name: 'Buquê de Chão Esquerdo',
+    name: 'Buquê de flores lilás e brancas no chão (esquerda)',
     shapeType: 'balloon-cluster',
     x: 215,
     y: 440,
@@ -363,7 +364,7 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   {
     id: 'floor-flowers-right',
     elementId: 'balloon-cluster',
-    name: 'Buquê de Chão Direito',
+    name: 'Buquê de flores lilás e brancas no chão (direita)',
     shapeType: 'balloon-cluster',
     x: 635,
     y: 440,
@@ -1112,7 +1113,10 @@ export default function MockupBuilder({
 
         const formData = new FormData();
         formData.append('image', file);
-        formData.append('options', JSON.stringify(options));
+        formData.append(
+          'options',
+          JSON.stringify({ ...options, sceneDescription: describeScene(elements) })
+        );
 
         const res = await fetch('/api/generate', {
           method: 'POST',
