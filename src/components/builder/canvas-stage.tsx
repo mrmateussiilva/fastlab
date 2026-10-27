@@ -482,13 +482,256 @@ const ElementShape = ({
       }
 
       case 'table-cloth': {
-        const path = `M 0 15 Q ${w / 2} 10 ${w} 15 L ${w - 10} ${h} Q ${w / 2} ${h + 8} 10 ${h} Z`;
+        const topH = Math.max(16, Math.min(26, h * 0.16));
+        const topInset = Math.max(8, w * 0.05);
+        const baseColor = el.fill || '#E7DFD5';
+        const drapePath = `M 0 ${topH} L ${w} ${topH} L ${w - 6} ${h - 4} Q ${w * 0.5} ${h + 4} 6 ${h - 4} Z`;
+
         return (
           <>
-            <Path data={path} fill={el.fill} stroke={strokeColor} strokeWidth={strokeWidth} />
-            <Line points={[w * 0.25, 20, w * 0.22, h - 5]} stroke="#000000" strokeWidth={1} opacity={0.15} />
-            <Line points={[w * 0.5, 20, w * 0.5, h - 5]} stroke="#000000" strokeWidth={1} opacity={0.15} />
-            <Line points={[w * 0.75, 20, w * 0.78, h - 5]} stroke="#000000" strokeWidth={1} opacity={0.15} />
+            {/* Sombra de contato no chão */}
+            <Ellipse
+              x={w / 2}
+              y={h + 1}
+              radiusX={w * 0.5}
+              radiusY={Math.min(12, h * 0.08)}
+              fill="#000000"
+              opacity={0.18}
+              listening={false}
+            />
+
+            {/* Caimento da Toalha */}
+            <Path data={drapePath} fill={baseColor} stroke={strokeColor} strokeWidth={strokeWidth} />
+
+            {el.fillImageSrc && (
+              <Group
+                clipFunc={(ctx) => {
+                  ctx.beginPath();
+                  ctx.moveTo(0, topH);
+                  ctx.lineTo(w, topH);
+                  ctx.lineTo(w - 6, h - 4);
+                  ctx.quadraticCurveTo(w * 0.5, h + 4, 6, h - 4);
+                  ctx.closePath();
+                }}
+              >
+                <ClippedArtworkImage
+                  url={el.fillImageSrc}
+                  boxWidth={w}
+                  boxHeight={h}
+                  fillMode={el.fillMode}
+                  fillScale={el.fillScale}
+                  fillOffsetX={el.fillOffsetX}
+                  fillOffsetY={el.fillOffsetY}
+                />
+              </Group>
+            )}
+
+            {/* Dobras de caimento do tecido */}
+            <Line points={[w * 0.15, topH, w * 0.12, h - 5]} stroke="#000000" strokeWidth={1.5} opacity={0.12} />
+            <Line points={[w * 0.18, topH, w * 0.15, h - 4]} stroke="#FFFFFF" strokeWidth={1.5} opacity={0.2} />
+            <Line points={[w * 0.35, topH, w * 0.33, h - 5]} stroke="#000000" strokeWidth={1.5} opacity={0.12} />
+            <Line points={[w * 0.38, topH, w * 0.36, h - 4]} stroke="#FFFFFF" strokeWidth={1.5} opacity={0.2} />
+            <Line points={[w * 0.65, topH, w * 0.67, h - 5]} stroke="#000000" strokeWidth={1.5} opacity={0.12} />
+            <Line points={[w * 0.62, topH, w * 0.64, h - 4]} stroke="#FFFFFF" strokeWidth={1.5} opacity={0.2} />
+            <Line points={[w * 0.85, topH, w * 0.88, h - 5]} stroke="#000000" strokeWidth={1.5} opacity={0.12} />
+            <Line points={[w * 0.82, topH, w * 0.85, h - 4]} stroke="#FFFFFF" strokeWidth={1.5} opacity={0.2} />
+
+            {/* Tampo Superior */}
+            <Path
+              data={`M ${topInset} 0 L ${w - topInset} 0 L ${w} ${topH} L 0 ${topH} Z`}
+              fill={baseColor}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+            />
+            <Path
+              data={`M ${topInset + 3} 2 L ${w - topInset - 3} 2 L ${w - 3} ${topH - 2} L 3 ${topH - 2} Z`}
+              fill="#FFFFFF"
+              opacity={0.2}
+              listening={false}
+            />
+            <Line points={[0, topH, w, topH]} stroke="#000000" strokeWidth={1.2} opacity={0.18} />
+          </>
+        );
+      }
+
+      case 'table-ruffle': {
+        const topH = Math.max(16, Math.min(28, h * 0.16));
+        const topInset = Math.max(10, w * 0.05);
+        const skirtH = h - topH;
+        const foldCount = Math.max(10, Math.min(24, Math.round(w / 18)));
+        const foldW = w / foldCount;
+        const baseColor = el.fill || '#FFFFFF';
+
+        // Caminho da saia plissada com barra ondulada
+        let skirtPath = `M 0 ${topH} L ${w} ${topH} L ${w} ${h - 4} `;
+        for (let i = foldCount - 1; i >= 0; i--) {
+          const fx = i * foldW;
+          skirtPath += `Q ${fx + foldW * 0.5} ${h + 3} ${fx} ${h - 4} `;
+        }
+        skirtPath += 'Z';
+
+        // Caminho do babado superior sobreposto (pelmet / sobre-toalha de festa)
+        const overlayH = topH + skirtH * 0.5;
+        let overlayPath = `M 0 ${topH} L ${w} ${topH} L ${w} ${overlayH - 3} `;
+        for (let i = foldCount - 1; i >= 0; i--) {
+          const fx = i * foldW;
+          overlayPath += `Q ${fx + foldW * 0.5} ${overlayH + 4} ${fx} ${overlayH - 3} `;
+        }
+        overlayPath += 'Z';
+
+        return (
+          <>
+            {/* 1. Sombra de contato no chão */}
+            <Ellipse
+              x={w / 2}
+              y={h + 1}
+              radiusX={w * 0.52}
+              radiusY={Math.min(14, h * 0.09)}
+              fill="#000000"
+              opacity={0.18}
+              listening={false}
+            />
+            <Ellipse
+              x={w / 2}
+              y={h}
+              radiusX={w * 0.46}
+              radiusY={Math.min(8, h * 0.05)}
+              fill="#000000"
+              opacity={0.24}
+              listening={false}
+            />
+
+            {/* 2. Saia Plissada Principal (Base do Babado) */}
+            <Path
+              data={skirtPath}
+              fill={baseColor}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+            />
+
+            {/* Suporte à arte/estampa personalizada na saia */}
+            {el.fillImageSrc && (
+              <Group
+                clipFunc={(ctx) => {
+                  ctx.beginPath();
+                  ctx.moveTo(0, topH);
+                  ctx.lineTo(w, topH);
+                  ctx.lineTo(w, h - 4);
+                  for (let i = foldCount - 1; i >= 0; i--) {
+                    const fx = i * foldW;
+                    ctx.quadraticCurveTo(fx + foldW * 0.5, h + 3, fx, h - 4);
+                  }
+                  ctx.closePath();
+                }}
+              >
+                <ClippedArtworkImage
+                  url={el.fillImageSrc}
+                  boxWidth={w}
+                  boxHeight={h}
+                  fillMode={el.fillMode}
+                  fillScale={el.fillScale}
+                  fillOffsetX={el.fillOffsetX}
+                  fillOffsetY={el.fillOffsetY}
+                />
+              </Group>
+            )}
+
+            {/* Dobras verticais da saia inferior com luz e sombra alternadas */}
+            {Array.from({ length: foldCount }).map((_, i) => {
+              const fx = i * foldW;
+              return (
+                <React.Fragment key={`skirt-fold-${i}`}>
+                  <Line
+                    points={[fx, topH, fx, h - 2]}
+                    stroke="#000000"
+                    strokeWidth={1.5}
+                    opacity={0.15}
+                  />
+                  <Line
+                    points={[fx + foldW * 0.5, topH, fx + foldW * 0.5, h - 1]}
+                    stroke="#FFFFFF"
+                    strokeWidth={1.5}
+                    opacity={0.22}
+                  />
+                </React.Fragment>
+              );
+            })}
+
+            {/* Sombra da sobre-toalha projetada sobre a saia de baixo */}
+            <Path
+              data={overlayPath}
+              fill="#000000"
+              opacity={0.12}
+              offsetY={-3}
+              listening={false}
+            />
+
+            {/* 3. Babado Superior Sobreposto */}
+            <Path
+              data={overlayPath}
+              fill={baseColor}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+            />
+
+            {/* Dobras verticais do babado superior */}
+            {Array.from({ length: foldCount }).map((_, i) => {
+              const fx = i * foldW;
+              return (
+                <React.Fragment key={`overlay-fold-${i}`}>
+                  <Line
+                    points={[fx, topH, fx, overlayH - 1]}
+                    stroke="#000000"
+                    strokeWidth={1.5}
+                    opacity={0.18}
+                  />
+                  <Line
+                    points={[fx + foldW * 0.5, topH, fx + foldW * 0.5, overlayH]}
+                    stroke="#FFFFFF"
+                    strokeWidth={1.5}
+                    opacity={0.24}
+                  />
+                </React.Fragment>
+              );
+            })}
+
+            {/* Quedas franzidas decorativas nas laterais */}
+            <Path
+              data={`M 0 ${topH} Q ${w * 0.04} ${topH + skirtH * 0.25} 0 ${overlayH} Z`}
+              fill="#000000"
+              opacity={0.1}
+            />
+            <Path
+              data={`M ${w} ${topH} Q ${w * 0.96} ${topH + skirtH * 0.25} ${w} ${overlayH} Z`}
+              fill="#000000"
+              opacity={0.1}
+            />
+
+            {/* 4. Tampo Superior da Mesa com perspectiva */}
+            <Path
+              data={`M ${topInset} 0 L ${w - topInset} 0 L ${w} ${topH} L 0 ${topH} Z`}
+              fill={baseColor}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+            />
+            <Path
+              data={`M ${topInset + 4} 2 L ${w - topInset - 4} 2 L ${w - 4} ${topH - 2} L 4 ${topH - 2} Z`}
+              fill="#FFFFFF"
+              opacity={0.26}
+              listening={false}
+            />
+            <Line
+              points={[0, topH, w, topH]}
+              stroke="#000000"
+              strokeWidth={1.5}
+              opacity={0.2}
+            />
+            <Line
+              points={[0, topH - 1, w, topH - 1]}
+              stroke="#FFFFFF"
+              strokeWidth={1}
+              opacity={0.4}
+            />
           </>
         );
       }

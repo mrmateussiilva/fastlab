@@ -1706,6 +1706,158 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
       baseMesh.position.y = -h / 2 + 0.01;
       baseMesh.userData = { elementId: el.id };
       group.add(baseMesh);
+    } else if (el.shapeType === 'table-ruffle' || el.shapeType === 'table-cloth') {
+      const isRuffle = el.shapeType === 'table-ruffle';
+      const fabricMat = new THREE.MeshStandardMaterial({
+        color: threeColor,
+        roughness: 0.85,
+        metalness: 0.02,
+        side: THREE.DoubleSide,
+      });
+
+      // 1. Tampo da Mesa com tecido esticado
+      const topGeo = new THREE.BoxGeometry(w, topThickness, depth);
+      const topMesh = new THREE.Mesh(topGeo, fabricMat);
+      topMesh.position.y = h / 2 - topThickness / 2;
+      topMesh.castShadow = true;
+      topMesh.receiveShadow = true;
+      topMesh.userData = { elementId: el.id };
+      group.add(topMesh);
+
+      // 2. Saia Plissada / Babado 3D (Frontal)
+      const skirtH = h - topThickness;
+      const skirtCenterY = -topThickness / 2;
+      const segX = Math.max(48, Math.round(w * 60));
+      const segY = 16;
+      const pleatFreq = isRuffle ? 36 : 14;
+      const pleatAmp = isRuffle ? 0.016 : 0.008;
+
+      // Geometria da saia frontal com ondas de drapeado/plissado
+      const frontSkirtGeo = new THREE.PlaneGeometry(w, skirtH, segX, segY);
+      const posFront = frontSkirtGeo.attributes.position;
+      for (let i = 0; i < posFront.count; i++) {
+        const vx = posFront.getX(i);
+        const vy = posFront.getY(i); // de -skirtH/2 a +skirtH/2
+        const bottomFactor = 0.5 + 0.5 * (0.5 - vy / skirtH);
+        const foldZ = Math.sin(vx * pleatFreq) * pleatAmp * bottomFactor;
+        posFront.setZ(i, foldZ);
+      }
+      frontSkirtGeo.computeVertexNormals();
+      const frontSkirtMesh = new THREE.Mesh(frontSkirtGeo, fabricMat);
+      frontSkirtMesh.position.set(0, skirtCenterY, depth / 2);
+      frontSkirtMesh.castShadow = true;
+      frontSkirtMesh.receiveShadow = true;
+      frontSkirtMesh.userData = { elementId: el.id };
+      group.add(frontSkirtMesh);
+
+      // 3. Saias laterais (Esquerda e Direita)
+      const sideSegX = Math.max(24, Math.round(depth * 45));
+      const leftSkirtGeo = new THREE.PlaneGeometry(depth, skirtH, sideSegX, segY);
+      const posLeft = leftSkirtGeo.attributes.position;
+      for (let i = 0; i < posLeft.count; i++) {
+        const vx = posLeft.getX(i);
+        const vy = posLeft.getY(i);
+        const bottomFactor = 0.5 + 0.5 * (0.5 - vy / skirtH);
+        const foldZ = Math.sin(vx * pleatFreq) * pleatAmp * bottomFactor;
+        posLeft.setZ(i, foldZ);
+      }
+      leftSkirtGeo.computeVertexNormals();
+      const leftSkirtMesh = new THREE.Mesh(leftSkirtGeo, fabricMat);
+      leftSkirtMesh.position.set(-w / 2, skirtCenterY, 0);
+      leftSkirtMesh.rotation.y = -Math.PI / 2;
+      leftSkirtMesh.castShadow = true;
+      leftSkirtMesh.receiveShadow = true;
+      leftSkirtMesh.userData = { elementId: el.id };
+      group.add(leftSkirtMesh);
+
+      const rightSkirtGeo = new THREE.PlaneGeometry(depth, skirtH, sideSegX, segY);
+      const posRight = rightSkirtGeo.attributes.position;
+      for (let i = 0; i < posRight.count; i++) {
+        const vx = posRight.getX(i);
+        const vy = posRight.getY(i);
+        const bottomFactor = 0.5 + 0.5 * (0.5 - vy / skirtH);
+        const foldZ = Math.sin(vx * pleatFreq) * pleatAmp * bottomFactor;
+        posRight.setZ(i, foldZ);
+      }
+      rightSkirtGeo.computeVertexNormals();
+      const rightSkirtMesh = new THREE.Mesh(rightSkirtGeo, fabricMat);
+      rightSkirtMesh.position.set(w / 2, skirtCenterY, 0);
+      rightSkirtMesh.rotation.y = Math.PI / 2;
+      rightSkirtMesh.castShadow = true;
+      rightSkirtMesh.receiveShadow = true;
+      rightSkirtMesh.userData = { elementId: el.id };
+      group.add(rightSkirtMesh);
+
+      // 4. Se for Mesa de Babado, adicionar a segunda camada superior (Sobre-babado / Pelmet)
+      if (isRuffle) {
+        const upperH = skirtH * 0.48;
+        const upperGeo = new THREE.PlaneGeometry(w * 1.01, upperH, segX, 10);
+        const posUpper = upperGeo.attributes.position;
+        for (let i = 0; i < posUpper.count; i++) {
+          const vx = posUpper.getX(i);
+          const vy = posUpper.getY(i);
+          const bottomFactor = 0.6 + 0.4 * (0.5 - vy / upperH);
+          const foldZ = Math.sin(vx * pleatFreq) * (pleatAmp * 1.25) * bottomFactor;
+          posUpper.setZ(i, foldZ);
+        }
+        upperGeo.computeVertexNormals();
+        const upperMesh = new THREE.Mesh(upperGeo, fabricMat);
+        upperMesh.position.set(0, (h / 2 - topThickness) - upperH / 2, depth / 2 + 0.012);
+        upperMesh.castShadow = true;
+        upperMesh.receiveShadow = true;
+        upperMesh.userData = { elementId: el.id };
+        group.add(upperMesh);
+
+        // Laterais do sobre-babado
+        const upperLeftGeo = new THREE.PlaneGeometry(depth * 1.01, upperH, sideSegX, 10);
+        const posUpperL = upperLeftGeo.attributes.position;
+        for (let i = 0; i < posUpperL.count; i++) {
+          const vx = posUpperL.getX(i);
+          const vy = posUpperL.getY(i);
+          const bottomFactor = 0.6 + 0.4 * (0.5 - vy / upperH);
+          const foldZ = Math.sin(vx * pleatFreq) * (pleatAmp * 1.25) * bottomFactor;
+          posUpperL.setZ(i, foldZ);
+        }
+        upperLeftGeo.computeVertexNormals();
+        const upperLeftMesh = new THREE.Mesh(upperLeftGeo, fabricMat);
+        upperLeftMesh.position.set(-w / 2 - 0.006, (h / 2 - topThickness) - upperH / 2, 0);
+        upperLeftMesh.rotation.y = -Math.PI / 2;
+        upperLeftMesh.castShadow = true;
+        upperLeftMesh.receiveShadow = true;
+        upperLeftMesh.userData = { elementId: el.id };
+        group.add(upperLeftMesh);
+
+        const upperRightGeo = new THREE.PlaneGeometry(depth * 1.01, upperH, sideSegX, 10);
+        const posUpperR = upperRightGeo.attributes.position;
+        for (let i = 0; i < posUpperR.count; i++) {
+          const vx = posUpperR.getX(i);
+          const vy = posUpperR.getY(i);
+          const bottomFactor = 0.6 + 0.4 * (0.5 - vy / upperH);
+          const foldZ = Math.sin(vx * pleatFreq) * (pleatAmp * 1.25) * bottomFactor;
+          posUpperR.setZ(i, foldZ);
+        }
+        upperRightGeo.computeVertexNormals();
+        const upperRightMesh = new THREE.Mesh(upperRightGeo, fabricMat);
+        upperRightMesh.position.set(w / 2 + 0.006, (h / 2 - topThickness) - upperH / 2, 0);
+        upperRightMesh.rotation.y = Math.PI / 2;
+        upperRightMesh.castShadow = true;
+        upperRightMesh.receiveShadow = true;
+        upperRightMesh.userData = { elementId: el.id };
+        group.add(upperRightMesh);
+      }
+
+      // 5. Sombra suave de contato no chão
+      const shadowGeo = new THREE.PlaneGeometry(w * 1.08, depth * 1.12);
+      const shadowMat = new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        transparent: true,
+        opacity: 0.22,
+        depthWrite: false,
+      });
+      const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+      shadowMesh.rotation.x = -Math.PI / 2;
+      shadowMesh.position.y = -h / 2 + 0.003;
+      group.add(shadowMesh);
     } else {
       const topGeo = new THREE.BoxGeometry(w, topThickness, depth);
       const topMesh = new THREE.Mesh(topGeo, tableMat);

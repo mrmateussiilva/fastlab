@@ -54,7 +54,8 @@ const SHAPE_LABELS: Record<string, string> = {
   'panel-wavy': 'wavy-edge backdrop panel',
   'panel-round': 'round backdrop panel',
   'table-rect': 'rectangular table',
-  'table-cloth': 'table covered with a tablecloth',
+  'table-cloth': 'table covered with a draped tablecloth',
+  'table-ruffle': 'realistic event table with pleated ruffle skirt (mesa de babado)',
   'table-round': 'round table',
   'cylinder-low': 'low cylinder pedestal',
   'cylinder-mid': 'medium cylinder pedestal',
@@ -103,8 +104,8 @@ function inferElementRole(name: string, shapeType: string): string | null {
   if (shapeType === 'balloon-single') {
     return 'NATURAL INFLATED LATEX BALLOON WITH TIE KNOT AND RIBBON';
   }
-  if (shapeType === 'table-cloth' || n.includes('toalha') || n.includes('mesa do bolo')) {
-    return 'PARTY TABLE WITH DRAPED FABRIC TABLECLOTH, SCALLOPED OVERLAY AND PLEATED SKIRT';
+  if (shapeType === 'table-ruffle' || shapeType === 'table-cloth' || n.includes('toalha') || n.includes('babado') || n.includes('mesa do bolo')) {
+    return 'LUXURY EVENT TABLE WITH DRAPED FABRIC TABLECLOTH, SCALLOPED OVERLAY AND REALISTIC PLEATED RUFFLE SKIRT (MESA DE BABADO)';
   }
   if (shapeType.startsWith('cylinder') || n.includes('pedestal') || n.includes('cilindro')) {
     return 'EVENT CYLINDER PEDESTAL with tailored smooth fabric cover';

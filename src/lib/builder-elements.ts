@@ -14,6 +14,7 @@ export type ShapeType =
   | 'panel-round'
   | 'table-rect'
   | 'table-cloth'
+  | 'table-ruffle'
   | 'table-round'
   | 'cylinder-low'
   | 'cylinder-mid'
@@ -261,6 +262,16 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
     defaultHeight: 150,
     defaultFill: '#E7DFD5',
     defaultStroke: '#CBBFA9',
+  },
+  {
+    id: 'table-ruffle',
+    name: 'Mesa de Babado',
+    category: 'mesas',
+    shapeType: 'table-ruffle',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    defaultFill: '#FFFFFF',
+    defaultStroke: '#D1C6BA',
   },
   {
     id: 'table-round',

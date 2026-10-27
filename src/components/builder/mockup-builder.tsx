@@ -239,9 +239,9 @@ const INITIAL_ELEMENTS: CanvasElement[] = [
   // Mesa do bolo com toalha lilás
   {
     id: 'table-1',
-    elementId: 'table-cloth',
+    elementId: 'table-ruffle',
     name: 'Mesa do Bolo com toalha xadrez lilás e branca e saia plissada',
-    shapeType: 'table-cloth',
+    shapeType: 'table-ruffle',
     x: 375,
     y: 410,
     width: 250,
@@ -353,6 +353,7 @@ const QUICK_ADD_IDS = [
   'panel-rect',
   'panel-round',
   'cylinder-mid',
+  'table-ruffle',
   'table-rect',
   'balloon-mid',
   'element-text',

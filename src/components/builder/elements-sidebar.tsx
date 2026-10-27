@@ -74,6 +74,16 @@ function ElementMiniPreview({ shapeType, fill }: { shapeType: ShapeType; fill: s
       return <svg viewBox="0 0 40 40" className="w-10 h-10"><rect x="6" y="16" width="28" height="6" rx="1" fill={fill} stroke={stroke} strokeWidth="1.5" /><line x1="10" y1="22" x2="10" y2="34" stroke={stroke} strokeWidth="1.5" /><line x1="30" y1="22" x2="30" y2="34" stroke={stroke} strokeWidth="1.5" /></svg>;
     case 'table-cloth':
       return <svg viewBox="0 0 40 40" className="w-10 h-10"><path d="M6 18 Q20 16 34 18 L32 34 Q20 36 8 34 Z" fill={fill} stroke={stroke} strokeWidth="1.5" /></svg>;
+    case 'table-ruffle':
+      return (
+        <svg viewBox="0 0 40 40" className="w-10 h-10">
+          <polygon points="6,15 34,15 36,19 4,19" fill={fill} stroke={stroke} strokeWidth="1" />
+          <path d="M4 19 Q10 20 16 19 Q22 20 28 19 Q34 20 36 19 L35 34 Q31 36 27 34 Q23 36 19 34 Q15 36 11 34 Q7 36 5 34 Z" fill={fill} stroke={stroke} strokeWidth="1.2" />
+          <line x1="11" y1="20" x2="11" y2="34" stroke={stroke} strokeWidth="0.8" opacity="0.6" />
+          <line x1="19" y1="20" x2="19" y2="34" stroke={stroke} strokeWidth="0.8" opacity="0.6" />
+          <line x1="27" y1="20" x2="27" y2="34" stroke={stroke} strokeWidth="0.8" opacity="0.6" />
+        </svg>
+      );
     case 'table-round':
       return <svg viewBox="0 0 40 40" className="w-10 h-10"><ellipse cx="20" cy="16" rx="14" ry="5" fill={fill} stroke={stroke} strokeWidth="1.5" /><line x1="20" y1="21" x2="20" y2="34" stroke={stroke} strokeWidth="2" /><line x1="14" y1="34" x2="26" y2="34" stroke={stroke} strokeWidth="2" /></svg>;
     case 'cylinder-high':
