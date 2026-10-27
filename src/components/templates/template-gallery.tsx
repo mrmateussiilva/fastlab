@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { ArrowRight, Search, Layers } from 'lucide-react';
 import { FESTA_TEMPLATES, FestaTemplate } from '@/lib/templates';
 
-const CATEGORIES = ['Todos', 'Infantil', 'Casamento', 'Chá de Bebê', 'Debutante', 'Temática', 'Adulto'];
+const CATEGORIES = ['Todos', 'Infantil', 'Princesas', 'Heróis', 'Casamento', 'Chá de Bebê', 'Adulto'];
 
 interface TemplateGalleryProps {
   onSelectTemplate: (template: FestaTemplate) => void;

@@ -22,7 +22,16 @@ export async function getTemplates(): Promise<FestaTemplate[]> {
       if (data) {
         const parsed = typeof data === 'string' ? JSON.parse(data) : data;
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          // Verifica se o Redis já contém a nova coleção de temas (ex: mickey-disney)
+          const hasNewTemplates = parsed.some((t: FestaTemplate) => t.id === 'mickey-disney');
+          if (!hasNewTemplates) {
+            console.log('[TemplatesStore] Atualizando cache do Redis com os 21 novos temas oficiais...');
+            await redis.set(REDIS_KEY, JSON.stringify(FESTA_TEMPLATES));
+            return FESTA_TEMPLATES;
+          }
+          // Se tiver templates customizados extras criados pelo usuário, mescla com os oficiais
+          const customOnly = parsed.filter((t: FestaTemplate) => !FESTA_TEMPLATES.some((f) => f.id === t.id));
+          return [...FESTA_TEMPLATES, ...customOnly];
         }
       }
     }
@@ -36,14 +45,19 @@ export async function getTemplates(): Promise<FestaTemplate[]> {
       const content = await fs.promises.readFile(FILE_PATH, 'utf-8');
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        const hasNewTemplates = parsed.some((t: FestaTemplate) => t.id === 'mickey-disney');
+        if (!hasNewTemplates) {
+          return FESTA_TEMPLATES;
+        }
+        const customOnly = parsed.filter((t: FestaTemplate) => !FESTA_TEMPLATES.some((f) => f.id === t.id));
+        return [...FESTA_TEMPLATES, ...customOnly];
       }
     }
   } catch (err) {
     console.warn('[TemplatesStore] Falha ao ler arquivo local:', err);
   }
 
-  // 3. Fallback para os templates padrão em código
+  // 3. Fallback oficial direto
   return FESTA_TEMPLATES;
 }
 

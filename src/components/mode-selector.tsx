@@ -67,7 +67,7 @@ function FloatingOrb({ className }: { className: string }) {
 export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelectorProps) {
   const { isSignedIn } = useAuth();
   const [scrolled, setScrolled] = useState(false);
-  const [galleryTab, setGalleryTab] = useState<'themes' | 'templates'>('themes');
+  const [galleryTab, setGalleryTab] = useState<'themes' | 'templates'>('templates');
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -329,6 +329,17 @@ export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelect
             <div className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex p-1 bg-zinc-100 rounded-xl border border-zinc-200 shadow-xs">
               <button
                 type="button"
+                onClick={() => setGalleryTab('templates')}
+                className={`py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer min-h-[44px] sm:min-h-0 flex items-center justify-center ${
+                  galleryTab === 'templates'
+                    ? 'bg-white text-zinc-900 shadow-xs'
+                    : 'text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                Temas Prontos (21 Modelos)
+              </button>
+              <button
+                type="button"
                 onClick={() => setGalleryTab('themes')}
                 className={`py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer min-h-[44px] sm:min-h-0 flex items-center justify-center ${
                   galleryTab === 'themes'
@@ -337,17 +348,6 @@ export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelect
                 }`}
               >
                 Modelos Oficiais
-              </button>
-              <button
-                type="button"
-                onClick={() => setGalleryTab('templates')}
-                className={`py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer min-h-[44px] sm:min-h-0 flex items-center justify-center ${
-                  galleryTab === 'templates'
-                    ? 'bg-white text-zinc-900 shadow-xs'
-                    : 'text-zinc-600 hover:text-zinc-900'
-                }`}
-              >
-                Templates Rápidos
               </button>
             </div>
           </div>
