@@ -43,6 +43,24 @@ function resolveOpenAIImageModel(): string {
   return configured;
 }
 
+/** Tamanho da imagem gerada. Padrão paisagem (combina com o canvas 4:3). Configurável via OPENAI_IMAGE_SIZE. */
+function getImageSize(): '1024x1024' | '1536x1024' | '1024x1536' | 'auto' {
+  const configured = process.env.OPENAI_IMAGE_SIZE?.trim();
+  if (configured && ['1024x1024', '1536x1024', '1024x1536', 'auto'].includes(configured)) {
+    return configured as '1024x1024' | '1536x1024' | '1024x1536' | 'auto';
+  }
+  return '1536x1024';
+}
+
+/** Qualidade da imagem. Padrão 'high' (máxima precisão). Configurável via OPENAI_IMAGE_QUALITY. */
+function getImageQuality(): 'low' | 'medium' | 'high' | 'auto' {
+  const configured = process.env.OPENAI_IMAGE_QUALITY?.trim().toLowerCase();
+  if (configured && ['low', 'medium', 'high', 'auto'].includes(configured)) {
+    return configured as 'low' | 'medium' | 'high' | 'auto';
+  }
+  return 'high';
+}
+
 /**
  * Geração via GPT-4o Vision + modelo de imagem (gpt-image)
  * Como o DALL-E 3 não possui endpoint de image-to-image direto com imagem bruta,
@@ -139,15 +157,13 @@ async function generateViaVisionAndDalle(
     url = openRouterJson.data?.[0]?.url;
   } else {
     console.log(`[Generate API] Gerando imagem fotográfica realista com ${imageModel}...`);
-    // 'quality' só é enviado se configurado explicitamente (valores válidos: low | medium | high | auto)
-    const imageQuality = process.env.OPENAI_IMAGE_QUALITY?.trim().toLowerCase();
-    const validQuality = imageQuality && ['low', 'medium', 'high', 'auto'].includes(imageQuality);
+    const imageQuality = getImageQuality();
     const dalleResponse = await openai.images.generate({
       model: imageModel,
       prompt: refinedPrompt,
       n: 1,
-      size: '1024x1024',
-      ...(validQuality ? { quality: imageQuality as 'low' | 'medium' | 'high' | 'auto' } : {}),
+      size: getImageSize(),
+      quality: imageQuality,
     });
 
     b64Json = dalleResponse.data?.[0]?.b64_json;
@@ -180,13 +196,34 @@ async function executeDirectImageEdit(
   console.log(`[Generate API] Tentando endpoint images.edit com modelo: ${model ?? '(padrão do servidor)'}`);
 
   const file = await toFile(buffer, fileName, { type: fileType });
-  const response = await openai.images.edit({
-    image: file,
-    prompt,
-    n: 1,
-    size: '1024x1024',
-    ...(model ? { model: model as Parameters<typeof openai.images.edit>[0]['model'] } : {}),
-  });
+  const modelParam = model as Parameters<typeof openai.images.edit>[0]['model'];
+
+  // 1ª tentativa: máxima fidelidade (paisagem, qualidade alta, preservar detalhes da imagem de entrada)
+  // 2ª tentativa: parâmetros mínimos, caso o modelo rejeite size/quality/input_fidelity (erro 400)
+  let response;
+  try {
+    response = await openai.images.edit({
+      image: file,
+      prompt,
+      n: 1,
+      size: getImageSize(),
+      quality: getImageQuality(),
+      input_fidelity: 'high',
+      model: modelParam,
+    });
+  } catch (err) {
+    const status = (err as { status?: number })?.status;
+    if (status !== 400) throw err;
+    console.warn('[Generate API] images.edit rejeitou parâmetros avançados, repetindo com configuração mínima:', err);
+    const retryFile = await toFile(buffer, fileName, { type: fileType });
+    response = await openai.images.edit({
+      image: retryFile,
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      model: modelParam,
+    });
+  }
 
   const b64Json = response.data?.[0]?.b64_json;
   const url = response.data?.[0]?.url;

@@ -84,6 +84,30 @@ function horizontalPosition(el: CanvasElement, canvasWidth: number): string {
   return 'center';
 }
 
+/** Detecta o papel real do elemento com base no nome e formato */
+function inferElementRole(name: string, shapeType: string): string | null {
+  const n = name.toLowerCase();
+  if (n.includes('flor') || n.includes('buquê') || n.includes('bouquet') || n.includes('arranjo')) {
+    return 'REAL FRESH FLORAL ARRANGEMENT with lush natural flowers, lavender, roses and green leaves (NOT balloons)';
+  }
+  if (n.includes('bolo') || n.includes('cake') || n.includes('doce') || n.includes('cupcake')) {
+    return 'DECORATIVE TIERED CELEBRATION CAKE & LUXURY DESSERT PLATTERS on cake stands (NOT balloons)';
+  }
+  if (n.includes('laço') || n.includes('fita') || n.includes('bow')) {
+    return 'ELEGANT FABRIC SATIN RIBBON BOW ACCENT';
+  }
+  if (shapeType === 'table-cloth' || n.includes('toalha') || n.includes('mesa do bolo')) {
+    return 'PARTY TABLE WITH DRAPED FABRIC TABLECLOTH, SCALLOPED OVERLAY AND PLEATED SKIRT';
+  }
+  if (shapeType.startsWith('cylinder') || n.includes('pedestal') || n.includes('cilindro')) {
+    return 'EVENT CYLINDER PEDESTAL with tailored smooth fabric cover';
+  }
+  if (shapeType.startsWith('rug') || n.includes('tapete')) {
+    return 'PRINTED PARTY FLOOR MAT with decorative border';
+  }
+  return null;
+}
+
 /**
  * Gera uma lista textual dos elementos do mockup para enviar à IA junto com a imagem.
  * O mockup desenha formas simplificadas; o nome dado a cada peça é a fonte da verdade
@@ -98,10 +122,13 @@ export function describeScene(elements: CanvasElement[], canvasWidth = 1000): st
       const shape = SHAPE_LABELS[el.shapeType] ?? el.shapeType;
       const pos = horizontalPosition(el, canvasWidth);
       const color = nearestColorName(el.fill);
+      const role = inferElementRole(el.name, el.shapeType);
+
       const parts = [`"${el.name}" (${shape}, ${pos})`];
+      if (role) parts.push(`REAL OBJECT INTENT: ${role}`);
       if (el.shapeType === 'text' && el.text) parts.push(`text: "${el.text}"`);
       if (color) parts.push(`main color: ${color}`);
-      if (el.fillImageSrc) parts.push('printed with a floral pattern');
+      if (el.fillImageSrc) parts.push('printed with decorative floral theme pattern');
       if (el.shapeType.startsWith('balloon') && el.balloonSecondaryFill) {
         const c2 = nearestColorName(el.balloonSecondaryFill);
         const c3 = nearestColorName(el.balloonTertiaryFill);

@@ -43,40 +43,23 @@ function buildSceneContextBlock(options?: RealisticPromptOptions): string {
 
 export const REALISTIC_PARTY_PROMPT = `Use the uploaded image as the primary visual and composition reference.
 
-Transform this flat party decoration mockup into a photorealistic professional indoor event photograph.
+Transform this 2D party decoration mockup into a breathtaking, photorealistic professional photograph of an actual luxury party decoration setup.
 
-Preserve the original composition, layout, object positioning, dimensions, proportions, colors, decorative elements, backdrop panels, balloons, pedestals, furniture and ornaments as closely as possible.
+Preserve the original composition, layout, object positioning, dimensions, proportions, and color palette as closely as possible.
 
-Preserve the appearance, colors, proportions and visual identity of any user-provided decorative assets and character cutouts as closely as possible. Do not replace or substantially redesign imported objects.
+Transform flat placeholder representations into real, high-end event materials:
+- Table & Cakes: The central cake table must feature an authentic, elegant celebration cake (tiered designer cake decorated to match the theme), flanked by elevated dessert stands with gourmet cupcakes, macarons, and party confections. The table must be dressed in tailored tablecloths with natural fabric drape, scalloped overlays, and pleated skirting.
+- Floral Arrangements: Any element labeled or depicted as flowers, bouquets, or vases must be rendered as fresh, lush botanical arrangements with real flowers (roses, lavender, daisies, and delicate foliage), never as latex balloons.
+- Organic Balloons: Where actual balloon garlands or clusters are placed, render premium latex balloons with natural inflation, rich specular reflections, and soft organic clustering.
+- Backdrop Panels: Arched and themed backdrop panels must look like authentic event structures covered in crisp, matte tension fabric or printed canvas with soft edge definition.
+- Pedestals & Cylinders: Display cylinders must look like real event pedestals wrapped in custom fabric covers (matching gingham, pastels, or patterns).
+- Floor Rug & Setting: The custom floor rug must lie flat on a polished marble or reflective event floor, displaying clear printed motifs and decorative scalloped borders.
+- Bows & Ribbons: Render decorative ribbons as luxurious satin or grosgrain fabric bows with delicate draping tails.
 
-Do not redesign the decoration.
-Do not add unnecessary objects.
-
-The objective is not to create a different party setup. The objective is to make the existing project look real.
-
-Transform artificial materials into realistic physical materials.
-Balloons should look naturally inflated, glossy and dimensional, with realistic highlights and reflections.
-Transparent acrylic objects should have realistic transparency, refraction and subtle reflections.
-Printed backdrop panels should look like real printed fabric, canvas or rigid event panels.
-Pedestals and furniture should have realistic material textures.
-
-Add believable indoor lighting, soft natural shadows, ambient occlusion, realistic depth and physically plausible reflections.
-The floor, walls and environment should look photographic and real.
-
-Maintain the original color palette.
-The final image should look like a professionally photographed real-world party decoration installed inside an event venue.
-
-High-end event photography.
-Natural realistic lighting.
-Professional camera.
-Sharp focus.
-Realistic materials.
-Photorealistic.
-Elegant and clean.
-
-Do not turn it into an illustration.
-Do not make it look like CGI.
-Do not substantially alter the original composition.`;
+Lighting & Atmosphere:
+- Professional indoor event venue photography with soft ambient diffusion, subtle specular reflections on the floor, and clean depth of field.
+- Sharp focus on the central dessert table, cake, and backdrops.
+- Absolutely NO cartoonish look, NO CGI render appearance, NO plastic balloon replacements for cakes or flowers.`;
 
 export function buildRealisticPartyPrompt(options?: RealisticPromptOptions): string {
   const fidelity = options?.fidelity || 'high';
@@ -103,32 +86,30 @@ export function buildRealisticPartyPrompt(options?: RealisticPromptOptions): str
 
   return `Use the uploaded image as the primary visual and composition reference.
 
-Transform this flat party decoration mockup into a photorealistic professional indoor event photograph.
+Transform this 2D party decoration mockup into a breathtaking, photorealistic professional photograph of an actual luxury party decoration setup.
 
 ${fidelityDirective}
 
-Preserve the appearance, colors, proportions and visual identity of any user-provided decorative assets and character cutouts as closely as possible. Do not replace or substantially redesign imported objects.
+Preserve the appearance, colors, proportions and visual identity of any user-provided decorative assets and character cutouts as closely as possible.
 
 ${buildSceneContextBlock(options)}
 
-Do not redesign the decoration. Do not add unnecessary objects.
-The objective is not to create a different party setup. The objective is to make the existing project look real.
-
-Transform artificial materials into realistic physical materials:
-- Balloons must look naturally inflated, glossy and dimensional, with realistic highlights and reflections.
-- Transparent acrylic objects must have realistic optical transparency, refraction and subtle reflections.
-- Printed backdrop panels should look like real printed fabric, canvas or rigid event panels.
-- Pedestals and furniture should have believable textures (glossy, matte, wood, or acrylic).
+Transform flat placeholder representations into real, high-end event materials:
+- Table & Cakes: The main party table must feature an authentic, elegant celebration cake (tiered designer cake decorated to match the theme), flanked by elevated dessert stands with gourmet cupcakes, macarons, and party confections. The table must be dressed in tailored tablecloths with natural fabric drape, scalloped overlays, and pleated skirting.
+- Floral Arrangements: Any element labeled or depicted as flowers, bouquets, or vases must be rendered as fresh, lush botanical arrangements with real flowers (roses, lavender, daisies, and delicate foliage), NEVER as latex balloons.
+- Organic Balloons: Where actual balloon garlands or clusters are placed, render premium latex balloons with natural inflation, rich specular reflections, and soft organic clustering.
+- Backdrop Panels: Arched and themed backdrop panels must look like authentic event structures covered in crisp, matte tension fabric or printed canvas with soft edge definition.
+- Pedestals & Cylinders: Display cylinders must look like real event pedestals wrapped in custom fabric covers (matching gingham, pastels, or patterns).
+- Floor Rug & Setting: The custom floor rug must lie flat on a polished marble or reflective event floor, displaying clear printed motifs and decorative scalloped borders.
+- Bows & Ribbons: Render decorative ribbons as luxurious satin or grosgrain fabric bows with delicate draping tails.
 
 Lighting & Environment:
 - ${lightingDirective}
 - ${environmentDirective}
-- Add soft natural shadows, ambient occlusion, realistic depth and physically plausible reflections on the floor and wall.
+- Add soft natural shadows, ambient occlusion, realistic depth and physically plausible reflections on the polished floor and backdrop wall.
 
 Maintain the original color palette.
-The final image should look like a professionally photographed real-world party decoration installed inside an event venue.
-
-High-end event photography. Professional camera. Sharp focus. Photorealistic. Elegant and clean.
+High-end event photography. Professional camera. Sharp focus. Photorealistic. Elegant, clean and ready for a luxury party client presentation.
 Do not turn it into an illustration. Do not make it look like CGI.`;
 }
 
