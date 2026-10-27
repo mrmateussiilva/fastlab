@@ -22,7 +22,29 @@ interface GenerateResult {
 }
 
 /**
- * Geração via GPT-4o Vision + DALL-E 3 (Padrão oficial OpenAI)
+ * Modelo de imagem padrão da OpenAI. O DALL-E 2/3 foi desligado em 12/05/2026;
+ * os modelos atuais são gpt-image-2.5-sunburst (precisão de edição) e gpt-image-2.5-flare (rápido).
+ */
+const DEFAULT_OPENAI_IMAGE_MODEL = 'gpt-image-2.5-sunburst';
+
+/**
+ * Resolve o modelo de imagem para a OpenAI oficial / gateways compatíveis.
+ * Valores legados 'dall-e-*' (ex.: ainda salvos nas variáveis de ambiente) são ignorados.
+ */
+function resolveOpenAIImageModel(): string {
+  const configured = process.env.OPENAI_IMAGE_MODEL?.trim();
+  if (!configured) return DEFAULT_OPENAI_IMAGE_MODEL;
+  if (configured.toLowerCase().includes('dall-e')) {
+    console.warn(
+      `[Generate API] Modelo '${configured}' foi descontinuado pela OpenAI. Usando '${DEFAULT_OPENAI_IMAGE_MODEL}'. Atualize OPENAI_IMAGE_MODEL.`
+    );
+    return DEFAULT_OPENAI_IMAGE_MODEL;
+  }
+  return configured;
+}
+
+/**
+ * Geração via GPT-4o Vision + modelo de imagem (gpt-image)
  * Como o DALL-E 3 não possui endpoint de image-to-image direto com imagem bruta,
  * o GPT-4o Vision analisa minuciosamente a maquete 2D (cores dos balões, painel temático,
  * pedestais cilíndricos, bandejas, displays de chão) e formula um prompt fotográfico
@@ -36,7 +58,9 @@ async function generateViaVisionAndDalle(
 ): Promise<GenerateResult> {
   const isOpenRouter = process.env.OPENAI_BASE_URL?.includes('openrouter.ai');
   const visionModel = process.env.OPENAI_VISION_MODEL || (isOpenRouter ? 'openai/gpt-4o' : 'gpt-4o');
-  const imageModel = process.env.OPENAI_IMAGE_MODEL || (isOpenRouter ? 'openai/dall-e-3' : 'dall-e-3');
+  const imageModel = isOpenRouter
+    ? process.env.OPENAI_IMAGE_MODEL || `openai/${DEFAULT_OPENAI_IMAGE_MODEL}`
+    : resolveOpenAIImageModel();
   const base64Image = buffer.toString('base64');
   const dataUrl = `data:${fileType};base64,${base64Image}`;
 
@@ -115,12 +139,15 @@ async function generateViaVisionAndDalle(
     url = openRouterJson.data?.[0]?.url;
   } else {
     console.log(`[Generate API] Gerando imagem fotográfica realista com ${imageModel}...`);
+    // 'quality' só é enviado se configurado explicitamente (valores válidos: low | medium | high | auto)
+    const imageQuality = process.env.OPENAI_IMAGE_QUALITY?.trim().toLowerCase();
+    const validQuality = imageQuality && ['low', 'medium', 'high', 'auto'].includes(imageQuality);
     const dalleResponse = await openai.images.generate({
       model: imageModel,
       prompt: refinedPrompt,
       n: 1,
       size: '1024x1024',
-      quality: (process.env.OPENAI_IMAGE_QUALITY as 'standard' | 'hd') || 'standard',
+      ...(validQuality ? { quality: imageQuality as 'low' | 'medium' | 'high' | 'auto' } : {}),
     });
 
     b64Json = dalleResponse.data?.[0]?.b64_json;
@@ -149,7 +176,7 @@ async function executeDirectImageEdit(
   fileType: string,
   prompt: string
 ): Promise<GenerateResult> {
-  const model = process.env.OPENAI_IMAGE_MODEL?.trim() || undefined;
+  const model = resolveOpenAIImageModel();
   console.log(`[Generate API] Tentando endpoint images.edit com modelo: ${model ?? '(padrão do servidor)'}`);
 
   const file = await toFile(buffer, fileName, { type: fileType });
@@ -277,20 +304,18 @@ async function generateRealisticImage(
 
   // 3. Provedor OpenAI com modo 'auto'
   if (imageMode === 'auto') {
-    // Se o usuário configurou OPENAI_BASE_URL (proxy / endpoint customizado) e um modelo de edit específico (não dall-e-3)
-    const isCustomGateway = Boolean(process.env.OPENAI_BASE_URL);
-    const configuredModel = process.env.OPENAI_IMAGE_MODEL?.toLowerCase();
-    const isExplicitEditModel = configuredModel && !configuredModel.includes('dall-e');
+    const isOpenRouter = Boolean(process.env.OPENAI_BASE_URL?.includes('openrouter.ai'));
 
-    if (isCustomGateway && isExplicitEditModel) {
+    // Modelos gpt-image suportam images.edit: usa o mockup real como referência (maior fidelidade).
+    // Em caso de falha, cai para Vision + geração por texto.
+    if (!isOpenRouter) {
       try {
         return await executeDirectImageEdit(buffer, fileName, fileType, promptToUse);
       } catch (editErr) {
-        console.warn('[Generate API] Erro no endpoint customizado de edit, tentando fallback vision_generate:', editErr);
+        console.warn('[Generate API] Erro no images.edit, tentando fallback vision_generate:', editErr);
       }
     }
 
-    // Padrão robusto para OpenAI oficial: GPT-4o Vision + DALL-E 3
     return await generateViaVisionAndDalle(buffer, fileType, options, promptToUse);
   }
 
