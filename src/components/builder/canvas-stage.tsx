@@ -193,7 +193,7 @@ import {
 } from '@/lib/balloon-specs';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPOSIÇÃO DE BALÕES ORGÂNICOS (Acabamentos: Matte, Chrome, Pearl e 3 Cores)
+// COMPOSIÇÃO DE BALÕES ORGÂNICOS (Acabamentos: Matte, Chrome, Pearl com anatomia real de látex)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const renderSingleOrganicBalloon = (
@@ -202,101 +202,112 @@ const renderSingleOrganicBalloon = (
   br: number,
   color: string,
   finish: 'matte' | 'chrome' | 'pearl' | undefined,
-  key: string | number
+  key: string | number,
+  rotationDeg = 0
 ) => {
   const isChrome = finish === 'chrome';
   const isPearl = finish === 'pearl';
 
+  // Silhueta anatômica de balão de látex: gota invertida com bico e nó na base
+  const balloonPath = `
+    M 0 ${-br * 1.05}
+    C ${-br * 0.78} ${-br * 1.05}, ${-br * 0.96} ${-br * 0.35}, ${-br * 0.9} ${br * 0.15}
+    C ${-br * 0.84} ${br * 0.65}, ${-br * 0.38} ${br * 0.98}, ${-br * 0.12} ${br * 1.05}
+    L ${-br * 0.22} ${br * 1.18}
+    Q 0 ${br * 1.23} ${br * 0.22} ${br * 1.18}
+    L ${br * 0.12} ${br * 1.05}
+    C ${br * 0.38} ${br * 0.98}, ${br * 0.84} ${br * 0.65}, ${br * 0.9} ${br * 0.15}
+    C ${br * 0.96} ${-br * 0.35}, ${br * 0.78} ${-br * 1.05}, 0 ${-br * 1.05}
+    Z
+  `;
+
   return (
-    <Group key={key}>
+    <Group key={key} x={bx} y={by} rotation={rotationDeg}>
       {/* Sombra de oclusão sutil entre balões */}
-      <Circle
-        x={bx + br * 0.08}
-        y={by + br * 0.12}
-        radius={br}
+      <Path
+        data={balloonPath}
+        x={br * 0.08}
+        y={br * 0.1}
         fill="#000000"
         opacity={0.12}
         listening={false}
       />
 
-      {/* Corpo esférico do Balão */}
-      <Circle
-        x={bx}
-        y={by}
-        radius={br}
+      {/* Corpo anatômico do Balão de Látex */}
+      <Path
+        data={balloonPath}
         fill={color}
-        stroke={isChrome ? '#FFFFFF' : 'rgba(0,0,0,0.12)'}
-        strokeWidth={isChrome ? 0.8 : 0.6}
+        stroke={isChrome ? '#FFFFFF' : 'rgba(0,0,0,0.15)'}
+        strokeWidth={isChrome ? 0.9 : 0.6}
       />
 
-      {/* Acabamento CROMADO (Alto Brilho Metálico) */}
+      {/* Anel do nó do látex amarrado na ponta */}
+      <Ellipse
+        x={0}
+        y={br * 1.07}
+        radiusX={Math.max(2, br * 0.18)}
+        radiusY={Math.max(1, br * 0.06)}
+        fill="rgba(0,0,0,0.18)"
+        listening={false}
+      />
+      <Ellipse
+        x={0}
+        y={br * 1.05}
+        radiusX={Math.max(1.8, br * 0.14)}
+        radiusY={Math.max(1, br * 0.05)}
+        fill={color}
+        stroke="rgba(0,0,0,0.2)"
+        strokeWidth={0.5}
+        listening={false}
+      />
+
+      {/* Sombra de volume na curva inferior direita */}
+      <Path
+        data={`
+          M 0 ${br * 1.02}
+          C ${br * 0.52} ${br * 0.85}, ${br * 0.86} ${br * 0.45}, ${br * 0.86} ${-br * 0.05}
+          C ${br * 0.86} ${-br * 0.22}, ${br * 0.8} ${-br * 0.4}, ${br * 0.68} ${-br * 0.52}
+          C ${br * 0.74} ${-br * 0.2}, ${br * 0.72} ${br * 0.35}, ${br * 0.42} ${br * 0.75}
+          C ${br * 0.25} ${br * 0.92}, ${br * 0.1} ${br * 1.0}, 0 ${br * 1.02}
+          Z
+        `}
+        fill="#000000"
+        opacity={0.09}
+        listening={false}
+      />
+
+      {/* Brilho curvado de arco (Specular Curvature Highlight) */}
+      <Path
+        data={`
+          M ${-br * 0.55} ${-br * 0.1}
+          C ${-br * 0.58} ${-br * 0.55}, ${-br * 0.28} ${-br * 0.82}, ${br * 0.08} ${-br * 0.88}
+        `}
+        stroke="#FFFFFF"
+        strokeWidth={Math.max(1.8, br * 0.12)}
+        strokeCap="round"
+        opacity={isChrome ? 0.92 : (isPearl ? 0.68 : 0.46)}
+        listening={false}
+      />
+      <Circle
+        x={-br * 0.52}
+        y={-br * 0.15}
+        radius={Math.max(1.2, br * 0.07)}
+        fill="#FFFFFF"
+        opacity={isChrome ? 0.95 : (isPearl ? 0.75 : 0.52)}
+        listening={false}
+      />
+
+      {/* Acabamento CROMADO - reflexo secundário inferior */}
       {isChrome && (
-        <>
-          <Ellipse
-            x={bx - br * 0.32}
-            y={by - br * 0.32}
-            radiusX={br * 0.32}
-            radiusY={br * 0.14}
-            rotation={-35}
-            fill="#FFFFFF"
-            opacity={0.92}
-            listening={false}
-          />
-          <Circle
-            x={bx - br * 0.38}
-            y={by - br * 0.38}
-            radius={Math.max(1.5, br * 0.08)}
-            fill="#FFFFFF"
-            opacity={1}
-            listening={false}
-          />
-          <Ellipse
-            x={bx + br * 0.28}
-            y={by + br * 0.28}
-            radiusX={br * 0.22}
-            radiusY={br * 0.09}
-            rotation={-35}
-            fill="#FFFFFF"
-            opacity={0.4}
-            listening={false}
-          />
-        </>
-      )}
-
-      {/* Acabamento PEROLADO (Acetinado suave) */}
-      {isPearl && (
-        <>
-          <Ellipse
-            x={bx - br * 0.3}
-            y={by - br * 0.3}
-            radiusX={br * 0.35}
-            radiusY={br * 0.2}
-            rotation={-30}
-            fill="#FFFFFF"
-            opacity={0.55}
-            listening={false}
-          />
-          <Circle
-            x={bx - br * 0.32}
-            y={by - br * 0.32}
-            radius={Math.max(1.5, br * 0.07)}
-            fill="#FFFFFF"
-            opacity={0.8}
-            listening={false}
-          />
-        </>
-      )}
-
-      {/* Acabamento FOSCO / MATTE (Padrão) */}
-      {!isChrome && !isPearl && (
-        <Ellipse
-          x={bx - br * 0.3}
-          y={by - br * 0.3}
-          radiusX={br * 0.28}
-          radiusY={br * 0.15}
-          rotation={-35}
-          fill="#FFFFFF"
-          opacity={0.42}
+        <Path
+          data={`
+            M ${br * 0.25} ${br * 0.65}
+            C ${br * 0.48} ${br * 0.45}, ${br * 0.62} ${br * 0.15}, ${br * 0.6} ${-br * 0.1}
+          `}
+          stroke="#FFFFFF"
+          strokeWidth={Math.max(1.2, br * 0.08)}
+          strokeCap="round"
+          opacity={0.4}
           listening={false}
         />
       )}
@@ -863,9 +874,252 @@ const ElementShape = ({
               const by = b.ny * h;
               const br = b.nr * baseDim;
               const bColor = b.slot === 1 ? color1 : (b.slot === 2 ? color2 : color3);
-              return renderSingleOrganicBalloon(bx, by, br, bColor, finish, `${el.id}-b-${idx}`);
+              // Leve rotação orgânica natural para simular amarração em cluster
+              const rot = Math.sin((idx + 1) * 2.1) * 14;
+              return renderSingleOrganicBalloon(bx, by, br, bColor, finish, `${el.id}-b-${idx}`, rot);
             })}
           </Group>
+        );
+      }
+
+      case 'balloon-single': {
+        const finish = el.balloonFinish || 'pearl';
+        const radius = Math.min(w * 0.44, h * 0.38);
+        const cx = w / 2;
+        const cy = radius + 6;
+        return (
+          <>
+            {/* Fitilho / fio ondulado descendo */}
+            <Path
+              data={`M ${cx} ${cy + radius * 1.15} Q ${cx - 10} ${cy + radius * 1.5} ${cx + 6} ${h - 10} Q ${cx - 4} ${h - 5} ${cx} ${h}`}
+              stroke="#A59585"
+              strokeWidth={1.5}
+              opacity={0.65}
+            />
+            {renderSingleOrganicBalloon(cx, cy, radius, el.fill || '#B79CDA', finish, `${el.id}-single`, 0)}
+          </>
+        );
+      }
+
+      case 'balloon-giant-bow': {
+        const cx = w / 2;
+        const radius = Math.min(w * 0.46, h * 0.3);
+        const balloonY = radius + 4;
+        const waistY = balloonY + radius * 1.08;
+        const skirtH = h - waistY;
+        const accentColor = el.balloonSecondaryFill || '#FFFFFF';
+        const mainColor = el.fill || '#B79CDA';
+        const bowColor = mainColor;
+
+        return (
+          <>
+            {/* 1. Suporte estofado / saia plissada embaixo */}
+            <Path
+              data={`M ${cx - radius * 0.32} ${waistY} L ${cx + radius * 0.32} ${waistY} L ${cx + radius * 0.52} ${h} L ${cx - radius * 0.52} ${h} Z`}
+              fill={mainColor}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+            />
+            {/* Pregas da saia */}
+            <Line points={[cx, waistY, cx, h]} stroke="#FFFFFF" strokeWidth={1} opacity={0.35} />
+            <Line points={[cx - radius * 0.18, waistY, cx - radius * 0.28, h]} stroke="#000000" strokeWidth={1} opacity={0.15} />
+            <Line points={[cx + radius * 0.18, waistY, cx + radius * 0.28, h]} stroke="#000000" strokeWidth={1} opacity={0.15} />
+
+            {/* 2. Balão Gigante Esférico com Listras / Gomos verticais elegantes */}
+            <Circle
+              x={cx}
+              y={balloonY}
+              radius={radius}
+              fill={accentColor}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+            />
+            {/* Gomos verticais lilás */}
+            <Ellipse
+              x={cx}
+              y={balloonY}
+              radiusX={radius * 0.65}
+              radiusY={radius}
+              fill={mainColor}
+              opacity={0.95}
+            />
+            <Ellipse
+              x={cx}
+              y={balloonY}
+              radiusX={radius * 0.28}
+              radiusY={radius}
+              fill={accentColor}
+              opacity={0.95}
+            />
+            {/* Brilho acetinado de balão gigante */}
+            <Path
+              data={`M ${cx - radius * 0.65} ${balloonY - radius * 0.15} C ${cx - radius * 0.7} ${balloonY - radius * 0.6}, ${cx - radius * 0.35} ${balloonY - radius * 0.85}, ${cx} ${balloonY - radius * 0.92}`}
+              stroke="#FFFFFF"
+              strokeWidth={Math.max(2.5, radius * 0.12)}
+              strokeCap="round"
+              opacity={0.65}
+              listening={false}
+            />
+
+            {/* 3. Laço Duplo de Fita de Cetim no pescoço do balão */}
+            {/* Pontas caídas da fita */}
+            <Path
+              data={`M ${cx - 4} ${waistY} Q ${cx - radius * 0.4} ${waistY + skirtH * 0.5} ${cx - radius * 0.3} ${waistY + skirtH * 0.88} L ${cx - radius * 0.16} ${waistY + skirtH * 0.82} Q ${cx - 6} ${waistY + skirtH * 0.4} ${cx} ${waistY + 4} Z`}
+              fill={bowColor}
+              stroke="rgba(0,0,0,0.15)"
+              strokeWidth={0.5}
+            />
+            <Path
+              data={`M ${cx + 4} ${waistY} Q ${cx + radius * 0.4} ${waistY + skirtH * 0.5} ${cx + radius * 0.3} ${waistY + skirtH * 0.88} L ${cx + radius * 0.16} ${waistY + skirtH * 0.82} Q ${cx + 6} ${waistY + skirtH * 0.4} ${cx} ${waistY + 4} Z`}
+              fill={bowColor}
+              stroke="rgba(0,0,0,0.15)"
+              strokeWidth={0.5}
+            />
+            {/* Asas do laço */}
+            <Path
+              data={`M ${cx} ${waistY} C ${cx - radius * 0.5} ${waistY - 12}, ${cx - radius * 0.5} ${waistY + 12}, ${cx} ${waistY} Z`}
+              fill={bowColor}
+              stroke="rgba(0,0,0,0.2)"
+              strokeWidth={0.8}
+            />
+            <Path
+              data={`M ${cx} ${waistY} C ${cx + radius * 0.5} ${waistY - 12}, ${cx + radius * 0.5} ${waistY + 12}, ${cx} ${waistY} Z`}
+              fill={bowColor}
+              stroke="rgba(0,0,0,0.2)"
+              strokeWidth={0.8}
+            />
+            {/* Nó central do laço */}
+            <Circle
+              x={cx}
+              y={waistY}
+              radius={Math.max(4, radius * 0.12)}
+              fill={bowColor}
+              stroke="rgba(0,0,0,0.25)"
+              strokeWidth={0.8}
+            />
+          </>
+        );
+      }
+
+      case 'flower-arrangement': {
+        const cx = w / 2;
+        const vaseH = h * 0.34;
+        const vaseY = h - vaseH;
+        const bloomCenterY = vaseY - h * 0.16;
+        const mainColor = el.fill || '#B79CDA';
+        const leafColor = '#7A9A6A';
+
+        return (
+          <>
+            {/* Vaso cerâmico / taça elegante */}
+            <Path
+              data={`
+                M ${cx - w * 0.28} ${vaseY}
+                Q ${cx} ${vaseY + 4} ${cx + w * 0.28} ${vaseY}
+                L ${cx + w * 0.2} ${h - 6}
+                L ${cx + w * 0.24} ${h}
+                L ${cx - w * 0.24} ${h}
+                L ${cx - w * 0.2} ${h - 6}
+                Z
+              `}
+              fill="#FFFFFF"
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+            />
+            {/* Brilho do vaso cerâmico */}
+            <Line
+              points={[cx - w * 0.15, vaseY + 4, cx - w * 0.1, h - 8]}
+              stroke="#FFFFFF"
+              strokeWidth={2}
+              opacity={0.8}
+            />
+
+            {/* Folhagens de eucalipto verde-oliva */}
+            <Ellipse x={cx - w * 0.38} y={bloomCenterY + 4} radiusX={w * 0.14} radiusY={h * 0.08} rotation={-25} fill={leafColor} opacity={0.9} />
+            <Ellipse x={cx + w * 0.38} y={bloomCenterY + 4} radiusX={w * 0.14} radiusY={h * 0.08} rotation={25} fill={leafColor} opacity={0.9} />
+            <Ellipse x={cx} y={bloomCenterY - h * 0.24} radiusX={w * 0.09} radiusY={h * 0.12} rotation={0} fill={leafColor} opacity={0.9} />
+
+            {/* Rosas e Flores Principais (camadas de pétalas estilizadas) */}
+            {/* Rosa Esquerda */}
+            <Circle x={cx - w * 0.22} y={bloomCenterY} radius={w * 0.18} fill="#FFFFFF" stroke={strokeColor} strokeWidth={1} />
+            <Circle x={cx - w * 0.22} y={bloomCenterY} radius={w * 0.12} fill="#EBDCF8" />
+            <Circle x={cx - w * 0.22} y={bloomCenterY} radius={w * 0.06} fill={mainColor} />
+
+            {/* Rosa Direita */}
+            <Circle x={cx + w * 0.22} y={bloomCenterY} radius={w * 0.18} fill="#FFFFFF" stroke={strokeColor} strokeWidth={1} />
+            <Circle x={cx + w * 0.22} y={bloomCenterY} radius={w * 0.12} fill="#EBDCF8" />
+            <Circle x={cx + w * 0.22} y={bloomCenterY} radius={w * 0.06} fill={mainColor} />
+
+            {/* Rosa Central Exuberante */}
+            <Circle x={cx} y={bloomCenterY - h * 0.08} radius={w * 0.24} fill={mainColor} stroke={strokeColor} strokeWidth={1.2} />
+            <Circle x={cx} y={bloomCenterY - h * 0.08} radius={w * 0.16} fill="#D4C0EC" />
+            <Circle x={cx} y={bloomCenterY - h * 0.08} radius={w * 0.08} fill="#FFFFFF" />
+
+            {/* Ramos verticais de lavanda */}
+            {[-w * 0.12, 0, w * 0.12].map((xOff, i) => (
+              <Line
+                key={i}
+                points={[cx + xOff, bloomCenterY - h * 0.08, cx + xOff * 1.2, bloomCenterY - h * 0.32]}
+                stroke={mainColor}
+                strokeWidth={3}
+                strokeCap="round"
+                dash={[3, 3]}
+              />
+            ))}
+          </>
+        );
+      }
+
+      case 'cake-tiered': {
+        const cx = w / 2;
+        const standH = 14;
+        const standY = h - standH;
+        const tier1W = w * 0.52;
+        const tier1H = h * 0.38;
+        const tier1Y = standY - tier1H;
+        const tier2W = w * 0.36;
+        const tier2H = h * 0.32;
+        const tier2Y = tier1Y - tier2H;
+        const cakeColor = '#FFFFFF';
+        const ribbonColor = el.fill || '#B79CDA';
+
+        return (
+          <>
+            {/* Prato do Bolo (Cake Stand com pé torneado) */}
+            <Ellipse x={cx} y={standY} radiusX={w * 0.38} radiusY={6} fill="#F0EDE8" stroke={strokeColor} strokeWidth={strokeWidth} />
+            <Path data={`M ${cx - 6} ${standY} L ${cx + 6} ${standY} L ${cx + 14} ${h} L ${cx - 14} ${h} Z`} fill="#E5E0D8" stroke={strokeColor} strokeWidth={1} />
+            <Ellipse x={cx} y={h - 1} radiusX={18} radiusY={4} fill="#D8D2C6" stroke={strokeColor} strokeWidth={1} />
+
+            {/* Andar 1 do Bolo (Base) */}
+            <Rect x={cx - tier1W / 2} y={tier1Y} width={tier1W} height={tier1H} cornerRadius={[4, 4, 0, 0]} fill={cakeColor} stroke={strokeColor} strokeWidth={strokeWidth} />
+            {/* Fita decorativa na base do andar 1 */}
+            <Rect x={cx - tier1W / 2} y={standY - 8} width={tier1W} height={8} fill={ribbonColor} />
+            <Circle x={cx} y={standY - 4} radius={3.5} fill="#FFFFFF" />
+
+            {/* Andar 2 do Bolo (Topo) */}
+            <Rect x={cx - tier2W / 2} y={tier2Y} width={tier2W} height={tier2H} cornerRadius={[4, 4, 0, 0]} fill={cakeColor} stroke={strokeColor} strokeWidth={strokeWidth} />
+            {/* Fita decorativa na base do andar 2 */}
+            <Rect x={cx - tier2W / 2} y={tier1Y - 6} width={tier2W} height={6} fill={ribbonColor} />
+            <Circle x={cx} y={tier1Y - 3} radius={2.5} fill="#FFFFFF" />
+
+            {/* Topper de florzinhas / confeitos no topo */}
+            <Circle x={cx} y={tier2Y} radius={5} fill={ribbonColor} />
+            <Circle x={cx - 6} y={tier2Y + 2} radius={3.5} fill="#EBDCF8" />
+            <Circle x={cx + 6} y={tier2Y + 2} radius={3.5} fill="#EBDCF8" />
+
+            {/* Pratinhos laterais de docinhos / cupcakes */}
+            {/* Esquerda */}
+            <Ellipse x={cx - w * 0.42} y={h - 12} radiusX={14} radiusY={3} fill="#FFFFFF" stroke={strokeColor} strokeWidth={1} />
+            <Path data={`M ${cx - w * 0.42 - 2} ${h - 12} L ${cx - w * 0.42 + 2} ${h - 12} L ${cx - w * 0.42 + 5} ${h} L ${cx - w * 0.42 - 5} ${h} Z`} fill="#D8D2C6" />
+            <Circle x={cx - w * 0.42} y={h - 18} radius={5} fill={ribbonColor} stroke="rgba(0,0,0,0.15)" strokeWidth={0.5} />
+            <Circle x={cx - w * 0.42 - 6} y={h - 16} radius={4} fill="#FFFFFF" stroke="rgba(0,0,0,0.15)" strokeWidth={0.5} />
+
+            {/* Direita */}
+            <Ellipse x={cx + w * 0.42} y={h - 12} radiusX={14} radiusY={3} fill="#FFFFFF" stroke={strokeColor} strokeWidth={1} />
+            <Path data={`M ${cx + w * 0.42 - 2} ${h - 12} L ${cx + w * 0.42 + 2} ${h - 12} L ${cx + w * 0.42 + 5} ${h} L ${cx + w * 0.42 - 5} ${h} Z`} fill="#D8D2C6" />
+            <Circle x={cx + w * 0.42} y={h - 18} radius={5} fill={ribbonColor} stroke="rgba(0,0,0,0.15)" strokeWidth={0.5} />
+            <Circle x={cx + w * 0.42 + 6} y={h - 16} radius={4} fill="#FFFFFF" stroke="rgba(0,0,0,0.15)" strokeWidth={0.5} />
+          </>
         );
       }
 

@@ -61,13 +61,17 @@ const SHAPE_LABELS: Record<string, string> = {
   'cylinder-high': 'tall cylinder pedestal',
   'acrylic-cylinder': 'transparent acrylic cylinder',
   'acrylic-table': 'transparent acrylic table',
-  'balloon-small': 'small decorative cluster',
-  'balloon-mid': 'medium decorative cluster',
+  'balloon-small': 'small organic balloon cluster',
+  'balloon-mid': 'medium organic balloon cluster',
+  'balloon-single': 'single latex balloon with tie knot',
+  'balloon-giant-bow': 'giant striped event balloon on tailored pedestal with satin ribbon bow',
   'balloon-arch': 'organic arch garland',
   'balloon-arch-l': 'L-shaped organic garland',
   'balloon-arch-half': 'top organic garland',
   'balloon-cascade': 'vertical cascade',
   'balloon-cluster': 'organic floor cluster',
+  'flower-arrangement': 'pedestal vase with lush fresh flowers',
+  'cake-tiered': 'celebration tiered cake with dessert stands',
   'rug-rect': 'rectangular floor rug',
   'rug-oval': 'oval floor rug',
   box: 'decorative box',
@@ -87,14 +91,17 @@ function horizontalPosition(el: CanvasElement, canvasWidth: number): string {
 /** Detecta o papel real do elemento com base no nome e formato */
 function inferElementRole(name: string, shapeType: string): string | null {
   const n = name.toLowerCase();
-  if (n.includes('flor') || n.includes('buquê') || n.includes('bouquet') || n.includes('arranjo')) {
+  if (shapeType === 'flower-arrangement' || n.includes('flor') || n.includes('buquê') || n.includes('bouquet') || n.includes('arranjo')) {
     return 'REAL FRESH FLORAL ARRANGEMENT with lush natural flowers, lavender, roses and green leaves (NOT balloons)';
   }
-  if (n.includes('bolo') || n.includes('cake') || n.includes('doce') || n.includes('cupcake')) {
+  if (shapeType === 'cake-tiered' || n.includes('bolo') || n.includes('cake') || n.includes('doce') || n.includes('cupcake')) {
     return 'DECORATIVE TIERED CELEBRATION CAKE & LUXURY DESSERT PLATTERS on cake stands (NOT balloons)';
   }
-  if (n.includes('laço') || n.includes('fita') || n.includes('bow')) {
-    return 'ELEGANT FABRIC SATIN RIBBON BOW ACCENT';
+  if (shapeType === 'balloon-giant-bow' || n.includes('laço') || n.includes('fita') || n.includes('bow')) {
+    return 'GIANT DECORATIVE BALLOON WITH SATIN FABRIC BOW ACCENT ON PLEATED PEDESTAL';
+  }
+  if (shapeType === 'balloon-single') {
+    return 'NATURAL INFLATED LATEX BALLOON WITH TIE KNOT AND RIBBON';
   }
   if (shapeType === 'table-cloth' || n.includes('toalha') || n.includes('mesa do bolo')) {
     return 'PARTY TABLE WITH DRAPED FABRIC TABLECLOTH, SCALLOPED OVERLAY AND PLEATED SKIRT';

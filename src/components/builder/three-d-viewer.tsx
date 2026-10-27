@@ -1737,9 +1737,127 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader): 
     }
   }
 
-  // 6. BALÕES ORGÂNICOS (Arco & Cacho Volumétrico 3D com 3 Cores e Acabamentos Físicos)
+  // 6. BALÕES ORGÂNICOS & ELEMENTOS DECORATIVOS (Bolo, Flores, Balão Gigante)
+  else if (el.shapeType === 'cake-tiered') {
+    const cakeGroup = new THREE.Group();
+    const cakeMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.35 });
+    const ribbonMat = new THREE.MeshStandardMaterial({ color: threeColor, roughness: 0.4 });
+    const standMat = new THREE.MeshStandardMaterial({ color: 0xF5F0EB, metalness: 0.3, roughness: 0.2 });
+
+    // Prato do bolo
+    const standGeo = new THREE.CylinderGeometry(w * 0.45, w * 0.48, 0.02, 32);
+    const standMesh = new THREE.Mesh(standGeo, standMat);
+    standMesh.position.y = -h * 0.45;
+    standMesh.castShadow = true;
+    cakeGroup.add(standMesh);
+
+    // Pé do prato
+    const stemGeo = new THREE.CylinderGeometry(w * 0.08, w * 0.14, h * 0.15, 24);
+    const stemMesh = new THREE.Mesh(stemGeo, standMat);
+    stemMesh.position.y = -h * 0.52;
+    stemMesh.castShadow = true;
+    cakeGroup.add(stemMesh);
+
+    // Andar 1 (Base)
+    const tier1Geo = new THREE.CylinderGeometry(w * 0.38, w * 0.38, h * 0.36, 32);
+    const tier1Mesh = new THREE.Mesh(tier1Geo, cakeMat);
+    tier1Mesh.position.y = -h * 0.25;
+    tier1Mesh.castShadow = true;
+    cakeGroup.add(tier1Mesh);
+
+    // Fita do andar 1
+    const rib1Geo = new THREE.CylinderGeometry(w * 0.385, w * 0.385, h * 0.06, 32);
+    const rib1Mesh = new THREE.Mesh(rib1Geo, ribbonMat);
+    rib1Mesh.position.y = -h * 0.4;
+    cakeGroup.add(rib1Mesh);
+
+    // Andar 2 (Topo)
+    const tier2Geo = new THREE.CylinderGeometry(w * 0.25, w * 0.25, h * 0.3, 32);
+    const tier2Mesh = new THREE.Mesh(tier2Geo, cakeMat);
+    tier2Mesh.position.y = h * 0.08;
+    tier2Mesh.castShadow = true;
+    cakeGroup.add(tier2Mesh);
+
+    // Fita do andar 2
+    const rib2Geo = new THREE.CylinderGeometry(w * 0.255, w * 0.255, h * 0.05, 32);
+    const rib2Mesh = new THREE.Mesh(rib2Geo, ribbonMat);
+    rib2Mesh.position.y = -h * 0.05;
+    cakeGroup.add(rib2Mesh);
+
+    cakeGroup.userData = { elementId: el.id };
+    group.add(cakeGroup);
+  }
+  else if (el.shapeType === 'flower-arrangement') {
+    const flowerGroup = new THREE.Group();
+    // Vaso cerâmico
+    const vaseMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.15, metalness: 0.1 });
+    const vaseGeo = new THREE.CylinderGeometry(w * 0.28, w * 0.18, h * 0.42, 32);
+    const vaseMesh = new THREE.Mesh(vaseGeo, vaseMat);
+    vaseMesh.position.y = -h * 0.28;
+    vaseMesh.castShadow = true;
+    flowerGroup.add(vaseMesh);
+
+    // Cúpula de flores principais
+    const flowerMat = new THREE.MeshStandardMaterial({ color: threeColor, roughness: 0.8 });
+    const bloomGeo = new THREE.SphereGeometry(w * 0.38, 20, 20);
+    const bloomMesh = new THREE.Mesh(bloomGeo, flowerMat);
+    bloomMesh.scale.set(1, 0.75, 1);
+    bloomMesh.position.y = h * 0.12;
+    bloomMesh.castShadow = true;
+    flowerGroup.add(bloomMesh);
+
+    // Folhagens verdes ao redor
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x6E8A5E, roughness: 0.85 });
+    const leafGeo = new THREE.SphereGeometry(w * 0.44, 16, 16);
+    const leafMesh = new THREE.Mesh(leafGeo, leafMat);
+    leafMesh.scale.set(1.05, 0.5, 1.05);
+    leafMesh.position.y = h * 0.02;
+    flowerGroup.add(leafMesh);
+
+    flowerGroup.userData = { elementId: el.id };
+    group.add(flowerGroup);
+  }
+  else if (el.shapeType === 'balloon-giant-bow') {
+    const giantGroup = new THREE.Group();
+    const balloonMat = new THREE.MeshPhysicalMaterial({
+      color: threeColor,
+      metalness: 0.2,
+      roughness: 0.2,
+      clearcoat: 0.9,
+      sheen: 0.6,
+      sheenColor: new THREE.Color(0xFFFFFF),
+    });
+    const bowMat = new THREE.MeshStandardMaterial({ color: threeColor, roughness: 0.35 });
+
+    const radius = Math.min(w * 0.46, h * 0.3);
+    const balloonY = h * 0.18;
+
+    // Balão gigante
+    const sphereGeo = new THREE.SphereGeometry(radius, 32, 32);
+    const sphereMesh = new THREE.Mesh(sphereGeo, balloonMat);
+    sphereMesh.position.y = balloonY;
+    sphereMesh.scale.set(1, 1.08, 1);
+    sphereMesh.castShadow = true;
+    giantGroup.add(sphereMesh);
+
+    // Pedestal / coluna de tecido embaixo
+    const columnGeo = new THREE.CylinderGeometry(radius * 0.3, radius * 0.45, h * 0.5, 24);
+    const colMesh = new THREE.Mesh(columnGeo, bowMat);
+    colMesh.position.y = -h * 0.24;
+    colMesh.castShadow = true;
+    giantGroup.add(colMesh);
+
+    // Laço central volumoso
+    const bowCenterGeo = new THREE.SphereGeometry(radius * 0.16, 16, 16);
+    const bowCenter = new THREE.Mesh(bowCenterGeo, bowMat);
+    bowCenter.position.set(0, balloonY - radius * 1.05, radius * 0.18);
+    giantGroup.add(bowCenter);
+
+    giantGroup.userData = { elementId: el.id };
+    group.add(giantGroup);
+  }
   else if (el.shapeType.includes('balloon')) {
-    const isSingle = el.shapeType === 'balloon-small' || el.shapeType === 'balloon-mid';
+    const isSingle = el.shapeType === 'balloon-single';
     const color1 = threeColor;
     const color2 = el.balloonSecondaryFill ? new THREE.Color(el.balloonSecondaryFill) : new THREE.Color('#F5EBE0');
     const color3 = el.balloonTertiaryFill ? new THREE.Color(el.balloonTertiaryFill) : new THREE.Color('#D4AF37');

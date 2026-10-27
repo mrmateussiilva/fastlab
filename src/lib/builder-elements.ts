@@ -22,11 +22,15 @@ export type ShapeType =
   | 'acrylic-table'
   | 'balloon-small'
   | 'balloon-mid'
+  | 'balloon-single'
+  | 'balloon-giant-bow'
   | 'balloon-arch'
   | 'balloon-arch-l'
   | 'balloon-arch-half'
   | 'balloon-cascade'
   | 'balloon-cluster'
+  | 'flower-arrangement'
+  | 'cake-tiered'
   | 'rug-rect'
   | 'rug-oval'
   | 'box'
@@ -395,6 +399,47 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
     defaultHeight: 220,
     defaultFill: '#C97A63',
     defaultStroke: '#B56852',
+  },
+
+  {
+    id: 'balloon-single',
+    name: 'Balão Individual de Látex',
+    category: 'baloes',
+    shapeType: 'balloon-single',
+    defaultWidth: 90,
+    defaultHeight: 115,
+    defaultFill: '#B79CDA',
+    defaultStroke: '#9E80C6',
+  },
+  {
+    id: 'balloon-giant-bow',
+    name: 'Balão Gigante com Laço de Fita',
+    category: 'baloes',
+    shapeType: 'balloon-giant-bow',
+    defaultWidth: 110,
+    defaultHeight: 200,
+    defaultFill: '#B79CDA',
+    defaultStroke: '#9E80C6',
+  },
+  {
+    id: 'flower-arrangement',
+    name: 'Vaso com Arranjo Floral',
+    category: 'extras',
+    shapeType: 'flower-arrangement',
+    defaultWidth: 120,
+    defaultHeight: 130,
+    defaultFill: '#B79CDA',
+    defaultStroke: '#9E80C6',
+  },
+  {
+    id: 'cake-tiered',
+    name: 'Bolo Cenográfico e Doces',
+    category: 'mesas',
+    shapeType: 'cake-tiered',
+    defaultWidth: 140,
+    defaultHeight: 130,
+    defaultFill: '#FFFFFF',
+    defaultStroke: '#D1C6BA',
   },
 
   // Tapetes
