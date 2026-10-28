@@ -118,6 +118,7 @@ export default function AdminThemesPage() {
     description: '',
     icon: '🎈',
     previewColor: 'from-sky-200 via-pink-100 to-yellow-100',
+    is_published: true,
   });
 
   const [editingTemplate, setEditingTemplate] = useState<FestaTemplate | null>(null);
@@ -129,6 +130,7 @@ export default function AdminThemesPage() {
     description: '',
     icon: '🎈',
     previewColor: 'from-sky-200 via-pink-100 to-yellow-100',
+    is_published: true,
   });
 
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
@@ -383,6 +385,7 @@ export default function AdminThemesPage() {
         description: '',
         icon: '🎈',
         previewColor: 'from-sky-200 via-pink-100 to-yellow-100',
+        is_published: true,
       });
       showSuccess('Template rápido criado com sucesso!');
 
@@ -405,7 +408,35 @@ export default function AdminThemesPage() {
       description: tpl.description || '',
       icon: tpl.icon || '🎈',
       previewColor: tpl.previewColor || 'from-sky-200 via-pink-100 to-yellow-100',
+      is_published: tpl.is_published !== false,
     });
+  };
+
+  const handleToggleTemplatePublish = async (tpl: FestaTemplate) => {
+    const nextPublished = tpl.is_published === false;
+    try {
+      const res = await fetch(`/api/admin/templates/${tpl.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${password}`,
+        },
+        body: JSON.stringify({
+          is_published: nextPublished,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Erro ao alterar status do template');
+      }
+
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === tpl.id ? { ...t, is_published: nextPublished } : t))
+      );
+      showSuccess(`Template "${tpl.name}" ${nextPublished ? 'ativado e visível' : 'desativado (oculto)'}!`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao alterar visibilidade do template');
+    }
   };
 
   const handleSaveEditTemplate = async (e: React.FormEvent) => {
@@ -429,6 +460,7 @@ export default function AdminThemesPage() {
           description: editTemplateForm.description,
           icon: editTemplateForm.icon,
           previewColor: editTemplateForm.previewColor,
+          is_published: editTemplateForm.is_published,
         }),
       });
 
@@ -938,6 +970,35 @@ export default function AdminThemesPage() {
                           {tpl.icon || '🎈'}
                         </span>
 
+                        {/* Status de Publicação / Visibilidade com 1 clique */}
+                        <div className="absolute top-2.5 right-2.5 z-10">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleTemplatePublish(tpl);
+                            }}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-semibold flex items-center gap-1.5 backdrop-blur-md shadow-xs transition-all cursor-pointer ${
+                              tpl.is_published !== false
+                                ? 'bg-emerald-600/90 hover:bg-emerald-700 text-white'
+                                : 'bg-zinc-800/85 hover:bg-zinc-900 text-amber-300 border border-white/20'
+                            }`}
+                            title={tpl.is_published !== false ? 'Clique para desativar/ocultar do catálogo' : 'Clique para publicar no catálogo'}
+                          >
+                            {tpl.is_published !== false ? (
+                              <>
+                                <Eye className="w-3 h-3 text-white" />
+                                <span>Visível</span>
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="w-3 h-3 text-amber-300" />
+                                <span>Oculto</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
                         {/* Badge de quantidade de peças */}
                         <div className="absolute bottom-2.5 left-2.5">
                           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/90 text-zinc-800 border border-zinc-200/60 shadow-xs backdrop-blur-xs flex items-center gap-1">
@@ -1394,6 +1455,19 @@ export default function AdminThemesPage() {
                 />
               </div>
 
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-zinc-50 border border-zinc-200">
+                <input
+                  type="checkbox"
+                  id="create_template_published"
+                  checked={createTemplateForm.is_published}
+                  onChange={(e) => setCreateTemplateForm({ ...createTemplateForm, is_published: e.target.checked })}
+                  className="w-4 h-4 text-orange-600 rounded border-zinc-300 focus:ring-orange-500 cursor-pointer"
+                />
+                <label htmlFor="create_template_published" className="text-xs text-zinc-700 font-medium cursor-pointer">
+                  Publicar no catálogo imediatamente (visível para clientes)
+                </label>
+              </div>
+
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-zinc-100 mt-2">
                 <Button type="button" variant="ghost" onClick={() => setIsCreateTemplateOpen(false)} className="text-xs h-9">
                   Cancelar
@@ -1537,6 +1611,19 @@ export default function AdminThemesPage() {
                   onChange={(e) => setEditTemplateForm({ ...editTemplateForm, tags: e.target.value })}
                   className="w-full px-3.5 py-2 text-sm border border-zinc-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
+              </div>
+
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-zinc-50 border border-zinc-200">
+                <input
+                  type="checkbox"
+                  id="edit_template_published"
+                  checked={editTemplateForm.is_published}
+                  onChange={(e) => setEditTemplateForm({ ...editTemplateForm, is_published: e.target.checked })}
+                  className="w-4 h-4 text-orange-600 rounded border-zinc-300 focus:ring-orange-500 cursor-pointer"
+                />
+                <label htmlFor="edit_template_published" className="text-xs text-zinc-700 font-medium cursor-pointer">
+                  Publicado no catálogo (desmarque para ocultar templates inacabados)
+                </label>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-zinc-100 mt-2">

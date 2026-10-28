@@ -64,6 +64,7 @@ export async function POST(req: Request) {
       icon: icon || '🎈',
       elements: Array.isArray(elements) ? elements : [],
       environment: environment || DEFAULT_ENVIRONMENT,
+      is_published: body.is_published !== undefined ? Boolean(body.is_published) : true,
     };
 
     const saved = await upsertTemplate(newTemplate);

@@ -50,6 +50,7 @@ export async function PUT(req: Request, context: RouteContext) {
       icon: body.icon !== undefined ? body.icon : existing.icon,
       elements: body.elements !== undefined ? body.elements : existing.elements,
       environment: body.environment !== undefined ? body.environment : existing.environment,
+      is_published: body.is_published !== undefined ? Boolean(body.is_published) : (existing.is_published ?? true),
     };
 
     const saved = await upsertTemplate(updated);

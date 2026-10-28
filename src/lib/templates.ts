@@ -12,6 +12,8 @@ export interface FestaTemplate {
   icon: string;
   elements: CanvasElement[];
   environment: EnvironmentConfig;
+  /** Define se o template está publicado no catálogo público (padrão true) */
+  is_published?: boolean;
 }
 
 export const FESTA_TEMPLATES: FestaTemplate[] = [

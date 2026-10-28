@@ -27,12 +27,14 @@ export function TemplateGallery({ onSelectTemplate }: TemplateGalleryProps) {
       .catch((err) => console.warn('[TemplateGallery] Usando templates padrão:', err));
   }, []);
 
-  const filtered = templates.filter((t) => {
-    const matchCat = activeCategory === 'Todos' || t.category === activeCategory;
-    const q = search.toLowerCase();
-    const matchSearch = !q || t.name.toLowerCase().includes(q) || t.tags.some((tag) => tag.includes(q));
-    return matchCat && matchSearch;
-  });
+  const filtered = templates
+    .filter((t) => t.is_published !== false)
+    .filter((t) => {
+      const matchCat = activeCategory === 'Todos' || t.category === activeCategory;
+      const q = search.toLowerCase();
+      const matchSearch = !q || t.name.toLowerCase().includes(q) || t.tags.some((tag) => tag.includes(q));
+      return matchCat && matchSearch;
+    });
 
   return (
     <div className="w-full flex flex-col items-center">
