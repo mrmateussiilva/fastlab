@@ -23,6 +23,7 @@ import { SignInButton, UserButton, useAuth } from '@clerk/nextjs';
 import ProjectsDashboard from '@/components/projects-dashboard';
 import { TemplateGallery } from '@/components/templates/template-gallery';
 import { ThemeGallery } from '@/components/themes/theme-gallery';
+import AIPartyChat from '@/components/ai-party-chat';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'upload' | 'builder') => void;
@@ -234,6 +235,13 @@ export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelect
             </div>
           </div>
         </div>
+
+        {/* ── CHAT IA PARA CRIAÇÃO INSTANTÂNEA DE CENÁRIO ── */}
+        <AIPartyChat
+          onStartWithGeneratedScene={() => {
+            onSelectMode('builder');
+          }}
+        />
 
         {/* Wave divider */}
         <div className="w-full overflow-hidden leading-none">
