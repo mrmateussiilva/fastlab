@@ -9,7 +9,18 @@ export async function GET(req: Request) {
     const { userId } = await auth();
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        {
+          limit: 2,
+          used: 0,
+          remaining: 2,
+          resetAt: null,
+          retryAfter: 0,
+          globalLimitReached: false,
+          requireAuth: true,
+        },
+        { status: 200 }
+      );
     }
 
     const status = await getGenerationStatus(userId);

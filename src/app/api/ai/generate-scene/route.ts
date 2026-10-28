@@ -37,6 +37,31 @@ const VALID_SHAPES: ShapeType[] = [
   'text',
 ];
 
+// Temas que possuem pastas de artes sublimadas PNG em /public/templates-art/<tema>/
+const KNOWN_TEMPLATE_THEMES = new Set([
+  '3-palavrinhas',
+  'a-bela-e-a-fera',
+  'astronauta-espaco',
+  'barbie',
+  'bolofofos',
+  'branca-de-neve',
+  'cinderela',
+  'circo-rosa',
+  'circo-tradicional',
+  'dino-baby',
+  'enrolados-rapunzel',
+  'fazendinha',
+  'frozen',
+  'fundo-do-mar',
+  'herois-vingadores',
+  'homem-aranha',
+  'jardim-encantado',
+  'mickey-disney',
+  'patrulha-canina',
+  'safari-baby',
+  'sereia',
+]);
+
 const SYSTEM_PROMPT = `Você é o Arquiteto e Decorador Chefe de Festas do FestaLab, especialista em transformar desejos de clientes em projetos cenográficos de festas prontos para edição.
 
 Seu trabalho é receber uma descrição de festa em linguagem natural e retornar um JSON contendo uma composição harmônica, moderna e perfeitamente equilibrada de elementos decorativos para o canvas 2D/3D.
@@ -45,20 +70,20 @@ SISTEMA DE COORDENADAS E REGRAS ESPACIAIS:
 - Largura total do canvas: 1000px. Altura total: 700px.
 - Linha do chão / piso de apoio dos móveis: Y = 560 (a base dos cilindros e mesas deve encostar ou terminar próximo a Y=560 a 600).
 - Parede / Fundo: de Y = 0 até Y = 560.
-- Tapete oval (opcional, mas recomendado para preencher o chão):
+- Tapete oval (opcional, para preencher o chão):
   { "shapeType": "rug-oval", "x": 170, "y": 520, "width": 660, "height": 130, "zIndex": 1 }
 
 PAINÉIS DE FUNDO (Z-Index 2 a 3):
 - Trio de painéis (tendência número 1):
   * Painel Romano Arqueado à esquerda: { "shapeType": "panel-arch", "x": 230, "y": 170, "width": 180, "height": 360, "zIndex": 2 }
   * Painel Redondo ao centro: { "shapeType": "panel-round", "x": 410, "y": 150, "width": 320, "height": 320, "zIndex": 3 }
-  * Painel Romano à direita (ou painel retangular): { "shapeType": "panel-arch", "x": 630, "y": 220, "width": 170, "height": 340, "zIndex": 2 }
+  * Painel Romano à direita (ou retangular): { "shapeType": "panel-arch", "x": 630, "y": 220, "width": 170, "height": 340, "zIndex": 2 }
 
 MÓVEIS (Z-Index 4 a 7):
 - Mesa Central:
   * Mesa de Babado plissada (moderna): { "shapeType": "table-ruffle", "x": 375, "y": 440, "width": 250, "height": 145, "zIndex": 6 }
   * OU Mesa com toalha clássica: { "shapeType": "table-cloth", "x": 375, "y": 420, "width": 250, "height": 145, "zIndex": 6 }
-- Trio de Cilindros (Capas sublimadas ou lisas):
+- Trio de Cilindros:
   * Cilindro Alto G: { "shapeType": "cylinder-high", "x": 220, "y": 410, "width": 105, "height": 190, "zIndex": 4 }
   * Cilindro Médio M: { "shapeType": "cylinder-mid", "x": 650, "y": 440, "width": 100, "height": 165, "zIndex": 5 }
   * Cilindro Baixo P: { "shapeType": "cylinder-low", "x": 740, "y": 465, "width": 95, "height": 140, "zIndex": 7 }
@@ -75,22 +100,29 @@ ELEMENTOS DE DECORAÇÃO (Z-Index 5 a 10):
 - Balões Gigantes com laço de cetim nas extremidades (opcional):
   { "shapeType": "balloon-giant-bow", "x": 130, "y": 320, "width": 110, "height": 240, "zIndex": 9 }
 
-CORES E HARMONIZAÇÃO:
-- Use sempre cores hexadecimais ricas e sofisticadas (ex: terracota #C86D51, verde oliva #586949, rosa blush #E8B4B8, azul petróleo #1E3F52, dourado suave #D4AF37, areia #EFEBE0).
-- Para balões, preencha 'fill' (cor principal), 'balloonSecondaryFill' (segunda cor do arco) e 'balloonTertiaryFill' (terceira cor/destaque metálico ou perolizado).
-- Acabamento dos balões ('balloonFinish'): 'pearl', 'chrome' ou 'matte'.
+REGRA FUNDAMENTAL E OBRIGATÓRIA: CORES VIVAS E PROIBIÇÃO DE BRANCO VAZIO:
+1. NUNCA DEIXE OS PAINÉIS, CILINDROS OU MESAS EM BRANCO (#FFFFFF, #FFF ou similar)!
+2. CADA ELEMENTO DEVE TER UMA COR TEMÁTICA RICA E VIBRANTE DO TEMA:
+   - Para Toy Story: use azul royal (#1D4ED8) no painel redondo, amarelo (#FACC15) no painel esquerdo e verde (#22C55E) no painel direito.
+   - Para os cilindros laterais: cada um com uma cor temática contrastante (ex: Cilindro G amarelo, Cilindro M verde, Cilindro P vermelho ou azul).
+   - Para a mesa: toalha ou saia com cor marcante ou tom elegante da paleta.
+   - Para os balões: preencha 'fill', 'balloonSecondaryFill' e 'balloonTertiaryFill' com as cores vibrantes do tema.
+   - Para o bolo: decore com as cores do tema.
 
-ARTES OFICIAIS EXISTENTES:
-Se a festa solicitada corresponder a um dos seguintes temas oficiais conhecidos, você pode reutilizar os caminhos das artes sublimadas reais:
-- Temas: 'mickey-disney', '3-palavrinhas', 'astronauta-espaco', 'fundo-do-mar', 'sereia', 'a-bela-e-a-fera', 'branca-de-neve', 'cinderela', 'enrolados-rapunzel', 'safari-baby', 'fazendinha', 'dino-baby', 'circo-rosa', 'circo-tradicional', 'bolofofos', 'patrulha-canina', 'homem-aranha', 'herois-vingadores', 'barbie', 'frozen', 'jardim-encantado'.
-Para esses temas, você pode colocar:
+REGRA ESTRITA SOBRE IMAGENS SUBLIMADAS (fillImageSrc):
+A pasta de artes no servidor CONTÉM EXCLUSIVAMENTE OS SEGUINTES 21 TEMAS:
+'3-palavrinhas', 'a-bela-e-a-fera', 'astronauta-espaco', 'barbie', 'bolofofos', 'branca-de-neve', 'cinderela', 'circo-rosa', 'circo-tradicional', 'dino-baby', 'enrolados-rapunzel', 'fazendinha', 'frozen', 'fundo-do-mar', 'herois-vingadores', 'homem-aranha', 'jardim-encantado', 'mickey-disney', 'patrulha-canina', 'safari-baby', 'sereia'.
+
+SE E SOMENTE SE a solicitação for de um desses 21 temas oficiais exatos, você pode preencher:
   painel redondo: fillImageSrc: "/templates-art/{tema}/redondo.png", fillMode: "cover"
   painel romano: fillImageSrc: "/templates-art/{tema}/lateral.png", fillMode: "cover"
   cilindro G: fillImageSrc: "/templates-art/{tema}/cilindro_g.png", fillMode: "cover"
   cilindro M: fillImageSrc: "/templates-art/{tema}/cilindro_m.png", fillMode: "cover"
   cilindro P: fillImageSrc: "/templates-art/{tema}/cilindro_p.png", fillMode: "cover"
 
-Para qualquer outro tema novo ou personalizado (ex: anos 80, ovelhinha, casamento rústico, boteco, borboletas), use cores lisas e paletas sofisticadas em 'fill' e 'stroke' sem fillImageSrc.
+SE FOR QUALQUER OUTRO TEMA (exemplo: Toy Story, Sonic, Wandinha, Bob Esponja, Pokémon, Carros, Moana, Casamento, etc.):
+É TERMINANTEMENTE PROIBIDO inventar caminhos em /templates-art/! 'fillImageSrc' DEVE SER OMITIDO (ou null)!
+E VOCÊ DEVE COLORIR todos os painéis, cilindros e mesas com as cores características, vibrantes e marcantes desse tema no campo 'fill'!
 
 FORMATO DA RESPOSTA:
 Responda EXCLUSIVAMENTE um objeto JSON válido com a seguinte estrutura:
@@ -143,11 +175,50 @@ export async function POST(req: Request) {
 
     // Validação e higienização dos elementos
     const rawElements: CanvasElement[] = Array.isArray(parsed.elements) ? parsed.elements : [];
+
+    // Coleta as cores escolhidas pela IA (ex: balões e elementos) para garantir paleta rica
+    const balloonElement = rawElements.find((e) => e.shapeType?.includes('balloon'));
+    const detectedColors: string[] = [
+      balloonElement?.fill,
+      balloonElement?.balloonSecondaryFill,
+      balloonElement?.balloonTertiaryFill,
+      ...rawElements.map((e) => e.fill),
+    ].filter((c): c is string => Boolean(c && typeof c === 'string' && !['#ffffff', '#fff', '#FFFFFF', '#FFF'].includes(c.trim())));
+
+    const fallbackPalette = detectedColors.length >= 3
+      ? detectedColors
+      : ['#2563EB', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6'];
+
+    let paletteIndex = 0;
+
     const sanitizedElements: CanvasElement[] = rawElements.map((el, index) => {
       const shapeType = VALID_SHAPES.includes(el.shapeType) ? el.shapeType : 'panel-arch';
       const finish: 'matte' | 'chrome' | 'pearl' = ['matte', 'chrome', 'pearl'].includes(el.balloonFinish as string)
         ? (el.balloonFinish as 'matte' | 'chrome' | 'pearl')
         : 'pearl';
+
+      // Validação estrita de fillImageSrc contra a lista real de temas
+      let safeFillImageSrc: string | undefined = undefined;
+      if (el.fillImageSrc && typeof el.fillImageSrc === 'string') {
+        const match = el.fillImageSrc.match(/^\/templates-art\/([a-z0-9-]+)\//);
+        if (match && KNOWN_TEMPLATE_THEMES.has(match[1])) {
+          safeFillImageSrc = el.fillImageSrc;
+        }
+      }
+
+      // Se não há estampa válida e o elemento é uma peça grande de destaque, NÃO permitir que fique branco vazio
+      let finalFill = el.fill && el.fill.trim() ? el.fill : '#FFFFFF';
+      const isPlainWhite = ['#ffffff', '#fff', '#FFFFFF', '#FFF'].includes(finalFill.trim());
+
+      const isLargeDecorativeShape =
+        shapeType.startsWith('panel-') ||
+        shapeType.startsWith('cylinder-') ||
+        shapeType.startsWith('table-');
+
+      if (!safeFillImageSrc && isPlainWhite && isLargeDecorativeShape) {
+        finalFill = fallbackPalette[paletteIndex % fallbackPalette.length];
+        paletteIndex++;
+      }
 
       return {
         id: el.id || `ai-${shapeType}-${Date.now()}-${index}`,
@@ -160,15 +231,15 @@ export async function POST(req: Request) {
         height: typeof el.height === 'number' ? Math.max(20, Math.round(el.height)) : 140,
         rotation: typeof el.rotation === 'number' ? el.rotation : 0,
         zIndex: typeof el.zIndex === 'number' ? el.zIndex : index + 1,
-        fill: el.fill || '#FFFFFF',
+        fill: finalFill,
         stroke: el.stroke || '#D4D4D8',
         opacity: typeof el.opacity === 'number' ? el.opacity : 1,
-        fillImageSrc: el.fillImageSrc || undefined,
+        fillImageSrc: safeFillImageSrc,
         fillMode: el.fillMode || 'cover',
         balloonSecondaryFill: el.balloonSecondaryFill || undefined,
         balloonTertiaryFill: el.balloonTertiaryFill || undefined,
         balloonFinish: finish,
-        topFill: el.topFill || undefined,
+        topFill: el.topFill || (shapeType.startsWith('cylinder-') ? finalFill : undefined),
         text: el.text || undefined,
         fontSize: el.fontSize || undefined,
       };
