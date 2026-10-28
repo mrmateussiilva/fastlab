@@ -70,7 +70,7 @@ export default function AdminThemesPage() {
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'themes' | 'templates'>('themes');
+  const [activeTab, setActiveTab] = useState<'themes' | 'templates'>('templates');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,38 +139,49 @@ export default function AdminThemesPage() {
     setLoading(true);
     setError(null);
     try {
-      // 1. Fetch Themes
-      const themesRes = await fetch('/api/admin/themes', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!themesRes.ok) {
-        sessionStorage.removeItem('festalab_admin_token');
-        setIsAuthenticated(false);
-        const errData = await themesRes.json().catch(() => ({}));
-        if (themesRes.status === 401) {
-          setError(
-            errData.message ||
-            'Senha de administrador incorreta. (Se você configurou na Vercel recentemente, lembre-se de fazer um Redeploy).'
-          );
-        } else {
-          setError(
-            `Erro no servidor (${themesRes.status}): ${errData.message || errData.error || 'Falha ao conectar com o banco de dados Supabase.'}`
-          );
-        }
-        return;
-      }
-      setIsAuthenticated(true);
-      sessionStorage.setItem('festalab_admin_token', token);
-      const themesData = await themesRes.json();
-      setThemes(themesData);
-
-      // 2. Fetch Templates
+      // 1. Validar autenticação e buscar Templates primeiro (independente de Supabase)
       const templatesRes = await fetch('/api/admin/templates', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (templatesRes.ok) {
-        const templatesData = await templatesRes.json();
-        setTemplates(templatesData);
+
+      if (templatesRes.status === 401) {
+        sessionStorage.removeItem('festalab_admin_token');
+        setIsAuthenticated(false);
+        const errData = await templatesRes.json().catch(() => ({}));
+        setError(
+          errData.message ||
+          'Senha de administrador incorreta. (Se você configurou na Vercel recentemente, lembre-se de fazer um Redeploy).'
+        );
+        return;
+      }
+
+      if (!templatesRes.ok) {
+        const errData = await templatesRes.json().catch(() => ({}));
+        setError(`Erro ao carregar templates (${templatesRes.status}): ${errData.error || 'Erro interno'}`);
+        return;
+      }
+
+      // Senha correta e templates carregados com sucesso!
+      setIsAuthenticated(true);
+      sessionStorage.setItem('festalab_admin_token', token);
+      const templatesData = await templatesRes.json();
+      setTemplates(templatesData);
+
+      // 2. Fetch Themes (Modelos Oficiais do Supabase) - falhas de banco aqui não deslogam o admin
+      try {
+        const themesRes = await fetch('/api/admin/themes', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (themesRes.ok) {
+          const themesData = await themesRes.json();
+          if (Array.isArray(themesData)) {
+            setThemes(themesData);
+          }
+        } else {
+          console.warn('[Admin] Aviso ao carregar temas do Supabase:', themesRes.status);
+        }
+      } catch (themesErr) {
+        console.warn('[Admin] Falha de conexão com Supabase:', themesErr);
       }
     } catch {
       setError('Erro ao conectar ao servidor.');

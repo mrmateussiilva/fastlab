@@ -18,23 +18,41 @@ export async function GET(req: Request) {
     );
   }
 
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from('themes')
-    .select('*')
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: false });
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
+      return NextResponse.json([]);
+    }
 
-  if (error) {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('themes')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('[AdminThemes GET Supabase Error]:', error.message);
+      return NextResponse.json(
+        {
+          error: 'DatabaseError',
+          message: `Falha no Supabase: ${error.message}. Verifique se a tabela 'themes' existe e se as credenciais do Supabase estão configuradas.`,
+        },
+        { status: 500 }
+      );
+    }
+    return NextResponse.json(data || []);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn('[AdminThemes GET Catch Error]:', msg);
     return NextResponse.json(
       {
         error: 'DatabaseError',
-        message: `Falha no Supabase: ${error.message}. Verifique se a tabela 'themes' existe e se as credenciais do Supabase estão configuradas.`,
+        message: `Falha no Supabase: ${msg}. Verifique se as credenciais do Supabase estão configuradas.`,
       },
       { status: 500 }
     );
   }
-  return NextResponse.json(data);
 }
 
 export async function POST(req: Request) {
