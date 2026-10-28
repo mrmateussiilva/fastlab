@@ -30,8 +30,15 @@ export type ShapeType =
   | 'balloon-arch-half'
   | 'balloon-cascade'
   | 'balloon-cluster'
+  | 'balloon-stick'
   | 'flower-arrangement'
   | 'cake-tiered'
+  | 'plant-pot'
+  | 'hay-bale'
+  | 'mini-barn'
+  | 'windmill-wood'
+  | 'milk-can'
+  | 'wagon-wheel'
   | 'rug-rect'
   | 'rug-oval'
   | 'box'
@@ -433,6 +440,16 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
     defaultStroke: '#9E80C6',
   },
   {
+    id: 'balloon-stick',
+    name: 'Balão em Haste com Laço',
+    category: 'baloes',
+    shapeType: 'balloon-stick',
+    defaultWidth: 65,
+    defaultHeight: 180,
+    defaultFill: '#E2B1B6',
+    defaultStroke: '#CCA0A5',
+  },
+  {
     id: 'flower-arrangement',
     name: 'Vaso com Arranjo Floral',
     category: 'extras',
@@ -495,6 +512,66 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
     defaultHeight: 160,
     defaultFill: '#363636',
     defaultStroke: '#222222',
+  },
+  {
+    id: 'plant-pot',
+    name: 'Vaso com Folhagem Tropical',
+    category: 'extras',
+    shapeType: 'plant-pot',
+    defaultWidth: 100,
+    defaultHeight: 220,
+    defaultFill: '#4A6B4A',
+    defaultStroke: '#3B573B',
+  },
+  {
+    id: 'hay-bale',
+    name: 'Fardo de Feno Rústico',
+    category: 'extras',
+    shapeType: 'hay-bale',
+    defaultWidth: 95,
+    defaultHeight: 65,
+    defaultFill: '#E4BF76',
+    defaultStroke: '#C8A359',
+  },
+  {
+    id: 'mini-barn',
+    name: 'Mini Celeiro Decorativo de Chão',
+    category: 'extras',
+    shapeType: 'mini-barn',
+    defaultWidth: 95,
+    defaultHeight: 105,
+    defaultFill: '#C26A5A',
+    defaultStroke: '#9E4E40',
+  },
+  {
+    id: 'windmill-wood',
+    name: 'Moinho de Vento / Catavento de Madeira',
+    category: 'extras',
+    shapeType: 'windmill-wood',
+    defaultWidth: 95,
+    defaultHeight: 150,
+    defaultFill: '#B89068',
+    defaultStroke: '#94704E',
+  },
+  {
+    id: 'milk-can',
+    name: 'Latão de Leite Retrô com Flores',
+    category: 'extras',
+    shapeType: 'milk-can',
+    defaultWidth: 70,
+    defaultHeight: 115,
+    defaultFill: '#B5BAC2',
+    defaultStroke: '#8F96A0',
+  },
+  {
+    id: 'wagon-wheel',
+    name: 'Roda de Carroça de Madeira',
+    category: 'extras',
+    shapeType: 'wagon-wheel',
+    defaultWidth: 90,
+    defaultHeight: 90,
+    defaultFill: '#8B5A2B',
+    defaultStroke: '#6E431D',
   },
   {
     id: 'element-text',

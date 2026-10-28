@@ -71,14 +71,21 @@ const SHAPE_LABELS: Record<string, string> = {
   'balloon-arch-half': 'top organic garland',
   'balloon-cascade': 'vertical cascade',
   'balloon-cluster': 'organic floor cluster',
+  'balloon-stick': 'single round balloon mounted on a slim stick with satin ribbon bow',
   'flower-arrangement': 'pedestal vase with lush fresh flowers',
   'cake-tiered': 'celebration tiered cake with dessert stands',
+  'plant-pot': 'tall ceramic pot with lush tropical greenery and large monstera or banana palm leaves',
+  'hay-bale': 'rustic textured golden straw hay bale floor prop',
+  'mini-barn': 'rustic wooden mini barn decorative floor prop with white X-frame trim',
+  'windmill-wood': 'rustic miniature wooden windmill with four-blade rotor floor prop',
+  'milk-can': 'vintage metal milk jug can filled with fresh wild daisies and baby breath flowers',
+  'wagon-wheel': 'vintage rustic wooden wagon wheel prop resting on the floor',
   'rug-rect': 'rectangular floor rug',
   'rug-oval': 'oval floor rug',
   box: 'decorative box',
   pedestal: 'pedestal stand',
   text: 'text sign',
-  'custom-image': 'custom imported decoration',
+  'custom-image': 'custom imported decoration or cutout character totem',
 };
 
 function horizontalPosition(el: CanvasElement, canvasWidth: number): string {
@@ -95,11 +102,32 @@ function inferElementRole(name: string, shapeType: string): string | null {
   if (shapeType === 'flower-arrangement' || n.includes('flor') || n.includes('buquê') || n.includes('bouquet') || n.includes('arranjo')) {
     return 'REAL FRESH FLORAL ARRANGEMENT with lush natural flowers, lavender, roses and green leaves (NOT balloons)';
   }
+  if (shapeType === 'plant-pot' || n.includes('planta') || n.includes('folhagem') || n.includes('bananeira') || n.includes('costela')) {
+    return 'TALL LUXURY CERAMIC PLANTER WITH LUSH GREEN TROPICAL LEAVES (Monstera, banana palm) framing the scene border';
+  }
+  if (shapeType === 'hay-bale' || n.includes('feno') || n.includes('palha')) {
+    return 'NATURAL GOLDEN STRAW HAY BALE FLOOR PROP tied with rustic twine';
+  }
+  if (shapeType === 'mini-barn' || n.includes('celeiro')) {
+    return 'RUSTIC WOODEN MINIATURE RED/BROWN BARN CRAFT FLOOR PROP with country door trim';
+  }
+  if (shapeType === 'windmill-wood' || n.includes('moinho') || n.includes('catavento')) {
+    return 'RUSTIC COUNTRY WOODEN WINDMILL DECORATIVE PROP with 4-blade rotor';
+  }
+  if (shapeType === 'milk-can' || n.includes('leite') || n.includes('latão') || n.includes('latao')) {
+    return 'VINTAGE GALVANIZED STEEL MILK CAN WITH LUSH WHITE FIELD DAISIES & GYPSOPHILA FLOWERS';
+  }
+  if (shapeType === 'wagon-wheel' || n.includes('carroça') || n.includes('carroca') || n.includes('roda')) {
+    return 'VINTAGE RUSTIC WOODEN WAGON WHEEL PROP';
+  }
   if (shapeType === 'cake-tiered' || n.includes('bolo') || n.includes('cake') || n.includes('doce') || n.includes('cupcake')) {
     return 'DECORATIVE TIERED CELEBRATION CAKE & LUXURY DESSERT PLATTERS on cake stands (NOT balloons)';
   }
   if (shapeType === 'balloon-giant-bow' || n.includes('laço') || n.includes('fita') || n.includes('bow')) {
     return 'GIANT DECORATIVE BALLOON WITH SATIN FABRIC BOW ACCENT ON PLEATED PEDESTAL';
+  }
+  if (shapeType === 'balloon-stick') {
+    return 'PERFECT ROUND BALLOON MOUNTED ON SLIM VERTICAL STICK WITH TAILORED SATIN RIBBON BOW';
   }
   if (shapeType === 'balloon-single') {
     return 'NATURAL INFLATED LATEX BALLOON WITH TIE KNOT AND RIBBON';

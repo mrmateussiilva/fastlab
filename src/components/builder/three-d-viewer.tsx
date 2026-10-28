@@ -2111,6 +2111,47 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader, a
     giantGroup.userData = { elementId: el.id };
     group.add(giantGroup);
   }
+  else if (el.shapeType === 'balloon-stick') {
+    const stickGroup = new THREE.Group();
+    const balloonMat = new THREE.MeshPhysicalMaterial({
+      color: threeColor,
+      metalness: 0.15,
+      roughness: 0.25,
+      clearcoat: 0.85,
+    });
+    const stickMat = new THREE.MeshStandardMaterial({ color: 0xDCD5CB, roughness: 0.4 });
+    const bowMat = new THREE.MeshStandardMaterial({
+      color: el.balloonSecondaryFill ? new THREE.Color(el.balloonSecondaryFill) : threeColor,
+      roughness: 0.4,
+    });
+
+    const radius = Math.min(w * 0.45, h * 0.26);
+    const balloonY = h * 0.28;
+
+    // Vareta fina
+    const stickGeo = new THREE.CylinderGeometry(0.005, 0.005, h * 0.72, 12);
+    const stickMesh = new THREE.Mesh(stickGeo, stickMat);
+    stickMesh.position.y = -h * 0.14;
+    stickMesh.castShadow = true;
+    stickGroup.add(stickMesh);
+
+    // Balão esférico
+    const sphereGeo = new THREE.SphereGeometry(radius, 24, 24);
+    const sphereMesh = new THREE.Mesh(sphereGeo, balloonMat);
+    sphereMesh.position.y = balloonY;
+    sphereMesh.scale.set(1, 1.05, 1);
+    sphereMesh.castShadow = true;
+    stickGroup.add(sphereMesh);
+
+    // Lacinho na base do balão
+    const bowGeo = new THREE.SphereGeometry(radius * 0.2, 12, 12);
+    const bowMesh = new THREE.Mesh(bowGeo, bowMat);
+    bowMesh.position.set(0, balloonY - radius * 1.02, radius * 0.15);
+    stickGroup.add(bowMesh);
+
+    stickGroup.userData = { elementId: el.id };
+    group.add(stickGroup);
+  }
   else if (el.shapeType.includes('balloon')) {
     const isSingle = el.shapeType === 'balloon-single';
     const color1 = threeColor;
@@ -2255,7 +2296,140 @@ function build3DElement(el: CanvasElement, textureLoader: THREE.TextureLoader, a
     }
   }
 
-  // 9. ELEMENTO GENÉRICO / TEXTO / OUTROS
+  // 9. ELEMENTOS DECORATIVOS DE CHÃO E VASOS
+  else if (el.shapeType === 'plant-pot') {
+    const potGroup = new THREE.Group();
+    // Vaso cerâmico
+    const potMat = new THREE.MeshStandardMaterial({ color: 0xEAE4DC, roughness: 0.25 });
+    const potGeo = new THREE.CylinderGeometry(w * 0.26, w * 0.18, h * 0.44, 24);
+    const potMesh = new THREE.Mesh(potGeo, potMat);
+    potMesh.position.y = -h * 0.26;
+    potMesh.castShadow = true;
+    potMesh.receiveShadow = true;
+    potGroup.add(potMesh);
+
+    // Folhagens tropicais verdes
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x3B6E45, roughness: 0.8 });
+    const foliageGeo = new THREE.SphereGeometry(w * 0.42, 16, 16);
+    const foliageMesh = new THREE.Mesh(foliageGeo, leafMat);
+    foliageMesh.scale.set(1, 1.25, 0.8);
+    foliageMesh.position.y = h * 0.14;
+    foliageMesh.castShadow = true;
+    potGroup.add(foliageMesh);
+
+    potGroup.userData = { elementId: el.id };
+    group.add(potGroup);
+  }
+  else if (el.shapeType === 'hay-bale') {
+    const hayGroup = new THREE.Group();
+    const hayMat = new THREE.MeshStandardMaterial({ color: threeColor, roughness: 0.95 });
+    const hayGeo = new THREE.BoxGeometry(w, h, w * 0.65);
+    const hayMesh = new THREE.Mesh(hayGeo, hayMat);
+    hayMesh.castShadow = true;
+    hayMesh.receiveShadow = true;
+    hayGroup.add(hayMesh);
+
+    // Faixas de amarras de corda
+    const ropeMat = new THREE.MeshStandardMaterial({ color: 0x8A5A2B, roughness: 0.8 });
+    const ropeGeo = new THREE.BoxGeometry(w * 0.04, h * 1.02, w * 0.67);
+    const rope1 = new THREE.Mesh(ropeGeo, ropeMat);
+    rope1.position.x = -w * 0.22;
+    hayGroup.add(rope1);
+    const rope2 = new THREE.Mesh(ropeGeo, ropeMat);
+    rope2.position.x = w * 0.22;
+    hayGroup.add(rope2);
+
+    hayGroup.userData = { elementId: el.id };
+    group.add(hayGroup);
+  }
+  else if (el.shapeType === 'mini-barn') {
+    const barnGroup = new THREE.Group();
+    const barnMat = new THREE.MeshStandardMaterial({ color: threeColor, roughness: 0.7 });
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x5A6672, roughness: 0.6 });
+
+    // Corpo de madeira do celeiro
+    const bodyGeo = new THREE.BoxGeometry(w * 0.86, h * 0.6, w * 0.5);
+    const bodyMesh = new THREE.Mesh(bodyGeo, barnMat);
+    bodyMesh.position.y = -h * 0.18;
+    bodyMesh.castShadow = true;
+    barnGroup.add(bodyMesh);
+
+    // Telhado de celeiro
+    const roofGeo = new THREE.ConeGeometry(w * 0.55, h * 0.42, 4);
+    const roofMesh = new THREE.Mesh(roofGeo, roofMat);
+    roofMesh.position.y = h * 0.26;
+    roofMesh.rotation.y = Math.PI / 4;
+    roofMesh.castShadow = true;
+    barnGroup.add(roofMesh);
+
+    barnGroup.userData = { elementId: el.id };
+    group.add(barnGroup);
+  }
+  else if (el.shapeType === 'windmill-wood') {
+    const windGroup = new THREE.Group();
+    const woodMat = new THREE.MeshStandardMaterial({ color: threeColor, roughness: 0.8 });
+    // Torre cônica
+    const towerGeo = new THREE.CylinderGeometry(w * 0.14, w * 0.28, h * 0.65, 16);
+    const towerMesh = new THREE.Mesh(towerGeo, woodMat);
+    towerMesh.position.y = -h * 0.16;
+    towerMesh.castShadow = true;
+    windGroup.add(towerMesh);
+
+    // Rotor de 4 pás
+    const bladeGeo = new THREE.BoxGeometry(w * 0.85, w * 0.1, 0.01);
+    const blade1 = new THREE.Mesh(bladeGeo, woodMat);
+    blade1.position.set(0, h * 0.22, w * 0.15);
+    windGroup.add(blade1);
+
+    const blade2 = new THREE.Mesh(bladeGeo, woodMat);
+    blade2.position.set(0, h * 0.22, w * 0.15);
+    blade2.rotation.z = Math.PI / 2;
+    windGroup.add(blade2);
+
+    windGroup.userData = { elementId: el.id };
+    group.add(windGroup);
+  }
+  else if (el.shapeType === 'milk-can') {
+    const milkGroup = new THREE.Group();
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0xB5BAC2, metalness: 0.7, roughness: 0.3 });
+    // Jarro de leite
+    const jugGeo = new THREE.CylinderGeometry(w * 0.22, w * 0.32, h * 0.6, 20);
+    const jugMesh = new THREE.Mesh(jugGeo, metalMat);
+    jugMesh.position.y = -h * 0.18;
+    jugMesh.castShadow = true;
+    milkGroup.add(jugMesh);
+
+    // Flores de gipsofila/margarida no topo
+    const flowerMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.85 });
+    const flowerGeo = new THREE.SphereGeometry(w * 0.32, 16, 16);
+    const flowerMesh = new THREE.Mesh(flowerGeo, flowerMat);
+    flowerMesh.position.y = h * 0.22;
+    flowerMesh.castShadow = true;
+    milkGroup.add(flowerMesh);
+
+    milkGroup.userData = { elementId: el.id };
+    group.add(milkGroup);
+  }
+  else if (el.shapeType === 'wagon-wheel') {
+    const wheelGroup = new THREE.Group();
+    const woodMat = new THREE.MeshStandardMaterial({ color: threeColor, roughness: 0.75 });
+    // Aro de madeira
+    const rimGeo = new THREE.TorusGeometry(w * 0.44, w * 0.04, 12, 32);
+    const rimMesh = new THREE.Mesh(rimGeo, woodMat);
+    rimMesh.castShadow = true;
+    wheelGroup.add(rimMesh);
+
+    // Cubo central
+    const hubGeo = new THREE.CylinderGeometry(w * 0.08, w * 0.08, 0.04, 16);
+    const hubMesh = new THREE.Mesh(hubGeo, woodMat);
+    hubMesh.rotation.x = Math.PI / 2;
+    wheelGroup.add(hubMesh);
+
+    wheelGroup.userData = { elementId: el.id };
+    group.add(wheelGroup);
+  }
+
+  // 10. ELEMENTO GENÉRICO / TEXTO / OUTROS
   else {
     const planeGeo = new THREE.PlaneGeometry(w, h);
     const planeMat = new THREE.MeshStandardMaterial({

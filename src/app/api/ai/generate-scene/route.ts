@@ -30,8 +30,15 @@ const VALID_SHAPES: ShapeType[] = [
   'balloon-mid',
   'balloon-single',
   'balloon-giant-bow',
+  'balloon-stick',
   'cake-tiered',
   'flower-arrangement',
+  'plant-pot',
+  'hay-bale',
+  'mini-barn',
+  'windmill-wood',
+  'milk-can',
+  'wagon-wheel',
   'rug-oval',
   'rug-rect',
   'text',
@@ -88,17 +95,28 @@ MÓVEIS (Z-Index 4 a 7):
   * Cilindro Médio M: { "shapeType": "cylinder-mid", "x": 650, "y": 440, "width": 100, "height": 165, "zIndex": 5 }
   * Cilindro Baixo P: { "shapeType": "cylinder-low", "x": 740, "y": 465, "width": 95, "height": 140, "zIndex": 7 }
 
-ELEMENTOS DE DECORAÇÃO (Z-Index 5 a 10):
+ELEMENTOS DE DECORAÇÃO E CHÃO (Z-Index 5 a 10):
 - Bolo Cenográfico: SEMPRE posicionado sobre a mesa central!
   { "shapeType": "cake-tiered", "x": 435, "y": 340, "width": 130, "height": 110, "zIndex": 8 }
-- Balões Orgânicos:
+- Balões Orgânicos e Colunas:
   * Arco Desconstruído em L emoldurando os painéis:
     { "shapeType": "balloon-arch-l", "x": 220, "y": 120, "width": 260, "height": 340, "zIndex": 5 }
-- Arranjos de Flores Naturais:
-  * Sobre os cilindros: { "shapeType": "flower-arrangement", "x": 215, "y": 290, "width": 115, "height": 125, "zIndex": 6 }
-  * No chão nas laterais: { "shapeType": "flower-arrangement", "x": 640, "y": 450, "width": 130, "height": 120, "zIndex": 9 }
-- Balões Gigantes com laço de cetim nas extremidades (opcional):
-  { "shapeType": "balloon-giant-bow", "x": 130, "y": 320, "width": 110, "height": 240, "zIndex": 9 }
+  * Balões Gigantes com laço de fita nas pontas (ou na frente dos cilindros):
+    { "shapeType": "balloon-giant-bow", "x": 130, "y": 320, "width": 105, "height": 220, "zIndex": 8 }
+    { "shapeType": "balloon-giant-bow", "x": 770, "y": 320, "width": 105, "height": 220, "zIndex": 8 }
+  * Balões em haste com laço (balloon-stick): colocados sobre cilindros ou ao lado.
+- Moldura Verde com Plantas Tropicais (Vasos Altos com Folhagens nas pontas para dar aspecto luxuoso de salão):
+  * { "shapeType": "plant-pot", "x": 30, "y": 280, "width": 110, "height": 280, "zIndex": 1 }
+  * { "shapeType": "plant-pot", "x": 860, "y": 280, "width": 110, "height": 280, "zIndex": 1 }
+- Elementos de Chão Temáticos (FOREGROUND ENRIQUECIDO):
+  * Para Fazendinha, Safari, Bosque, Jardim, Country:
+    - Fardos de feno rústicos: { "shapeType": "hay-bale", "x": 160, "y": 510, "width": 90, "height": 60, "zIndex": 9 }
+    - Mini celeiro decorativo: { "shapeType": "mini-barn", "x": 260, "y": 480, "width": 85, "height": 95, "zIndex": 9 }
+    - Latão de leite com flores do campo: { "shapeType": "milk-can", "x": 700, "y": 480, "width": 65, "height": 105, "zIndex": 9 }
+    - Moinho de vento rústico: { "shapeType": "windmill-wood", "x": 780, "y": 450, "width": 85, "height": 130, "zIndex": 9 }
+    - Roda de carroça rústica: { "shapeType": "wagon-wheel", "x": 720, "y": 480, "width": 80, "height": 80, "zIndex": 8 }
+- Flores Naturais:
+  * Sobre os cilindros ou no chão: { "shapeType": "flower-arrangement", "x": 215, "y": 290, "width": 115, "height": 125, "zIndex": 6 }
 
 REGRA FUNDAMENTAL E OBRIGATÓRIA: CORES VIVAS E PROIBIÇÃO DE BRANCO VAZIO:
 1. NUNCA DEIXE OS PAINÉIS, CILINDROS OU MESAS EM BRANCO (#FFFFFF, #FFF ou similar)!

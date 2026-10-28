@@ -1244,6 +1244,79 @@ const ElementShape = ({
         );
       }
 
+      case 'balloon-stick': {
+        const cx = w / 2;
+        const radius = Math.min(w * 0.46, h * 0.28);
+        const balloonY = radius + 4;
+        const knotY = balloonY + radius * 0.94;
+        const mainColor = el.fill || '#E2B1B6';
+        const bowColor = el.balloonSecondaryFill || mainColor;
+
+        return (
+          <>
+            {/* Vareta de sustentação fina */}
+            <Line
+              points={[cx, knotY + 8, cx, h]}
+              stroke="#D8D2C8"
+              strokeWidth={2}
+            />
+            {/* Balão esférico perfeito */}
+            <Circle
+              x={cx}
+              y={balloonY}
+              radius={radius}
+              fill={mainColor}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+            />
+            {/* Nó do balão */}
+            <Path
+              data={`M ${cx - 4} ${knotY} L ${cx + 4} ${knotY} L ${cx + 6} ${knotY + 7} L ${cx - 6} ${knotY + 7} Z`}
+              fill={mainColor}
+            />
+            {/* Brilho curvo especular */}
+            <Path
+              data={`M ${cx - radius * 0.6} ${balloonY - radius * 0.1} C ${cx - radius * 0.65} ${balloonY - radius * 0.55}, ${cx - radius * 0.3} ${balloonY - radius * 0.8}, ${cx} ${balloonY - radius * 0.85}`}
+              stroke="#FFFFFF"
+              strokeWidth={Math.max(2, radius * 0.12)}
+              strokeCap="round"
+              opacity={0.65}
+              listening={false}
+            />
+            {/* Laço de fita na base da vareta */}
+            {/* Cauda da fita */}
+            <Path
+              data={`M ${cx - 3} ${knotY + 6} Q ${cx - 14} ${knotY + 30} ${cx - 10} ${knotY + 45} L ${cx - 5} ${knotY + 42} Q ${cx - 4} ${knotY + 24} ${cx} ${knotY + 8} Z`}
+              fill={bowColor}
+            />
+            <Path
+              data={`M ${cx + 3} ${knotY + 6} Q ${cx + 14} ${knotY + 30} ${cx + 10} ${knotY + 45} L ${cx + 5} ${knotY + 42} Q ${cx + 4} ${knotY + 24} ${cx} ${knotY + 8} Z`}
+              fill={bowColor}
+            />
+            {/* Asas do lacinho */}
+            <Path
+              data={`M ${cx} ${knotY + 8} C ${cx - 16} ${knotY}, ${cx - 16} ${knotY + 16}, ${cx} ${knotY + 8} Z`}
+              fill={bowColor}
+              stroke="rgba(0,0,0,0.15)"
+              strokeWidth={0.5}
+            />
+            <Path
+              data={`M ${cx} ${knotY + 8} C ${cx + 16} ${knotY}, ${cx + 16} ${knotY + 16}, ${cx} ${knotY + 8} Z`}
+              fill={bowColor}
+              stroke="rgba(0,0,0,0.15)"
+              strokeWidth={0.5}
+            />
+            {/* Nó do lacinho */}
+            <Circle
+              x={cx}
+              y={knotY + 8}
+              radius={3}
+              fill={bowColor}
+            />
+          </>
+        );
+      }
+
       case 'flower-arrangement': {
         const cx = w / 2;
         const vaseH = h * 0.34;
@@ -1400,6 +1473,410 @@ const ElementShape = ({
             <Rect x={w * 0.15} y={0} width={w * 0.7} height={h - 10} fill={el.fill} stroke={strokeColor} strokeWidth={strokeWidth} />
             <Rect x={0} y={0} width={w} height={10} cornerRadius={2} fill={el.fill} stroke={strokeColor} strokeWidth={strokeWidth} />
             <Rect x={w * 0.05} y={h - 10} width={w * 0.9} height={10} cornerRadius={2} fill={el.fill} stroke={strokeColor} strokeWidth={strokeWidth} />
+          </>
+        );
+      }
+
+      case 'plant-pot': {
+        const cx = w / 2;
+        const potTopY = h * 0.58;
+        const potTopW = w * 0.52;
+        const potBottomW = w * 0.38;
+        const potColor = '#EAE4DC';
+
+        return (
+          <>
+            {/* Folhagens Tropicais de Luxo (Costela de Adão / Bananeira) */}
+            {/* Folha esquerda inferior */}
+            <Path
+              data={`M ${cx} ${potTopY + 10} Q ${cx - w * 0.5} ${potTopY - h * 0.15} ${cx - w * 0.45} ${potTopY - h * 0.35} Q ${cx - w * 0.15} ${potTopY - h * 0.18} ${cx} ${potTopY + 10} Z`}
+              fill="#2F5736"
+              stroke="#24452B"
+              strokeWidth={0.8}
+            />
+            {/* Folha direita inferior */}
+            <Path
+              data={`M ${cx} ${potTopY + 10} Q ${cx + w * 0.5} ${potTopY - h * 0.15} ${cx + w * 0.45} ${potTopY - h * 0.35} Q ${cx + w * 0.15} ${potTopY - h * 0.18} ${cx} ${potTopY + 10} Z`}
+              fill="#2D5434"
+              stroke="#24452B"
+              strokeWidth={0.8}
+            />
+            {/* Folha esquerda alta */}
+            <Path
+              data={`M ${cx} ${potTopY} Q ${cx - w * 0.45} ${h * 0.22} ${cx - w * 0.32} ${h * 0.05} Q ${cx - w * 0.08} ${h * 0.2} ${cx} ${potTopY} Z`}
+              fill="#3B6E45"
+              stroke="#2A5233"
+              strokeWidth={0.8}
+            />
+            {/* Nervura folha esquerda */}
+            <Line points={[cx, potTopY, cx - w * 0.32, h * 0.05]} stroke="#6AA375" strokeWidth={1} opacity={0.6} />
+
+            {/* Folha direita alta */}
+            <Path
+              data={`M ${cx} ${potTopY} Q ${cx + w * 0.45} ${h * 0.22} ${cx + w * 0.32} ${h * 0.05} Q ${cx + w * 0.08} ${h * 0.2} ${cx} ${potTopY} Z`}
+              fill="#427A4D"
+              stroke="#2A5233"
+              strokeWidth={0.8}
+            />
+            {/* Nervura folha direita */}
+            <Line points={[cx, potTopY, cx + w * 0.32, h * 0.05]} stroke="#6AA375" strokeWidth={1} opacity={0.6} />
+
+            {/* Folha central ereta */}
+            <Path
+              data={`M ${cx} ${potTopY} Q ${cx - w * 0.18} ${h * 0.1} ${cx} 0 Q ${cx + w * 0.18} ${h * 0.1} ${cx} ${potTopY} Z`}
+              fill="#4F8C5C"
+              stroke="#34663E"
+              strokeWidth={0.8}
+            />
+            <Line points={[cx, potTopY, cx, 0]} stroke="#81BE8E" strokeWidth={1.2} opacity={0.7} />
+
+            {/* Vaso Cerâmico Decorativo */}
+            <Path
+              data={`
+                M ${cx - potTopW / 2} ${potTopY}
+                L ${cx + potTopW / 2} ${potTopY}
+                L ${cx + potBottomW / 2} ${h}
+                L ${cx - potBottomW / 2} ${h}
+                Z
+              `}
+              fill={potColor}
+              stroke="#CCC4B8"
+              strokeWidth={1}
+            />
+            {/* Borda / Friso superior do vaso */}
+            <Rect
+              x={cx - potTopW * 0.54}
+              y={potTopY - 4}
+              width={potTopW * 1.08}
+              height={8}
+              cornerRadius={3}
+              fill="#F5EFE7"
+              stroke="#D6CEBF"
+              strokeWidth={1}
+            />
+            {/* Sombra e reflexo cilíndrico do vaso */}
+            <Line
+              points={[cx - potTopW * 0.25, potTopY + 6, cx - potBottomW * 0.25, h - 4]}
+              stroke="#FFFFFF"
+              strokeWidth={3}
+              opacity={0.6}
+            />
+          </>
+        );
+      }
+
+      case 'hay-bale': {
+        const strawColor = el.fill || '#E4BF76';
+        const twineColor = '#8A5A2B';
+
+        return (
+          <>
+            {/* Bloco de feno dourado */}
+            <Rect
+              x={0}
+              y={0}
+              width={w}
+              height={h}
+              cornerRadius={6}
+              fill={strawColor}
+              stroke={strokeColor || '#C8A359'}
+              strokeWidth={strokeWidth}
+            />
+            {/* Textura de palha horizontal */}
+            <Line points={[4, h * 0.25, w - 4, h * 0.25]} stroke="#FFF0C7" strokeWidth={1} dash={[12, 6, 8, 4]} opacity={0.7} />
+            <Line points={[6, h * 0.5, w - 6, h * 0.5]} stroke="#C29845" strokeWidth={1} dash={[8, 5, 14, 6]} opacity={0.6} />
+            <Line points={[4, h * 0.75, w - 4, h * 0.75]} stroke="#FFF0C7" strokeWidth={1} dash={[10, 4, 12, 5]} opacity={0.7} />
+
+            {/* Cordas duplas de amarração rústica */}
+            <Line points={[w * 0.28, 0, w * 0.28, h]} stroke={twineColor} strokeWidth={2} />
+            <Circle x={w * 0.28} y={h * 0.5} radius={3.5} fill={twineColor} />
+
+            <Line points={[w * 0.72, 0, w * 0.72, h]} stroke={twineColor} strokeWidth={2} />
+            <Circle x={w * 0.72} y={h * 0.5} radius={3.5} fill={twineColor} />
+
+            {/* Fiadas de palha saindo nas pontas */}
+            <Line points={[w - 2, h * 0.3, w + 6, h * 0.26]} stroke={strawColor} strokeWidth={1.5} />
+            <Line points={[w - 2, h * 0.65, w + 5, h * 0.7]} stroke={strawColor} strokeWidth={1.5} />
+            <Line points={[2, h * 0.4, -5, h * 0.38]} stroke={strawColor} strokeWidth={1.5} />
+          </>
+        );
+      }
+
+      case 'mini-barn': {
+        const cx = w / 2;
+        const roofH = h * 0.42;
+        const bodyH = h - roofH;
+        const barnColor = el.fill || '#C26A5A';
+        const trimColor = '#FFFFFF';
+
+        return (
+          <>
+            {/* Paredes de madeira do celeiro */}
+            <Rect
+              x={w * 0.08}
+              y={roofH}
+              width={w * 0.84}
+              height={bodyH}
+              fill={barnColor}
+              stroke="#8B3C30"
+              strokeWidth={1}
+            />
+            {/* Tábuas verticais */}
+            <Line points={[w * 0.24, roofH, w * 0.24, h]} stroke="#A34E40" strokeWidth={1} opacity={0.5} />
+            <Line points={[w * 0.76, roofH, w * 0.76, h]} stroke="#A34E40" strokeWidth={1} opacity={0.5} />
+
+            {/* Telhado de celeiro peaked */}
+            <Path
+              data={`
+                M 0 ${roofH + 2}
+                L ${cx} 0
+                L ${w} ${roofH + 2}
+                L ${w * 0.9} ${roofH + 6}
+                L ${cx} 6
+                L ${w * 0.1} ${roofH + 6}
+                Z
+              `}
+              fill="#5A6672"
+              stroke="#3F4852"
+              strokeWidth={1}
+            />
+
+            {/* Portão do celeiro com travessa clássica em "X" */}
+            <Rect
+              x={w * 0.28}
+              y={roofH + bodyH * 0.22}
+              width={w * 0.44}
+              height={bodyH * 0.78}
+              fill="#853E32"
+              stroke={trimColor}
+              strokeWidth={1.5}
+            />
+            <Line
+              points={[w * 0.28, roofH + bodyH * 0.22, w * 0.72, h]}
+              stroke={trimColor}
+              strokeWidth={2}
+            />
+            <Line
+              points={[w * 0.72, roofH + bodyH * 0.22, w * 0.28, h]}
+              stroke={trimColor}
+              strokeWidth={2}
+            />
+
+            {/* Janelinha do sótão no telhado */}
+            <Rect
+              x={cx - 10}
+              y={roofH * 0.42}
+              width={20}
+              height={20}
+              fill="#FFEBB3"
+              stroke={trimColor}
+              strokeWidth={1.5}
+            />
+            <Line points={[cx, roofH * 0.42, cx, roofH * 0.42 + 20]} stroke={trimColor} strokeWidth={1} />
+            <Line points={[cx - 10, roofH * 0.42 + 10, cx + 10, roofH * 0.42 + 10]} stroke={trimColor} strokeWidth={1} />
+          </>
+        );
+      }
+
+      case 'windmill-wood': {
+        const cx = w / 2;
+        const towerTopY = h * 0.38;
+        const towerTopW = w * 0.28;
+        const towerBottomW = w * 0.58;
+        const rotorRadius = Math.min(w * 0.46, h * 0.36);
+
+        return (
+          <>
+            {/* Torre cônica de madeira */}
+            <Path
+              data={`
+                M ${cx - towerTopW / 2} ${towerTopY}
+                L ${cx + towerTopW / 2} ${towerTopY}
+                L ${cx + towerBottomW / 2} ${h}
+                L ${cx - towerBottomW / 2} ${h}
+                Z
+              `}
+              fill={el.fill || '#B89068'}
+              stroke="#876240"
+              strokeWidth={1.2}
+            />
+            {/* Frisos de madeira da torre */}
+            <Line points={[cx - towerTopW * 0.7, towerTopY + (h - towerTopY) * 0.35, cx + towerTopW * 0.7, towerTopY + (h - towerTopY) * 0.35]} stroke="#876240" strokeWidth={1} />
+            <Line points={[cx - towerTopW * 0.9, towerTopY + (h - towerTopY) * 0.7, cx + towerTopW * 0.9, towerTopY + (h - towerTopY) * 0.7]} stroke="#876240" strokeWidth={1} />
+
+            {/* Cúpula do topo da torre */}
+            <Path
+              data={`M ${cx - towerTopW * 0.6} ${towerTopY} Q ${cx} ${towerTopY - 14} ${cx + towerTopW * 0.6} ${towerTopY} Z`}
+              fill="#6B4B32"
+              stroke="#503520"
+              strokeWidth={1}
+            />
+
+            {/* 4 Pás do moinho (Catavento) com treliça */}
+            <Line points={[cx, towerTopY - rotorRadius, cx, towerTopY + rotorRadius]} stroke="#4A3421" strokeWidth={3} />
+            <Line points={[cx - rotorRadius, towerTopY, cx + rotorRadius, towerTopY]} stroke="#4A3421" strokeWidth={3} />
+
+            {/* Ripa das pás (pá superior) */}
+            <Rect x={cx + 2} y={towerTopY - rotorRadius} width={rotorRadius * 0.4} height={rotorRadius * 0.8} fill="#D4AF88" stroke="#876240" strokeWidth={0.8} opacity={0.9} />
+            {/* Pá inferior */}
+            <Rect x={cx - rotorRadius * 0.4 - 2} y={towerTopY + rotorRadius * 0.2} width={rotorRadius * 0.4} height={rotorRadius * 0.8} fill="#D4AF88" stroke="#876240" strokeWidth={0.8} opacity={0.9} />
+            {/* Pá direita */}
+            <Rect x={cx + rotorRadius * 0.2} y={towerTopY + 2} width={rotorRadius * 0.8} height={rotorRadius * 0.4} fill="#D4AF88" stroke="#876240" strokeWidth={0.8} opacity={0.9} />
+            {/* Pá esquerda */}
+            <Rect x={cx - rotorRadius} y={towerTopY - rotorRadius * 0.4 - 2} width={rotorRadius * 0.8} height={rotorRadius * 0.4} fill="#D4AF88" stroke="#876240" strokeWidth={0.8} opacity={0.9} />
+
+            {/* Cubo / Rotor central */}
+            <Circle cx={cx} cy={towerTopY} radius={5} fill="#3A2718" stroke="#FFFFFF" strokeWidth={1} />
+          </>
+        );
+      }
+
+      case 'milk-can': {
+        const cx = w / 2;
+        const canTopY = h * 0.42;
+        const canBodyW = w * 0.68;
+        const canNeckW = w * 0.4;
+        const metalColor = el.fill || '#B5BAC2';
+
+        return (
+          <>
+            {/* Corpo metálico do latão vintage */}
+            <Path
+              data={`
+                M ${cx - canNeckW / 2} ${canTopY}
+                L ${cx + canNeckW / 2} ${canTopY}
+                L ${cx + canBodyW / 2} ${canTopY + (h - canTopY) * 0.3}
+                L ${cx + canBodyW / 2} ${h}
+                L ${cx - canBodyW / 2} ${h}
+                L ${cx - canBodyW / 2} ${canTopY + (h - canTopY) * 0.3}
+                Z
+              `}
+              fill={metalColor}
+              stroke="#808791"
+              strokeWidth={1.2}
+            />
+            {/* Gargalo / borda do latão */}
+            <Rect
+              x={cx - canNeckW * 0.58}
+              y={canTopY - 6}
+              width={canNeckW * 1.16}
+              height={8}
+              cornerRadius={2}
+              fill="#CBD1D8"
+              stroke="#808791"
+              strokeWidth={1}
+            />
+            {/* Alça lateral de metal */}
+            <Path
+              data={`M ${cx - canBodyW / 2} ${canTopY + 12} Q ${cx - canBodyW * 0.72} ${canTopY + 22} ${cx - canBodyW / 2} ${canTopY + 34}`}
+              stroke="#68707B"
+              strokeWidth={2}
+            />
+            <Path
+              data={`M ${cx + canBodyW / 2} ${canTopY + 12} Q ${cx + canBodyW * 0.72} ${canTopY + 22} ${cx + canBodyW / 2} ${canTopY + 34}`}
+              stroke="#68707B"
+              strokeWidth={2}
+            />
+            {/* Brilho especular do aço escovado */}
+            <Line
+              points={[cx - canBodyW * 0.18, canTopY + 6, cx - canBodyW * 0.18, h - 4]}
+              stroke="#FFFFFF"
+              strokeWidth={2.5}
+              opacity={0.65}
+            />
+
+            {/* Flores campestres saindo do latão (Margaridas & Mosquitinho) */}
+            {/* Buquê de folhas verdes */}
+            <Circle cx={cx - 10} cy={canTopY - 10} radius={14} fill="#5D8252" />
+            <Circle cx={cx + 10} cy={canTopY - 10} radius={14} fill="#527848" />
+            <Circle cx={cx} cy={canTopY - 18} radius={16} fill="#69945D" />
+
+            {/* Margaridas brancas com miolo amarelo */}
+            <Circle cx={cx - 12} cy={canTopY - 12} radius={7} fill="#FFFFFF" />
+            <Circle cx={cx - 12} cy={canTopY - 12} radius={2.5} fill="#F5C443" />
+
+            <Circle cx={cx + 12} cy={canTopY - 14} radius={7} fill="#FFFFFF" />
+            <Circle cx={cx + 12} cy={canTopY - 14} radius={2.5} fill="#F5C443" />
+
+            <Circle cx={cx} cy={canTopY - 22} radius={8} fill="#FFFFFF" />
+            <Circle cx={cx} cy={canTopY - 22} radius={3} fill="#F5C443" />
+
+            {/* Pontinhos brancos de gipsofila (mosquitinho) */}
+            <Circle cx={cx - 20} cy={canTopY - 8} radius={2} fill="#FFFFFF" />
+            <Circle cx={cx + 20} cy={canTopY - 8} radius={2} fill="#FFFFFF" />
+            <Circle cx={cx - 6} cy={canTopY - 30} radius={2} fill="#FFFFFF" />
+            <Circle cx={cx + 8} cy={canTopY - 28} radius={2} fill="#FFFFFF" />
+          </>
+        );
+      }
+
+      case 'wagon-wheel': {
+        const cx = w / 2;
+        const cy = h / 2;
+        const radius = Math.min(w, h) / 2 - 2;
+        const woodColor = el.fill || '#8B5A2B';
+        const darkWood = '#5A3614';
+
+        return (
+          <>
+            {/* Aro externo de madeira */}
+            <Circle
+              x={cx}
+              y={cy}
+              radius={radius}
+              stroke={woodColor}
+              strokeWidth={Math.max(4, radius * 0.16)}
+              fill="transparent"
+            />
+            {/* Friso metálico da borda */}
+            <Circle
+              x={cx}
+              y={cy}
+              radius={radius + 1}
+              stroke={darkWood}
+              strokeWidth={1}
+              fill="transparent"
+            />
+            <Circle
+              x={cx}
+              y={cy}
+              radius={radius - Math.max(3, radius * 0.14)}
+              stroke={darkWood}
+              strokeWidth={0.8}
+              fill="transparent"
+            />
+
+            {/* Raios de madeira (8 raios radiais) */}
+            {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, idx) => {
+              const rad = (angle * Math.PI) / 180;
+              const x2 = cx + (radius - 2) * Math.cos(rad);
+              const y2 = cy + (radius - 2) * Math.sin(rad);
+              return (
+                <Line
+                  key={idx}
+                  points={[cx, cy, x2, y2]}
+                  stroke={woodColor}
+                  strokeWidth={Math.max(2, radius * 0.07)}
+                />
+              );
+            })}
+
+            {/* Cubo central (eixo da roda) */}
+            <Circle
+              x={cx}
+              y={cy}
+              radius={Math.max(6, radius * 0.22)}
+              fill={woodColor}
+              stroke={darkWood}
+              strokeWidth={1.5}
+            />
+            {/* Porca/eixo metálico */}
+            <Circle
+              x={cx}
+              y={cy}
+              radius={Math.max(3, radius * 0.1)}
+              fill="#333333"
+            />
           </>
         );
       }
