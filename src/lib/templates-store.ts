@@ -29,9 +29,10 @@ export async function getTemplates(): Promise<FestaTemplate[]> {
             await redis.set(REDIS_KEY, JSON.stringify(FESTA_TEMPLATES));
             return FESTA_TEMPLATES;
           }
-          // Se tiver templates customizados extras criados pelo usuário, mescla com os oficiais
-          const customOnly = parsed.filter((t: FestaTemplate) => !FESTA_TEMPLATES.some((f) => f.id === t.id));
-          return [...FESTA_TEMPLATES, ...customOnly];
+          // Prioriza as versões salvas no Redis/arquivo (que incluem edições do admin)
+          // e adiciona quaisquer templates oficiais que ainda não existam no cache
+          const missingOfficial = FESTA_TEMPLATES.filter((f) => !parsed.some((p: FestaTemplate) => p.id === f.id));
+          return [...parsed, ...missingOfficial];
         }
       }
     }
@@ -49,8 +50,8 @@ export async function getTemplates(): Promise<FestaTemplate[]> {
         if (!hasNewTemplates) {
           return FESTA_TEMPLATES;
         }
-        const customOnly = parsed.filter((t: FestaTemplate) => !FESTA_TEMPLATES.some((f) => f.id === t.id));
-        return [...FESTA_TEMPLATES, ...customOnly];
+        const missingOfficial = FESTA_TEMPLATES.filter((f) => !parsed.some((p: FestaTemplate) => p.id === f.id));
+        return [...parsed, ...missingOfficial];
       }
     }
   } catch (err) {
