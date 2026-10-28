@@ -25,33 +25,45 @@ export async function GET(req: Request, context: RouteContext) {
 
 export async function PUT(req: Request, context: RouteContext) {
   if (!checkAdminAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Senha de administrador inválida ou não autorizada. Por favor, faça login novamente no painel admin.' },
+      { status: 401 }
+    );
   }
 
   const { id } = await context.params;
   const existing = await getTemplateById(id);
 
-  if (!existing) {
-    return NextResponse.json({ error: 'Template não encontrado.' }, { status: 404 });
-  }
-
   try {
     const body = await req.json();
 
-    const updated = {
-      ...existing,
-      name: body.name !== undefined ? body.name : existing.name,
-      description: body.description !== undefined ? body.description : existing.description,
-      category: body.category !== undefined ? body.category : existing.category,
-      tags: body.tags !== undefined 
-        ? (Array.isArray(body.tags) ? body.tags : body.tags.split(',').map((t: string) => t.trim()).filter(Boolean)) 
-        : existing.tags,
-      previewColor: body.previewColor !== undefined ? body.previewColor : existing.previewColor,
-      icon: body.icon !== undefined ? body.icon : existing.icon,
-      elements: body.elements !== undefined ? body.elements : existing.elements,
-      environment: body.environment !== undefined ? body.environment : existing.environment,
-      is_published: body.is_published !== undefined ? Boolean(body.is_published) : (existing.is_published ?? true),
-    };
+    const updated = existing
+      ? {
+          ...existing,
+          name: body.name !== undefined ? body.name : existing.name,
+          description: body.description !== undefined ? body.description : existing.description,
+          category: body.category !== undefined ? body.category : existing.category,
+          tags: body.tags !== undefined 
+            ? (Array.isArray(body.tags) ? body.tags : typeof body.tags === 'string' ? body.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : existing.tags) 
+            : existing.tags,
+          previewColor: body.previewColor !== undefined ? body.previewColor : existing.previewColor,
+          icon: body.icon !== undefined ? body.icon : existing.icon,
+          elements: body.elements !== undefined ? body.elements : existing.elements,
+          environment: body.environment !== undefined ? body.environment : existing.environment,
+          is_published: body.is_published !== undefined ? Boolean(body.is_published) : (existing.is_published ?? true),
+        }
+      : {
+          id,
+          name: body.name || id,
+          description: body.description || '',
+          category: body.category || 'Infantil',
+          tags: Array.isArray(body.tags) ? body.tags : typeof body.tags === 'string' ? body.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+          previewColor: body.previewColor || 'from-sky-200 via-pink-100 to-yellow-100',
+          icon: body.icon || '🎈',
+          elements: body.elements || [],
+          environment: body.environment || {},
+          is_published: body.is_published !== undefined ? Boolean(body.is_published) : true,
+        };
 
     const saved = await upsertTemplate(updated);
     return NextResponse.json(saved);

@@ -80,7 +80,9 @@ export default function AdminTemplateBuilderPage() {
     elements: CanvasElement[],
     environment: EnvironmentConfig
   ): Promise<boolean> => {
-    if (!password || !templateId) return false;
+    if (!password || !templateId) {
+      throw new Error('Sessão expirada. Recarregue a página e informe a senha de administrador.');
+    }
     try {
       const res = await fetch(`/api/admin/templates/${templateId}`, {
         method: 'PUT',
@@ -96,7 +98,7 @@ export default function AdminTemplateBuilderPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Erro ao salvar template.');
+        throw new Error(data.error || data.message || `Erro ${res.status}: Não foi possível salvar o template.`);
       }
 
       const updated = await res.json();
@@ -104,7 +106,7 @@ export default function AdminTemplateBuilderPage() {
       return true;
     } catch (err) {
       console.error('[AdminTemplateBuilder] Erro ao salvar template:', err);
-      return false;
+      throw err;
     }
   };
 

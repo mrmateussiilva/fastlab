@@ -80,7 +80,9 @@ export default function AdminThemeBuilderPage() {
     elements: CanvasElement[],
     environment: EnvironmentConfig
   ): Promise<boolean> => {
-    if (!password || !themeId) return false;
+    if (!password || !themeId) {
+      throw new Error('Sessão expirada. Recarregue a página e informe a senha de administrador.');
+    }
     try {
       const res = await fetch(`/api/admin/themes/${themeId}`, {
         method: 'PUT',
@@ -96,7 +98,7 @@ export default function AdminThemeBuilderPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Erro ao salvar modelo.');
+        throw new Error(data.error || data.message || `Erro ${res.status}: Não foi possível salvar o modelo.`);
       }
 
       const updated = await res.json();
@@ -104,7 +106,7 @@ export default function AdminThemeBuilderPage() {
       return true;
     } catch (err) {
       console.error('[AdminBuilder] Erro ao salvar modelo:', err);
-      return false;
+      throw err;
     }
   };
 

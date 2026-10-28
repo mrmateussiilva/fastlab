@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { checkAdminAuth } from '@/lib/admin-auth';
+import { getTemplateById, upsertTemplate } from '@/lib/templates-store';
+import { CanvasElement, EnvironmentConfig } from '@/lib/builder-elements';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,19 +16,39 @@ export async function GET(req: Request, context: RouteContext) {
   }
 
   const { id } = await context.params;
-  const supabase = getSupabaseAdmin();
 
-  const { data, error } = await supabase
-    .from('themes')
-    .select('*')
-    .eq('id', id)
-    .single();
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('themes')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 404 });
+    if (!error && data) {
+      return NextResponse.json(data);
+    }
+  } catch (err) {
+    console.warn('[AdminThemes GET Supabase Fallback]:', err);
   }
 
-  return NextResponse.json(data);
+  // Fallback: se o Supabase não estiver configurado ou não encontrar, busca no catálogo de templates
+  const template = await getTemplateById(id);
+  if (template) {
+    return NextResponse.json({
+      id: template.id,
+      name: template.name,
+      category: template.category,
+      tags: template.tags,
+      description: template.description,
+      cover_image_url: '',
+      elements: template.elements,
+      environment: template.environment,
+      is_published: template.is_published ?? true,
+    });
+  }
+
+  return NextResponse.json({ error: 'Tema não encontrado.' }, { status: 404 });
 }
 
 export async function PUT(req: Request, context: RouteContext) {
@@ -132,16 +154,38 @@ export async function PUT(req: Request, context: RouteContext) {
       return NextResponse.json({ error: 'Nenhum dado fornecido para atualização.' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from('themes')
-      .update(updatePayload)
-      .eq('id', id)
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('themes')
+        .update(updatePayload)
+        .eq('id', id)
+        .select()
+        .single();
 
-    if (error) throw new Error(error.message);
+      if (!error && data) {
+        return NextResponse.json(data);
+      }
+      if (error) throw new Error(error.message);
+    } catch (supabaseErr) {
+      console.warn(`[AdminThemes PUT Supabase Fallback ${id}]:`, supabaseErr);
+      // Fallback: se o Supabase não estiver configurado ou falhar, salva no catálogo de templates
+      const template = await getTemplateById(id);
+      if (template) {
+        const updatedTemplate = await upsertTemplate({
+          ...template,
+          ...(updatePayload.name ? { name: String(updatePayload.name) } : {}),
+          ...(updatePayload.category ? { category: String(updatePayload.category) } : {}),
+          ...(updatePayload.description ? { description: String(updatePayload.description) } : {}),
+          ...(updatePayload.elements ? { elements: updatePayload.elements as CanvasElement[] } : {}),
+          ...(updatePayload.environment ? { environment: updatePayload.environment as EnvironmentConfig } : {}),
+          ...(updatePayload.is_published !== undefined ? { is_published: Boolean(updatePayload.is_published) } : {}),
+        });
+        return NextResponse.json(updatedTemplate);
+      }
+      throw supabaseErr;
+    }
 
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error(`[AdminThemes PUT Error ${id}]:`, error);
     return NextResponse.json(
