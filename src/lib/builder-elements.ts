@@ -179,6 +179,13 @@ export const SCALE = {
   cmToPx: (cm: number) => Math.round(cm * 2),
 };
 
+// Limites de zoom do canvas 2D (botões, scroll e pinça usam os mesmos)
+export const MIN_ZOOM = 0.35;
+export const MAX_ZOOM = 2;
+
+export const clampZoom = (z: number) =>
+  Math.round(Math.min(Math.max(z, MIN_ZOOM), MAX_ZOOM) * 100) / 100;
+
 export const CATEGORIES: { id: ElementCategory; name: string }[] = [
   { id: 'paineis', name: 'Painéis' },
   { id: 'mesas', name: 'Mesas' },

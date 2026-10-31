@@ -10,7 +10,10 @@ import {
   CustomItemCategory,
   EnvironmentConfig,
   DEFAULT_ENVIRONMENT,
-  ELEMENT_LIBRARY
+  ELEMENT_LIBRARY,
+  MIN_ZOOM,
+  MAX_ZOOM,
+  clampZoom
 } from '@/lib/builder-elements';
 import { idbGetAll, idbSave, idbDelete } from '@/lib/idb';
 import { RealisticPromptOptions } from '@/lib/prompts';
@@ -21,7 +24,7 @@ import PropertiesSidebar from './properties-sidebar';
 import GenerationModal from './generation-modal';
 import ResultComparison from '../result-comparison';
 import LeadCaptureCard from '../lead-capture-card';
-import { CanvasStageRef } from './canvas-stage';
+import type { CanvasStageRef, ElementUpdate } from './canvas-stage';
 import { ZoomIn, ZoomOut, RotateCcw, Plus, Building2, Sliders, Sparkles, Copy, Trash2 } from 'lucide-react';
 import { useGenerationLimit } from '@/hooks/use-generation-limit';
 import { useOnline } from '@/hooks/use-online';
@@ -360,6 +363,13 @@ const QUICK_ADD_IDS = [
 ];
 const QUICK_ADD_ITEMS = ELEMENT_LIBRARY.filter((el) => QUICK_ADD_IDS.includes(el.id));
 
+// Índice evita ids repetidos quando vários itens são criados no mesmo milissegundo
+const newElementId = (index = 0) =>
+  `el-${Date.now()}-${index}-${Math.floor(Math.random() * 1000)}`;
+
+// Toques nas setas dentro desse intervalo viram um único passo de desfazer
+const NUDGE_MERGE_MS = 800;
+
 export default function MockupBuilder({
   onBackToHome,
   projectId,
@@ -492,7 +502,16 @@ export default function MockupBuilder({
   const [history, setHistory] = useState<CanvasElement[][]>([elements]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const lastNudgeAtRef = useRef(0);
+
+  // Seleção: vários itens possíveis; selectedId só existe quando há exatamente um
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const selectedId = selectedIds.length === 1 ? selectedIds[0] : null;
+  const setSelectedId = useCallback((id: string | null) => {
+    setSelectedIds(id ? [id] : []);
+  }, []);
+  const clipboardRef = useRef<CanvasElement[]>([]);
+  const pasteCountRef = useRef(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportedMockupUrl, setExportedMockupUrl] = useState<string | null>(null);
@@ -515,7 +534,12 @@ export default function MockupBuilder({
     if (!projectId) return;
     loadProject(projectId).then((project) => {
       if (!project) return;
-      setElements(project.elements as CanvasElement[]);
+      const loaded = project.elements as CanvasElement[];
+      setElements(loaded);
+      // Sem isso, o primeiro Ctrl+Z voltaria para a cena padrão/localStorage
+      setHistory([loaded]);
+      setHistoryIndex(0);
+      setSelectedIds([]);
       setEnvironment(project.environment as typeof DEFAULT_ENVIRONMENT);
       setProjectName(project.name);
     });
@@ -591,7 +615,7 @@ export default function MockupBuilder({
         setError('Erro ao preparar imagem para AR.');
       }
     }, 60);
-  }, [viewMode]);
+  }, [viewMode, setSelectedId]);
 
   // Faixa de onboarding: exibida até o usuário dispensar (persistido)
   const [showOnboarding, setShowOnboarding] = useState(() => {
@@ -678,8 +702,18 @@ export default function MockupBuilder({
   }, [projectName]);
 
   // Função para adicionar estado ao histórico de Undo/Redo
-  const commitChange = useCallback((newElements: CanvasElement[]) => {
+  // mergeWithLast substitui o passo atual em vez de criar outro (usado nos toques das setas)
+  const commitChange = useCallback((newElements: CanvasElement[], mergeWithLast = false) => {
     setElements(newElements);
+    if (mergeWithLast && historyIndex > 0) {
+      setHistory((prev) => {
+        const next = prev.slice(0, historyIndex + 1);
+        next[historyIndex] = newElements;
+        return next;
+      });
+      return;
+    }
+    lastNudgeAtRef.current = 0;
     setHistory((prev) => {
       const upToCurrent = prev.slice(0, historyIndex + 1);
       const nextHistory = [...upToCurrent, newElements];
@@ -694,6 +728,7 @@ export default function MockupBuilder({
   // Desfazer (Undo)
   const handleUndo = useCallback(() => {
     if (historyIndex > 0) {
+      lastNudgeAtRef.current = 0;
       const newIdx = historyIndex - 1;
       setHistoryIndex(newIdx);
       setElements(history[newIdx]);
@@ -703,6 +738,7 @@ export default function MockupBuilder({
   // Refazer (Redo)
   const handleRedo = useCallback(() => {
     if (historyIndex < history.length - 1) {
+      lastNudgeAtRef.current = 0;
       const newIdx = historyIndex + 1;
       setHistoryIndex(newIdx);
       setElements(history[newIdx]);
@@ -710,6 +746,28 @@ export default function MockupBuilder({
   }, [history, historyIndex]);
 
   const selectedElement = elements.find((el) => el.id === selectedId) || null;
+  const selectedElements = elements.filter((el) => selectedIds.includes(el.id));
+  const selectionBounds = selectedElements.length > 0 ? {
+    minX: Math.min(...selectedElements.map((el) => el.x)),
+    maxX: Math.max(...selectedElements.map((el) => el.x + el.width)),
+    minY: Math.min(...selectedElements.map((el) => el.y)),
+  } : null;
+
+  // Clique no canvas: com Shift/Ctrl/Cmd alterna o item na seleção. Itens travados
+  // nunca entram numa seleção múltipla (o Transformer os moveria junto com o grupo).
+  const handleSelectElement = useCallback((id: string | null, additive = false) => {
+    if (!id) {
+      setSelectedIds([]);
+      return;
+    }
+    setSelectedIds((prev) => {
+      if (!additive) return [id];
+      const isLocked = (elId: string) => elements.find((el) => el.id === elId)?.locked;
+      if (isLocked(id)) return [id];
+      const unlocked = prev.filter((prevId) => !isLocked(prevId));
+      return unlocked.includes(id) ? unlocked.filter((prevId) => prevId !== id) : [...unlocked, id];
+    });
+  }, [elements]);
 
   // Processa o upload de uma imagem personalizada
   const handleUploadCustomItem = (uploadedFile: File, category: CustomItemCategory = 'Extra') => {
@@ -883,30 +941,61 @@ export default function MockupBuilder({
     commitChange(nextElements);
   };
 
-  // Duplicar elemento selecionado
-  const handleDuplicate = useCallback(() => {
-    if (!selectedElement) return;
-    const maxZ = elements.reduce((max, el) => Math.max(max, el.zIndex), 0);
-    const duplicated: CanvasElement = {
-      ...selectedElement,
-      id: `el-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      name: `${selectedElement.name} (cópia)`,
-      x: selectedElement.x + 20,
-      y: selectedElement.y + 20,
-      zIndex: maxZ + 1,
-    };
-    const nextElements = [...elements, duplicated];
+  // Atualiza vários elementos num único passo do histórico (arrastar/redimensionar em grupo)
+  const handleUpdateElements = (updates: ElementUpdate[]) => {
+    const changesById = new Map(updates.map((u) => [u.id, u.changes]));
+    const nextElements = elements.map((el) => {
+      const changes = changesById.get(el.id);
+      return changes ? { ...el, ...changes } : el;
+    });
     commitChange(nextElements);
-    setSelectedId(duplicated.id);
-  }, [selectedElement, elements, commitChange, setSelectedId]);
+  };
 
-  // Excluir elemento selecionado
+  // Insere cópias dos itens acima de tudo, deslocadas, e seleciona as cópias
+  const insertCopies = useCallback((sources: CanvasElement[], offset: number, nameSuffix: string) => {
+    if (sources.length === 0) return;
+    const maxZ = elements.reduce((max, el) => Math.max(max, el.zIndex), 0);
+    const copies = [...sources]
+      .sort((a, b) => a.zIndex - b.zIndex)
+      .map((src, i) => ({
+        ...src,
+        id: newElementId(i),
+        name: `${src.name}${nameSuffix}`,
+        x: src.x + offset,
+        y: src.y + offset,
+        zIndex: maxZ + 1 + i,
+        locked: false,
+      }));
+    commitChange([...elements, ...copies]);
+    setSelectedIds(copies.map((c) => c.id));
+  }, [elements, commitChange]);
+
+  // Duplicar itens selecionados
+  const handleDuplicate = useCallback(() => {
+    insertCopies(selectedElements, 20, ' (cópia)');
+  }, [insertCopies, selectedElements]);
+
+  // Excluir itens selecionados
   const handleDelete = useCallback(() => {
-    if (!selectedId) return;
-    const nextElements = elements.filter((el) => el.id !== selectedId);
+    if (selectedIds.length === 0) return;
+    const nextElements = elements.filter((el) => !selectedIds.includes(el.id));
     commitChange(nextElements);
-    setSelectedId(null);
-  }, [selectedId, elements, commitChange, setSelectedId]);
+    setSelectedIds([]);
+  }, [selectedIds, elements, commitChange]);
+
+  // Copiar / colar (área de transferência interna do editor)
+  const handleCopy = useCallback(() => {
+    if (selectedElements.length === 0) return false;
+    clipboardRef.current = selectedElements.map((el) => ({ ...el }));
+    pasteCountRef.current = 0;
+    return true;
+  }, [selectedElements]);
+
+  const handlePaste = useCallback(() => {
+    if (clipboardRef.current.length === 0) return;
+    pasteCountRef.current += 1;
+    insertCopies(clipboardRef.current, 20 * pasteCountRef.current, '');
+  }, [insertCopies]);
 
   // Ordem de camadas: Trazer para frente (Topo)
   const handleBringToFront = () => {
@@ -984,8 +1073,35 @@ export default function MockupBuilder({
         return;
       }
 
+      // Copiar / Recortar / Colar: Ctrl+C / Ctrl+X / Ctrl+V
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+        if (handleCopy()) e.preventDefault();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
+        if (handleCopy()) {
+          e.preventDefault();
+          handleDelete();
+        }
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+        if (clipboardRef.current.length > 0) {
+          e.preventDefault();
+          handlePaste();
+        }
+        return;
+      }
+
+      // Selecionar tudo (exceto travados): Ctrl+A
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setSelectedIds(elements.filter((el) => !el.locked).map((el) => el.id));
+        return;
+      }
+
       // Excluir: Delete / Backspace
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElements.length > 0) {
         e.preventDefault();
         handleDelete();
         return;
@@ -994,12 +1110,13 @@ export default function MockupBuilder({
       // Desselecionar: Escape
       if (e.key === 'Escape') {
         e.preventDefault();
-        setSelectedId(null);
+        setSelectedIds([]);
         return;
       }
 
-      // Setas para mover poucos pixels
-      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) && selectedElement && !selectedElement.locked) {
+      // Setas para mover poucos pixels (todos os itens selecionados não travados)
+      const movable = selectedElements.filter((el) => !el.locked);
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) && movable.length > 0) {
         e.preventDefault();
         const step = e.shiftKey ? 10 : 2;
         let dx = 0;
@@ -1009,16 +1126,19 @@ export default function MockupBuilder({
         if (e.key === 'ArrowUp') dy = -step;
         if (e.key === 'ArrowDown') dy = step;
 
+        const movableIds = new Set(movable.map((el) => el.id));
         const nextElements = elements.map((el) =>
-          el.id === selectedElement.id ? { ...el, x: el.x + dx, y: el.y + dy } : el
+          movableIds.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el
         );
-        commitChange(nextElements);
+        const now = Date.now();
+        commitChange(nextElements, now - lastNudgeAtRef.current < NUDGE_MERGE_MS);
+        lastNudgeAtRef.current = now;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, selectedElement, elements, handleUndo, handleRedo, handleDuplicate, handleDelete, commitChange]);
+  }, [selectedElements, elements, handleUndo, handleRedo, handleDuplicate, handleDelete, handleCopy, handlePaste, commitChange]);
 
   // Exportar Mockup diretamente como imagem PNG
   const handleExportMockup = () => {
@@ -1320,9 +1440,10 @@ export default function MockupBuilder({
           <CanvasStage
             ref={canvasRef}
             elements={elements}
-            selectedId={selectedId}
-            onSelectElement={setSelectedId}
-            onUpdateElement={handleUpdateElement}
+            selectedIds={selectedIds}
+            onSelectElement={handleSelectElement}
+            onSelectElements={setSelectedIds}
+            onUpdateElements={handleUpdateElements}
             environment={environment}
             zoom={zoom}
             onZoomChange={setZoom}
@@ -1360,16 +1481,21 @@ export default function MockupBuilder({
             </div>
           )}
 
-          {/* Tooltip flutuante de ações rápidas ao selecionar um item */}
-          {selectedElement && !isPreviewMode && (
+          {/* Tooltip flutuante de ações rápidas ao selecionar um ou mais itens */}
+          {selectionBounds && !isPreviewMode && (
             <div 
               className="absolute z-20 bg-white shadow-xl border border-zinc-200 rounded-xl px-2 py-1.5 flex items-center gap-1 pointer-events-auto transition-all duration-75"
               style={{
-                left: `${(selectedElement.x + selectedElement.width / 2) * zoom + panOffset.x}px`,
-                top: `${Math.max(16, (selectedElement.y * zoom + panOffset.y) - 56)}px`,
+                left: `${((selectionBounds.minX + selectionBounds.maxX) / 2) * zoom + panOffset.x}px`,
+                top: `${Math.max(16, (selectionBounds.minY * zoom + panOffset.y) - 56)}px`,
                 transform: 'translateX(-50%)',
               }}
             >
+              {selectedElements.length > 1 && (
+                <span className="px-2 text-xs font-medium text-zinc-600 whitespace-nowrap">
+                  {selectedElements.length} itens
+                </span>
+              )}
               <button
                 type="button"
                 onClick={handleDuplicate}
@@ -1386,8 +1512,8 @@ export default function MockupBuilder({
               >
                 <Trash2 className="w-4 h-4" />
               </button>
-              <div className="w-px h-5 bg-zinc-200 mx-1" />
-              <button
+              {selectedElement && <div className="w-px h-5 bg-zinc-200 mx-1" />}
+              {selectedElement && <button
                 type="button"
                 onClick={() => {
                   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -1407,7 +1533,7 @@ export default function MockupBuilder({
                 <Sliders className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Propriedades</span>
                 <span className="sm:hidden">Editar</span>
-              </button>
+              </button>}
             </div>
           )}
 
@@ -1415,8 +1541,8 @@ export default function MockupBuilder({
           <div className="absolute bottom-20 md:bottom-4 right-3 md:right-4 z-20 bg-white/95 backdrop-blur-xs border border-zinc-200/80 rounded-xl shadow-md p-1 flex items-center gap-1 select-none">
             <button
               type="button"
-              onClick={() => setZoom((z) => Math.max(Math.round((z - 0.25) * 100) / 100, 0.35))}
-              disabled={zoom <= 0.35}
+              onClick={() => setZoom((z) => clampZoom(z - 0.25))}
+              disabled={zoom <= MIN_ZOOM}
               title="Diminuir Zoom"
               className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             >
@@ -1429,8 +1555,8 @@ export default function MockupBuilder({
 
             <button
               type="button"
-              onClick={() => setZoom((z) => Math.min(Math.round((z + 0.25) * 100) / 100, 2.0))}
-              disabled={zoom >= 2.0}
+              onClick={() => setZoom((z) => clampZoom(z + 0.25))}
+              disabled={zoom >= MAX_ZOOM}
               title="Aumentar Zoom"
               className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             >

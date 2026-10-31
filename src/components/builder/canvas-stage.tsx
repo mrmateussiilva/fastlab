@@ -15,10 +15,11 @@ import {
   Transformer 
 } from 'react-konva';
 import Konva from 'konva';
-import { 
-  CanvasElement, 
-  EnvironmentConfig, 
-  DEFAULT_ENVIRONMENT 
+import {
+  CanvasElement,
+  EnvironmentConfig,
+  DEFAULT_ENVIRONMENT,
+  clampZoom
 } from '@/lib/builder-elements';
 import { Lock } from 'lucide-react';
 
@@ -31,11 +32,26 @@ interface AlignmentGuide {
   orientation: 'vertical' | 'horizontal';
 }
 
+export interface ElementUpdate {
+  id: string;
+  changes: Partial<CanvasElement>;
+}
+
+interface Marquee {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
 interface CanvasStageProps {
   elements: CanvasElement[];
-  selectedId: string | null;
-  onSelectElement: (id: string | null) => void;
-  onUpdateElement: (id: string, updated: Partial<CanvasElement>) => void;
+  selectedIds: string[];
+  // additive = Shift/Ctrl/Cmd pressionado (adiciona/remove da seleção)
+  onSelectElement: (id: string | null, additive?: boolean) => void;
+  onSelectElements: (ids: string[]) => void;
+  // Aplica várias alterações num único passo do histórico
+  onUpdateElements: (updates: ElementUpdate[]) => void;
   environment?: EnvironmentConfig;
   zoom?: number;
   onZoomChange?: (z: number) => void;
@@ -319,13 +335,13 @@ const renderSingleOrganicBalloon = (
 const ElementShape = ({
   el,
   onSelect,
-  onChange,
+  onDragStart,
   onDragMove,
   onDragEnd,
 }: {
   el: CanvasElement;
-  onSelect: () => void;
-  onChange: (updated: Partial<CanvasElement>) => void;
+  onSelect: (additive: boolean) => void;
+  onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onDragMove?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }) => {
@@ -1924,37 +1940,15 @@ const ElementShape = ({
       draggable={!el.locked}
       onClick={(e) => {
         e.cancelBubble = true;
-        onSelect();
+        onSelect(e.evt.shiftKey || e.evt.ctrlKey || e.evt.metaKey);
       }}
       onTap={(e) => {
         e.cancelBubble = true;
-        onSelect();
+        onSelect(false);
       }}
-      onDragMove={(e) => {
-        if (onDragMove) onDragMove(e);
-      }}
-      onDragEnd={(e) => {
-        if (onDragEnd) onDragEnd(e);
-        onChange({
-          x: Math.round(e.target.x()),
-          y: Math.round(e.target.y()),
-        });
-      }}
-      onTransformEnd={() => {
-        const node = shapeRef.current;
-        if (!node) return;
-        const scaleX = node.scaleX();
-        const scaleY = node.scaleY();
-        node.scaleX(1);
-        node.scaleY(1);
-        onChange({
-          x: Math.round(node.x()),
-          y: Math.round(node.y()),
-          width: Math.max(20, Math.round(node.width() * scaleX)),
-          height: Math.max(20, Math.round(node.height() * scaleY)),
-          rotation: Math.round(node.rotation()),
-        });
-      }}
+      onDragStart={onDragStart}
+      onDragMove={onDragMove}
+      onDragEnd={onDragEnd}
     >
       {renderGeometry()}
     </Group>
@@ -1963,9 +1957,10 @@ const ElementShape = ({
 
 const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
   elements,
-  selectedId,
+  selectedIds,
   onSelectElement,
-  onUpdateElement,
+  onSelectElements,
+  onUpdateElements,
   environment = DEFAULT_ENVIRONMENT,
   zoom = 1,
   onZoomChange,
@@ -1978,6 +1973,10 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
   const [guides, setGuides] = useState<AlignmentGuide[]>([]);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const lastDistRef = useRef<number>(0);
+  const [marquee, setMarquee] = useState<Marquee | null>(null);
+  const marqueeRef = useRef<{ start: { x: number; y: number }; additive: boolean } | null>(null);
+  // Nó que o usuário está arrastando de fato (os demais da seleção seguem via Transformer)
+  const dragPrimaryIdRef = useRef<string | null>(null);
 
   // Auto-fit inicial em telas de celular (< 768px)
   useEffect(() => {
@@ -2053,24 +2052,35 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
   }));
 
   // Atualiza nós conectados ao Transformer quando a seleção muda
-  const selectedElement = elements.find((el) => el.id === selectedId);
+  const selectedElements = elements.filter((el) => selectedIds.includes(el.id));
+  const isMultiSelection = selectedElements.length > 1;
+  const singleLocked = selectedElements.length === 1 && Boolean(selectedElements[0].locked);
 
   useEffect(() => {
     if (!transformerRef.current || !stageRef.current) return;
-    if (selectedId && !isPreviewMode) {
-      const selectedNode = stageRef.current.findOne('#' + selectedId);
-      if (selectedNode) {
-        transformerRef.current.nodes([selectedNode]);
-        transformerRef.current.getLayer()?.batchDraw();
-        return;
-      }
-    }
-    transformerRef.current.nodes([]);
+    const stage = stageRef.current;
+    const nodes = isPreviewMode
+      ? []
+      : selectedIds
+          .map((id) => stage.findOne('#' + id))
+          .filter((node): node is Konva.Node => Boolean(node));
+    transformerRef.current.nodes(nodes);
     transformerRef.current.getLayer()?.batchDraw();
-  }, [selectedId, elements, isPreviewMode]);
+  }, [selectedIds, elements, isPreviewMode]);
+
+  const isInMultiSelection = (id: string) => isMultiSelection && selectedIds.includes(id);
+
+  const handleDragStart = (e: Konva.KonvaEventObject<DragEvent>) => {
+    if (!dragPrimaryIdRef.current) {
+      dragPrimaryIdRef.current = e.target.id();
+    }
+  };
 
   // Lógica de Snapping leve e guias de alinhamento ao arrastar
   const handleDragMove = (e: Konva.KonvaEventObject<DragEvent>, activeId: string) => {
+    // Em grupo, o Transformer sincroniza os nós pelo ponteiro; snap desalinharia o grupo
+    if (isInMultiSelection(activeId)) return;
+
     const activeNode = e.target;
     const activeEl = elements.find((el) => el.id === activeId);
     if (!activeEl) return;
@@ -2132,18 +2142,109 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
     setGuides(newGuides);
   };
 
-  const handleDragEnd = () => {
+  // Konva dispara dragend em cada nó do grupo; só o nó principal grava, e grava todos de uma vez
+  const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
+    const nodeId = e.target.id();
+    if (dragPrimaryIdRef.current && dragPrimaryIdRef.current !== nodeId) return;
+    dragPrimaryIdRef.current = null;
     setGuides([]);
+
+    const movedNodes = isInMultiSelection(nodeId)
+      ? transformerRef.current?.nodes() ?? [e.target]
+      : [e.target];
+    onUpdateElements(
+      movedNodes.map((node) => ({
+        id: node.id(),
+        changes: { x: Math.round(node.x()), y: Math.round(node.y()) },
+      }))
+    );
   };
 
-  // Zoom pelo scroll (com Ctrl/Cmd ou tecla de modificador)
+  const handleTransformEnd = () => {
+    const nodes = transformerRef.current?.nodes() ?? [];
+    const updates = nodes.map((node) => {
+      const scaleX = node.scaleX();
+      const scaleY = node.scaleY();
+      node.scaleX(1);
+      node.scaleY(1);
+      return {
+        id: node.id(),
+        changes: {
+          x: Math.round(node.x()),
+          y: Math.round(node.y()),
+          width: Math.max(20, Math.round(node.width() * scaleX)),
+          height: Math.max(20, Math.round(node.height() * scaleY)),
+          rotation: Math.round(node.rotation()),
+        },
+      };
+    });
+    if (updates.length > 0) onUpdateElements(updates);
+  };
+
+  // Seleção por área (arrastar no fundo vazio com o mouse)
+  const handleMarqueeStart = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    const stage = stageRef.current;
+    if (!stage || e.target !== stage) return;
+    const additive = e.evt.shiftKey || e.evt.ctrlKey || e.evt.metaKey;
+    if (!additive) onSelectElement(null);
+    if (isSpacePressed || isPreviewMode || e.evt.button !== 0) return;
+
+    const pos = stage.getRelativePointerPosition();
+    if (!pos) return;
+    marqueeRef.current = { start: pos, additive };
+    setMarquee({ x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y });
+  };
+
+  const handleMarqueeMove = () => {
+    if (!marqueeRef.current) return;
+    const pos = stageRef.current?.getRelativePointerPosition();
+    if (!pos) return;
+    const { start } = marqueeRef.current;
+    setMarquee({ x1: start.x, y1: start.y, x2: pos.x, y2: pos.y });
+  };
+
+  const handleMarqueeEnd = () => {
+    const current = marqueeRef.current;
+    const stage = stageRef.current;
+    marqueeRef.current = null;
+    if (!current || !marquee || !stage) {
+      setMarquee(null);
+      return;
+    }
+
+    const box = {
+      x: Math.min(marquee.x1, marquee.x2),
+      y: Math.min(marquee.y1, marquee.y2),
+      width: Math.abs(marquee.x2 - marquee.x1),
+      height: Math.abs(marquee.y2 - marquee.y1),
+    };
+    setMarquee(null);
+    // Clique simples no fundo (sem arrastar) só desseleciona
+    if (box.width < 4 && box.height < 4) return;
+
+    const hitIds = elements
+      .filter((el) => !el.locked)
+      .filter((el) => {
+        const node = stage.findOne('#' + el.id);
+        return node && Konva.Util.haveIntersection(box, node.getClientRect({ relativeTo: stage }));
+      })
+      .map((el) => el.id);
+
+    if (current.additive) {
+      const unlockedSelected = selectedElements.filter((el) => !el.locked).map((el) => el.id);
+      onSelectElements([...new Set([...unlockedSelected, ...hitIds])]);
+    } else {
+      onSelectElements(hitIds);
+    }
+  };
+
+  // Zoom pelo scroll (com Ctrl/Cmd ou pinça do trackpad, que o navegador envia como Ctrl+wheel)
   const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     if (e.evt.ctrlKey || e.evt.metaKey) {
       e.evt.preventDefault();
       if (!onZoomChange) return;
       const zoomFactor = e.evt.deltaY < 0 ? 1.1 : 0.9;
-      const newZoom = Math.min(Math.max(zoom * zoomFactor, 0.5), 2.0);
-      onZoomChange(Math.round(newZoom * 100) / 100);
+      onZoomChange(clampZoom(zoom * zoomFactor));
     }
   };
 
@@ -2170,13 +2271,12 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
           scaleY={zoom}
           draggable={isSpacePressed}
           onWheel={handleWheel}
-          onMouseDown={(e) => {
-            if (e.target === e.target.getStage() || e.target.name() === 'background') {
-              onSelectElement(null);
-            }
-          }}
+          onMouseDown={handleMarqueeStart}
+          onMouseMove={handleMarqueeMove}
+          onMouseUp={handleMarqueeEnd}
+          onMouseLeave={handleMarqueeEnd}
           onTouchStart={(e) => {
-            if (e.target === e.target.getStage() || e.target.name() === 'background') {
+            if (e.target === e.target.getStage()) {
               onSelectElement(null);
             }
           }}
@@ -2195,8 +2295,7 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
               }
 
               const scale = dist / lastDistRef.current;
-              const newZoom = Math.min(Math.max(zoom * scale, 0.35), 2.2);
-              onZoomChange(Math.round(newZoom * 100) / 100);
+              onZoomChange(clampZoom(zoom * scale));
               lastDistRef.current = dist;
             }
           }}
@@ -2209,8 +2308,9 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
             }
           }}
         >
-          {/* Camada de Fundo (Ambiente do Evento: Parede + Piso OU Imagem Real) */}
-          <Layer>
+          {/* Camada de Fundo (Ambiente do Evento: Parede + Piso OU Imagem Real).
+              Não escuta eventos: cliques no fundo chegam ao Stage (desselecionar / seleção por área). */}
+          <Layer listening={false}>
             {environment.backgroundImage ? (
               <KonvaCustomImage
                 url={environment.backgroundImage}
@@ -2260,12 +2360,27 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
               <ElementShape
                 key={el.id}
                 el={el}
-                onSelect={() => onSelectElement(el.id)}
-                onChange={(updated) => onUpdateElement(el.id, updated)}
+                onSelect={(additive) => onSelectElement(el.id, additive)}
+                onDragStart={handleDragStart}
                 onDragMove={(e) => handleDragMove(e, el.id)}
                 onDragEnd={handleDragEnd}
               />
             ))}
+
+            {/* Retângulo da seleção por área */}
+            {marquee && (
+              <Rect
+                x={Math.min(marquee.x1, marquee.x2)}
+                y={Math.min(marquee.y1, marquee.y2)}
+                width={Math.abs(marquee.x2 - marquee.x1)}
+                height={Math.abs(marquee.y2 - marquee.y1)}
+                fill="rgba(234, 88, 12, 0.08)"
+                stroke="#EA580C"
+                strokeWidth={1 / zoom}
+                dash={[4 / zoom, 3 / zoom]}
+                listening={false}
+              />
+            )}
 
             {/* Guias Visuais Temporárias de Snapping */}
             {!isPreviewMode && guides.map((guide, idx) => (
@@ -2289,21 +2404,24 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
                   }
                   return newBox;
                 }}
-                rotateEnabled={!selectedElement?.locked}
+                onTransformEnd={handleTransformEnd}
+                rotateEnabled={!singleLocked}
                 enabledAnchors={
-                  selectedElement?.locked 
-                    ? [] 
-                    : ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']
+                  singleLocked
+                    ? []
+                    : isMultiSelection
+                      ? ['top-left', 'top-right', 'bottom-left', 'bottom-right']
+                      : ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']
                 }
                 anchorCornerRadius={4}
                 anchorSize={12}
                 rotateAnchorOffset={24}
                 anchorFill="#FFFFFF"
-                anchorStroke={selectedElement?.locked ? '#9CA3AF' : '#EA580C'}
+                anchorStroke={singleLocked ? '#9CA3AF' : '#EA580C'}
                 anchorStrokeWidth={2}
-                borderStroke={selectedElement?.locked ? '#9CA3AF' : '#EA580C'}
+                borderStroke={singleLocked ? '#9CA3AF' : '#EA580C'}
                 borderStrokeWidth={1.5}
-                borderDash={selectedElement?.locked ? [3, 3] : [4, 3]}
+                borderDash={singleLocked ? [3, 3] : [4, 3]}
               />
             )}
           </Layer>
@@ -2311,7 +2429,7 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
       </div>
 
       {/* Indicador se o item selecionado está travado */}
-      {selectedElement?.locked && !isPreviewMode && (
+      {singleLocked && !isPreviewMode && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-zinc-900/80 text-white text-[11px] font-sans px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md backdrop-blur-xs">
           <Lock className="w-3 h-3 text-orange-400" />
           <span>Item bloqueado (destrave no painel direito para mover)</span>
