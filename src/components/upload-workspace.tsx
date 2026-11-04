@@ -98,7 +98,7 @@ export default function UploadWorkspace({ onBack }: UploadWorkspaceProps) {
       setResultUrl(data.image);
       limitData.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Ocorreu um erro inesperado.');
+      setError(err instanceof Error ? err.message : 'Ops, a IA tropeçou no confete 🎈 Tente de novo em instantes.');
     } finally {
       setIsGenerating(false);
     }

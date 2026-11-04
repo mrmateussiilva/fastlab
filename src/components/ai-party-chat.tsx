@@ -144,12 +144,12 @@ export default function AIPartyChat({ onStartWithGeneratedScene }: AIPartyChatPr
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin text-white" />
-                <span>Montando Festa...</span>
+                <span>Montando sua festa...</span>
               </>
             ) : (
               <>
                 <Wand2 className="w-4 h-4 text-amber-100" />
-                <span>Criar Cenário</span>
+                <span>Montar minha festa ✨</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}

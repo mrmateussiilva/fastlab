@@ -100,8 +100,8 @@ export default function LeadCaptureCard() {
         </span>
         <p className="text-xs sm:text-sm text-emerald-900 font-medium font-sans">
           {alreadyRegistered
-            ? 'Você já estava na lista! Avisaremos você quando liberar novas gerações.'
-            : 'Pronto! Avisaremos você quando liberar novas gerações.'}
+            ? 'Você já estava na lista! Assim que liberarmos mais gerações, você fica sabendo primeiro 💛'
+            : 'Pronto! Você vai saber em primeira mão quando liberarmos mais gerações 💛'}
         </p>
       </div>
     );
@@ -123,7 +123,7 @@ export default function LeadCaptureCard() {
           <MessageCircle className="w-4 h-4" />
         </span>
         <p className="text-xs sm:text-sm font-semibold text-zinc-900 font-sans leading-tight">
-          Quer aviso quando liberar novas gerações?
+          Quer um aviso quando liberarmos mais gerações por hora?
         </p>
       </div>
 
@@ -156,7 +156,7 @@ export default function LeadCaptureCard() {
               Enviando
             </>
           ) : (
-            'Avise-me'
+            'Quero saber'
           )}
         </button>
       </div>

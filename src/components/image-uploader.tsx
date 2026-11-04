@@ -86,7 +86,7 @@ export default function ImageUploader() {
 
       setResultUrl(data.image);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Ocorreu um erro inesperado.');
+      setError(err instanceof Error ? err.message : 'Ops, a IA tropeçou no confete 🎈 Tente de novo em instantes.');
     } finally {
       setIsGenerating(false);
     }

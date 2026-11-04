@@ -26,8 +26,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "FestaLab - Do projeto à realidade",
-  description: "Transforme seu projeto de festa em uma apresentação fotorealista em segundos.",
+  title: "FestaLab: mostre a festa pronta antes de montar | Grátis",
+  description: "Monte a decoração da festa no celular ou computador (mesa de doces, painéis, balões e arco) e gere uma foto realista com IA para mostrar ao cliente. 100% gratuito.",
   applicationName: "FestaLab",
   appleWebApp: {
     capable: true,

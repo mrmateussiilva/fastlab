@@ -53,7 +53,7 @@ export default function GenerationLimitBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 border border-zinc-200/80 text-zinc-600 text-[11px] font-sans ${className}`}
         >
           <Clock className="w-3 h-3 text-zinc-500 shrink-0" />
-          <span>Disponível em {minsText}</span>
+          <span>Mais mágica em {minsText}</span>
         </div>
       );
     }
@@ -64,10 +64,10 @@ export default function GenerationLimitBadge({
       >
         <div className="inline-flex items-center gap-1 text-zinc-700 font-medium">
           <Clock className="w-3.5 h-3.5 text-orange-600" />
-          <span>Limite temporário atingido</span>
+          <span>Você usou as gerações desta hora ✨</span>
         </div>
         <div className="text-[11px] text-zinc-500">
-          Novas gerações disponíveis em {minsText}
+          Novas gerações em {minsText}. Enquanto isso, siga ajustando a montagem.
         </div>
       </div>
     );
@@ -80,7 +80,7 @@ export default function GenerationLimitBadge({
         className={`inline-flex items-center gap-1.5 text-xs text-zinc-600 font-sans ${className}`}
       >
         <Sparkles className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-        <span>1 geração gratuita disponível nesta hora</span>
+        <span>Você ainda tem 1 geração grátis nesta hora ✨</span>
       </div>
     );
   }
@@ -91,7 +91,7 @@ export default function GenerationLimitBadge({
       className={`inline-flex items-center gap-1.5 text-xs text-zinc-600 font-sans ${className}`}
     >
       <Sparkles className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-      <span>{remaining} gerações gratuitas disponíveis nesta hora</span>
+      <span>Você tem {remaining} gerações grátis nesta hora ✨</span>
     </div>
   );
 }

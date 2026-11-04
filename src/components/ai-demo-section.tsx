@@ -349,7 +349,7 @@ export default function AIDemoSection() {
             </p>
           )}
           <p className="text-xs text-zinc-400 max-w-md text-center">
-            Visualização com IA para referência criativa. Medidas, materiais e proporções podem variar.
+            Uma referência visual para encantar o cliente. Medidas e materiais podem variar, e o acabamento final é a sua arte.
           </p>
         </div>
       </div>
