@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Newsreader } from "next/font/google";
+import { Geist, Geist_Mono, Newsreader, Young_Serif } from "next/font/google";
 import "./globals.css";
 import RegisterSW from "@/components/pwa/register-sw";
 import { ClerkProvider } from '@clerk/nextjs';
@@ -19,6 +19,12 @@ const newsreader = Newsreader({
   variable: "--font-serif",
   subsets: ["latin"],
   style: ["normal", "italic"],
+});
+
+const youngSerif = Young_Serif({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const viewport: Viewport = {
@@ -53,7 +59,7 @@ export default function RootLayout({
     <ClerkProvider localization={ptBR}>
       <html
         lang="pt-BR"
-        className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} ${youngSerif.variable} h-full antialiased`}
       >
         <body className="min-h-full flex flex-col bg-[#FAFAF8] text-zinc-900">
           {children}

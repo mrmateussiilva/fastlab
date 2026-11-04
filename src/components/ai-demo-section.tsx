@@ -1,112 +1,80 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Layers, ArrowLeftRight, Wand2, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { ArrowLeftRight, Wand2 } from 'lucide-react';
 
 type Phase = 'mockup' | 'generating' | 'result' | 'compare';
 
 const GENERATION_STEPS = [
-  { label: 'Analisando composição…', pct: 15 },
-  { label: 'Identificando elementos…', pct: 32 },
-  { label: 'Calculando profundidade…', pct: 51 },
-  { label: 'Aplicando iluminação…', pct: 67 },
-  { label: 'Renderizando materiais…', pct: 82 },
-  { label: 'Finalizando detalhes…', pct: 95 },
-  { label: 'Imagem gerada com sucesso!', pct: 100 },
+  'Lendo a montagem…',
+  'Aplicando iluminação…',
+  'Renderizando balões e tecidos…',
+  'Finalizando detalhes…',
 ];
 
-function ScanLine() {
-  return (
-    <div
-      className="absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-orange-400 to-transparent opacity-80 pointer-events-none"
-      style={{
-        animation: 'scanline 2.2s ease-in-out infinite',
-      }}
-    />
-  );
-}
+const MOCKUP_SRC = '/demo-mockup.png?v=3';
+const REAL_SRC = '/demo-real.png?v=3';
 
-function ParticleDots() {
-  const dots = Array.from({ length: 18 });
+function Tag({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {dots.map((_, i) => (
-        <div
-          key={i}
-          className="absolute rounded-full bg-orange-400"
-          style={{
-            width: `${Math.random() * 4 + 2}px`,
-            height: `${Math.random() * 4 + 2}px`,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            opacity: 0,
-            animation: `particle-fade ${1.2 + Math.random() * 1.5}s ease-in-out ${Math.random() * 2}s infinite`,
-          }}
-        />
-      ))}
-    </div>
+    <span className={`absolute top-3 sm:top-4 z-10 px-3 py-1 rounded-full text-xs font-semibold pointer-events-none ${className}`}>
+      {children}
+    </span>
   );
 }
 
 export default function AIDemoSection() {
   const [phase, setPhase] = useState<Phase>('mockup');
   const [stepIndex, setStepIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [sliderPos, setSliderPos] = useState(50);
-  const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Auto-play on scroll into view
+  const clearTimers = () => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+  };
+
+  const startGeneration = useCallback(() => {
+    clearTimers();
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      setPhase('compare');
+      return;
+    }
+    setPhase('generating');
+    setStepIndex(0);
+    GENERATION_STEPS.forEach((_, i) => {
+      timers.current.push(setTimeout(() => setStepIndex(i), i * 650));
+    });
+    const total = GENERATION_STEPS.length * 650;
+    timers.current.push(setTimeout(() => setPhase('result'), total));
+    timers.current.push(setTimeout(() => { setSliderPos(50); setPhase('compare'); }, total + 1300));
+  }, []);
+
+  // Roda a demo uma vez quando ela aparece na tela
   useEffect(() => {
-    if (hasAutoPlayed) return;
+    const el = sectionRef.current;
+    if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setHasAutoPlayed(true);
-          setTimeout(() => startGeneration(), 800);
+          timers.current.push(setTimeout(startGeneration, 900));
           observer.disconnect();
         }
       },
-      { threshold: 0.4 }
+      { threshold: 0.5 }
     );
-    if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => observer.disconnect();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasAutoPlayed]);
-
-  function startGeneration() {
-    setPhase('generating');
-    setStepIndex(0);
-    setProgress(0);
-
-    let step = 0;
-    const interval = setInterval(() => {
-      if (step >= GENERATION_STEPS.length - 1) {
-        clearInterval(interval);
-        setStepIndex(GENERATION_STEPS.length - 1);
-        setProgress(100);
-        setTimeout(() => {
-          setPhase('result');
-          setTimeout(() => setPhase('compare'), 1800);
-        }, 600);
-        return;
-      }
-      step++;
-      setStepIndex(step);
-      setProgress(GENERATION_STEPS[step].pct);
-    }, 520);
-  }
-
-  function reset() {
-    setPhase('mockup');
-    setStepIndex(0);
-    setProgress(0);
-    setSliderPos(50);
-  }
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      clearTimers();
+    };
+  }, [startGeneration]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     isDragging.current = true;
@@ -114,7 +82,7 @@ export default function AIDemoSection() {
   };
   const handlePointerUp = (e: React.PointerEvent) => {
     isDragging.current = false;
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
   };
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging.current || !containerRef.current) return;
@@ -123,236 +91,115 @@ export default function AIDemoSection() {
     setSliderPos((x / rect.width) * 100);
   };
 
+  const progress = phase === 'generating' ? ((stepIndex + 1) / GENERATION_STEPS.length) * 100 : 100;
+
   return (
-    <>
+    <div ref={sectionRef} className="w-full">
       <style>{`
-        @keyframes scanline {
-          0% { top: -2px; }
-          100% { top: 100%; }
-        }
-        @keyframes particle-fade {
-          0%, 100% { opacity: 0; transform: scale(0.5); }
-          50% { opacity: 0.8; transform: scale(1); }
-        }
-        @keyframes reveal-right {
-          from { clip-path: inset(0 100% 0 0); opacity: 0; }
-          to { clip-path: inset(0 0% 0 0); opacity: 1; }
-        }
-        @keyframes shimmer-slide {
-          0% { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 20px 2px rgba(234,88,12,0.15); }
-          50% { box-shadow: 0 0 40px 8px rgba(234,88,12,0.35); }
-        }
-        .shimmer-text {
-          background: linear-gradient(90deg, #ea580c 0%, #f97316 40%, #fbbf24 50%, #f97316 60%, #ea580c 100%);
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          animation: shimmer-slide 2s linear infinite;
-        }
-        .result-reveal {
-          animation: reveal-right 1.2s cubic-bezier(0.22,1,0.36,1) forwards;
-        }
-        .glow-pulse {
-          animation: pulse-glow 2s ease-in-out infinite;
-        }
+        @keyframes fl-scan { from { top: 0%; } to { top: 100%; } }
+        @keyframes fl-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
       `}</style>
 
-      <div ref={sectionRef} className="w-full">
-        <div className="relative rounded-2xl overflow-hidden border border-zinc-200/80 shadow-xl bg-white">
+      <div className="relative rounded-2xl overflow-hidden bg-mist ring-1 ring-line">
+        {phase !== 'compare' ? (
+          <div className="relative aspect-[16/10] sm:aspect-[16/9]">
+            <img
+              src={MOCKUP_SRC}
+              alt="Montagem de festa feita no editor do FestaLab"
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${phase === 'generating' ? 'opacity-60' : ''}`}
+            />
 
-          {/* Phase: Mockup */}
-          {phase === 'mockup' && (
-            <div className="relative">
-              <div className="absolute top-4 left-4 z-10 bg-zinc-900/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm flex items-center gap-1.5 border border-zinc-700">
-                <Layers className="w-3.5 h-3.5" />
-                Mockup no editor
-              </div>
-              <img
-                src="/demo-mockup.png?v=3"
-                alt="Mockup criado no editor FestaLab"
-                className="w-full aspect-[16/9] object-cover block"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end justify-center pb-8">
-                <button
-                  onClick={startGeneration}
-                  className="glow-pulse flex items-center gap-3 bg-orange-600 hover:bg-orange-500 text-white font-semibold px-8 py-4 rounded-full shadow-2xl shadow-orange-900/40 transition-all hover:scale-105 active:scale-95 cursor-pointer text-sm"
-                >
-                  <Wand2 className="w-4 h-4" />
-                  Gerar visualização com IA
-                  <Sparkles className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
+            {phase === 'mockup' && (
+              <>
+                <Tag className="left-3 sm:left-4 bg-white text-ink">Sua montagem</Tag>
+                <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 flex justify-center bg-gradient-to-t from-black/45 to-transparent">
+                  <button
+                    onClick={startGeneration}
+                    className="inline-flex items-center gap-2 h-12 px-6 rounded-full bg-brand text-white font-semibold text-[15px] hover:bg-brand-deep transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  >
+                    <Wand2 className="w-4 h-4" aria-hidden="true" />
+                    Gerar foto com IA
+                  </button>
+                </div>
+              </>
+            )}
 
-          {/* Phase: Generating */}
-          {phase === 'generating' && (
-            <div className="relative bg-zinc-950">
-              <img
-                src="/demo-mockup.png?v=3"
-                alt="Mockup sendo processado"
-                className="w-full aspect-[16/9] object-cover block opacity-30"
-              />
-              <ScanLine />
-              <ParticleDots />
-              <div
-                className="absolute inset-0 pointer-events-none opacity-10"
-                style={{
-                  backgroundImage: 'linear-gradient(rgba(251,146,60,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(251,146,60,0.5) 1px, transparent 1px)',
-                  backgroundSize: '40px 40px',
-                }}
-              />
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 z-10 px-6">
-                <div className="relative w-20 h-20">
-                  <div className="absolute inset-0 rounded-full border-4 border-zinc-700" />
-                  <div
-                    className="absolute inset-0 rounded-full border-4 border-transparent border-t-orange-500"
-                    style={{ animation: 'spin 0.9s linear infinite' }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Sparkles className="w-7 h-7 text-orange-400" />
-                  </div>
-                </div>
-                <div className="text-center">
-                  <p className="shimmer-text text-lg font-semibold mb-1">
-                    {GENERATION_STEPS[stepIndex].label}
-                  </p>
-                  <p className="text-zinc-500 text-xs">IA processando seu cenário…</p>
-                </div>
-                <div className="w-full max-w-sm">
-                  <div className="flex justify-between text-[10px] text-zinc-500 mb-1.5">
-                    <span>Gerando</span>
-                    <span>{progress}%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-500"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-1.5">
-                  {GENERATION_STEPS.slice(0, -1).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                        i < stepIndex ? 'bg-orange-500' : i === stepIndex ? 'bg-orange-400 scale-125' : 'bg-zinc-700'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Phase: Result reveal */}
-          {phase === 'result' && (
-            <div className="relative overflow-hidden">
-              <img
-                src="/demo-mockup.png?v=3"
-                alt="Mockup original"
-                className="w-full aspect-[16/9] object-cover block"
-              />
-              <img
-                src="/demo-real.png?v=3"
-                alt="Resultado gerado pela IA"
-                className="absolute inset-0 w-full h-full object-cover result-reveal"
-              />
-              <div className="absolute top-4 right-4 z-10 bg-orange-600 text-white text-xs font-bold rounded-full px-3 py-1.5 shadow-lg flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Gerado com IA!
-              </div>
-            </div>
-          )}
-
-          {/* Phase: Compare slider */}
-          {phase === 'compare' && (
-            <div
-              ref={containerRef}
-              className="relative w-full aspect-[16/9] select-none touch-none cursor-ew-resize overflow-hidden"
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerLeave={handlePointerUp}
-            >
-              <img
-                src="/demo-mockup.png?v=3"
-                alt="Mockup criado no FestaLab"
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                draggable={false}
-              />
-              <img
-                src="/demo-real.png?v=3"
-                alt="Resultado fotorrealista gerado por IA"
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
-                draggable={false}
-              />
-              <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-orange-700 shadow-sm flex items-center gap-1.5 border border-orange-200/60 pointer-events-none">
-                <Sparkles className="w-3.5 h-3.5 text-orange-600" />
-                Resultado IA
-              </div>
-              <div className="absolute top-4 right-4 z-10 bg-zinc-900/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm flex items-center gap-1.5 border border-zinc-700 pointer-events-none">
-                <Layers className="w-3.5 h-3.5" />
-                Mockup
-              </div>
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_6px_rgba(0,0,0,0.5)] z-20 pointer-events-none"
-                style={{ left: `${sliderPos}%` }}
-              >
+            {phase === 'generating' && (
+              <>
                 <div
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg border border-zinc-200 text-zinc-500 cursor-ew-resize hover:scale-105 transition-transform pointer-events-auto"
-                  onPointerDown={handlePointerDown}
-                >
-                  <ArrowLeftRight className="w-5 h-5" />
+                  className="absolute inset-x-0 h-0.5 bg-brand shadow-[0_0_16px_4px_rgba(238,90,22,0.45)] pointer-events-none"
+                  style={{ animation: 'fl-scan 1.3s ease-in-out infinite alternate' }}
+                />
+                <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 bg-gradient-to-t from-black/60 to-transparent" aria-live="polite">
+                  <p className="text-white font-medium text-sm sm:text-base">{GENERATION_STEPS[stepIndex]}</p>
+                  <div className="mt-3 h-1 w-full max-w-xs rounded-full bg-white/25 overflow-hidden">
+                    <div className="h-full bg-white rounded-full transition-[width] duration-500" style={{ width: `${progress}%` }} />
+                  </div>
                 </div>
-              </div>
-              <input
-                type="range" min="0" max="100" value={sliderPos}
-                onChange={(e) => setSliderPos(Number(e.target.value))}
-                aria-label="Arraste para comparar mockup com resultado da IA"
-                className="absolute opacity-0 w-full h-full z-30 cursor-ew-resize"
-              />
-            </div>
-          )}
-        </div>
+              </>
+            )}
 
-        {/* Footer hint */}
-        <div className="mt-4 flex flex-col items-center gap-2">
-          {phase === 'compare' && (
-            <>
-              <p className="text-sm font-medium text-zinc-700 flex items-center gap-2">
-                <ArrowLeftRight className="w-4 h-4 text-zinc-400" />
-                Arraste para comparar mockup e resultado
-              </p>
-              <button
-                onClick={reset}
-                className="text-xs text-zinc-400 hover:text-orange-600 transition-colors cursor-pointer underline underline-offset-2"
+            {phase === 'result' && (
+              <img
+                src={REAL_SRC}
+                alt="Foto realista gerada pela IA a partir da montagem"
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ animation: 'fl-reveal 1.1s cubic-bezier(0.22,1,0.36,1) forwards' }}
+              />
+            )}
+          </div>
+        ) : (
+          <div
+            ref={containerRef}
+            className="relative aspect-[16/10] sm:aspect-[16/9] select-none touch-none cursor-ew-resize"
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+          >
+            <img src={MOCKUP_SRC} alt="Montagem feita no editor" className="absolute inset-0 w-full h-full object-cover pointer-events-none" draggable={false} />
+            <img
+              src={REAL_SRC}
+              alt="Foto realista gerada pela IA"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
+              draggable={false}
+            />
+            <Tag className="left-3 sm:left-4 bg-brand text-white">Foto da IA</Tag>
+            <Tag className="right-3 sm:right-4 bg-white text-ink">Sua montagem</Tag>
+
+            <div className="absolute inset-y-0 w-0.5 bg-white z-20 pointer-events-none" style={{ left: `${sliderPos}%` }}>
+              <div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-md text-ink pointer-events-auto cursor-ew-resize"
+                onPointerDown={handlePointerDown}
               >
-                Ver demo novamente
-              </button>
-            </>
-          )}
-          {(phase === 'generating' || phase === 'result') && (
-            <p className="text-sm text-zinc-500 flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-orange-500" />
-              IA gerando visualização fotorrealista…
-            </p>
-          )}
-          {phase === 'mockup' && (
-            <p className="text-sm text-zinc-500">
-              ↑ Clique no botão para ver a IA em ação
-            </p>
-          )}
-          <p className="text-xs text-zinc-400 max-w-md text-center">
-            Uma referência visual para encantar o cliente. Medidas e materiais podem variar, e o acabamento final é a sua arte.
-          </p>
-        </div>
+                <ArrowLeftRight className="w-5 h-5" aria-hidden="true" />
+              </div>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={sliderPos}
+              onChange={(e) => setSliderPos(Number(e.target.value))}
+              aria-label="Comparar a montagem com a foto gerada pela IA"
+              className="absolute inset-0 opacity-0 w-full h-full z-30 cursor-ew-resize"
+            />
+          </div>
+        )}
       </div>
-    </>
+
+      <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-ink-soft">
+        <p>
+          {phase === 'compare'
+            ? 'Arraste para comparar a montagem com a foto.'
+            : 'Montagem feita no FestaLab em poucos minutos.'}
+        </p>
+        {phase === 'compare' && (
+          <button onClick={startGeneration} className="font-medium text-ink underline underline-offset-4 decoration-line hover:decoration-ink cursor-pointer">
+            Ver de novo
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
