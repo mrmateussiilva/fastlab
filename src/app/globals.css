@@ -15,8 +15,9 @@
   /* Landing tokens (cores do logo) */
   --color-ink: #1A1A1A;
   --color-ink-soft: #5C5C5C;
-  --color-brand: #EE5A16;
-  --color-brand-deep: #C9470B;
+  --color-brand: #EA580C;        /* orange-600: mesmo laranja do app e do themeColor; só decorativo */
+  --color-brand-deep: #C2410C;   /* orange-700: botões e rótulos com texto branco (~5.2:1) */
+  --color-brand-deeper: #9A3412; /* orange-800: hover */
   --color-mist: #F3F3F1;
   --color-line: #E6E6E3;
   --color-sidebar-ring: var(--sidebar-ring);

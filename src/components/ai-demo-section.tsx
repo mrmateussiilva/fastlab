@@ -115,7 +115,7 @@ export default function AIDemoSection() {
                 <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 flex justify-center bg-gradient-to-t from-black/45 to-transparent">
                   <button
                     onClick={startGeneration}
-                    className="inline-flex items-center gap-2 h-12 px-6 rounded-full bg-brand text-white font-semibold text-[15px] hover:bg-brand-deep transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    className="inline-flex items-center gap-2 h-12 px-6 rounded-full bg-brand-deep text-white font-semibold text-[15px] hover:bg-brand-deeper transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                   >
                     <Wand2 className="w-4 h-4" aria-hidden="true" />
                     Gerar foto com IA
@@ -127,7 +127,7 @@ export default function AIDemoSection() {
             {phase === 'generating' && (
               <>
                 <div
-                  className="absolute inset-x-0 h-0.5 bg-brand shadow-[0_0_16px_4px_rgba(238,90,22,0.45)] pointer-events-none"
+                  className="absolute inset-x-0 h-0.5 bg-brand shadow-[0_0_16px_4px_rgba(234,88,12,0.45)] pointer-events-none"
                   style={{ animation: 'fl-scan 1.3s ease-in-out infinite alternate' }}
                 />
                 <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 bg-gradient-to-t from-black/60 to-transparent" aria-live="polite">
@@ -164,7 +164,7 @@ export default function AIDemoSection() {
               style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
               draggable={false}
             />
-            <Tag className="left-3 sm:left-4 bg-brand text-white">Foto da IA</Tag>
+            <Tag className="left-3 sm:left-4 bg-brand-deep text-white">Foto da IA</Tag>
             <Tag className="right-3 sm:right-4 bg-white text-ink">Sua montagem</Tag>
 
             <div className="absolute inset-y-0 w-0.5 bg-white z-20 pointer-events-none" style={{ left: `${sliderPos}%` }}>

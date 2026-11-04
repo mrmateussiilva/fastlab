@@ -122,7 +122,7 @@ export default function AIPartyChat({ onStartWithGeneratedScene }: AIPartyChatPr
             <button
               type="submit"
               disabled={loading || !prompt.trim()}
-              className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-brand text-white font-semibold text-sm hover:bg-brand-deep transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-brand-deep text-white font-semibold text-sm hover:bg-brand-deeper transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>

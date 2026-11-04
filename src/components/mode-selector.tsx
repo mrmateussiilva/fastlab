@@ -61,7 +61,7 @@ const FAQ = [
 ];
 
 const btnPrimary =
-  'inline-flex items-center justify-center h-12 px-7 rounded-full bg-brand text-white font-semibold text-[15px] hover:bg-brand-deep transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
+  'inline-flex items-center justify-center h-12 px-7 rounded-full bg-brand-deep text-white font-semibold text-[15px] hover:bg-brand-deeper transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
 
 export default function ModeSelector({ onSelectMode, onOpenProject }: ModeSelectorProps) {
   const { isSignedIn } = useAuth();
