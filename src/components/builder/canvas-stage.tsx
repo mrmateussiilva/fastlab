@@ -1950,7 +1950,10 @@ const ElementShape = ({
       onDragMove={onDragMove}
       onDragEnd={onDragEnd}
     >
-      {renderGeometry()}
+      {/* Espelhamento dentro da própria caixa: o Transformer continua vendo escala 1 */}
+      <Group x={el.flipX ? w : 0} scaleX={el.flipX ? -1 : 1}>
+        {renderGeometry()}
+      </Group>
     </Group>
   );
 };
@@ -2163,8 +2166,10 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
   const handleTransformEnd = () => {
     const nodes = transformerRef.current?.nodes() ?? [];
     const updates = nodes.map((node) => {
-      const scaleX = node.scaleX();
-      const scaleY = node.scaleY();
+      // Math.abs: com flipEnabled desligado a escala não deveria ficar negativa, mas se ficar
+      // não pode virar largura mínima (era isso que deixava o item com ~1px)
+      const scaleX = Math.abs(node.scaleX());
+      const scaleY = Math.abs(node.scaleY());
       node.scaleX(1);
       node.scaleY(1);
       return {
@@ -2405,6 +2410,9 @@ const CanvasStage = forwardRef<CanvasStageRef, CanvasStageProps>(({
                   return newBox;
                 }}
                 onTransformEnd={handleTransformEnd}
+                // Arrastar uma alça por cima da outra "espelhava" via escala negativa + giro de 180°,
+                // o que deixava o item de cabeça pra baixo. Espelhar agora é um botão próprio.
+                flipEnabled={false}
                 rotateEnabled={!singleLocked}
                 enabledAnchors={
                   singleLocked

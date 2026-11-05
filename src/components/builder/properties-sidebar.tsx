@@ -18,6 +18,7 @@ import {
   Trash2, 
   Lock, 
   Unlock, 
+  FlipHorizontal2,
   Building2, 
   Ruler, 
   Layers,
@@ -447,6 +448,21 @@ export default function PropertiesSidebar({
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Botão Espelhar */}
+          <button
+            type="button"
+            onClick={() => onUpdateElement({ flipX: !selectedElement.flipX })}
+            disabled={isLocked}
+            title="Espelhar"
+            aria-label="Espelhar"
+            aria-pressed={Boolean(selectedElement.flipX)}
+            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+              selectedElement.flipX ? 'bg-orange-100 text-orange-700' : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100'
+            }`}
+          >
+            <FlipHorizontal2 className="w-3.5 h-3.5" />
+          </button>
+
           {/* Botão Travar / Destravar */}
           <button
             type="button"

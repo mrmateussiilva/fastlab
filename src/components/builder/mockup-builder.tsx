@@ -25,7 +25,7 @@ import GenerationModal from './generation-modal';
 import ResultComparison from '../result-comparison';
 import LeadCaptureCard from '../lead-capture-card';
 import type { CanvasStageRef, ElementUpdate } from './canvas-stage';
-import { ZoomIn, ZoomOut, RotateCcw, Plus, Building2, Sliders, Sparkles, Copy, Trash2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Plus, Building2, Sliders, Sparkles, Copy, Trash2, FlipHorizontal2 } from 'lucide-react';
 import { useGenerationLimit } from '@/hooks/use-generation-limit';
 import { useOnline } from '@/hooks/use-online';
 import { removeImageBackground } from '@/lib/bg-removal';
@@ -972,6 +972,13 @@ export default function MockupBuilder({
     commitChange(nextElements);
   };
 
+  // Espelha na horizontal todos os itens selecionados (um passo de histórico)
+  const handleFlipHorizontal = () => {
+    const targets = elements.filter((el) => selectedIds.includes(el.id) && !el.locked);
+    if (targets.length === 0) return;
+    handleUpdateElements(targets.map((el) => ({ id: el.id, changes: { flipX: !el.flipX } })));
+  };
+
   // Insere cópias dos itens acima de tudo, deslocadas, e seleciona as cópias
   const insertCopies = useCallback((sources: CanvasElement[], offset: number, nameSuffix: string) => {
     if (sources.length === 0) return;
@@ -1519,6 +1526,16 @@ export default function MockupBuilder({
                   {selectedElements.length} itens
                 </span>
               )}
+              <button
+                type="button"
+                onClick={handleFlipHorizontal}
+                disabled={selectedElements.every((el) => el.locked)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Espelhar"
+                aria-label="Espelhar"
+              >
+                <FlipHorizontal2 className="w-4 h-4" />
+              </button>
               <button
                 type="button"
                 onClick={handleDuplicate}

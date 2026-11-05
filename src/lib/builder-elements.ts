@@ -104,6 +104,8 @@ export interface CanvasElement {
   stroke?: string;
   opacity: number;
   locked?: boolean;
+  /** Espelhado na horizontal (botão "Espelhar"). Não altera x/y/width/height. */
+  flipX?: boolean;
   imageUrl?: string;
   // Propriedades para elemento de Texto
   text?: string;
