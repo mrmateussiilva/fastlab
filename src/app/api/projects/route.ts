@@ -14,7 +14,10 @@ export async function GET() {
     .eq('user_id', userId)
     .order('updated_at', { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('[GET /api/projects] Supabase error:', error);
+    return NextResponse.json({ error: error.message, code: error.code }, { status: 500 });
+  }
 
   return NextResponse.json(data);
 }
@@ -44,7 +47,10 @@ export async function POST(req: Request) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('[POST /api/projects] Supabase error:', error);
+    return NextResponse.json({ error: error.message, code: error.code }, { status: 500 });
+  }
 
   return NextResponse.json(data, { status: 201 });
 }

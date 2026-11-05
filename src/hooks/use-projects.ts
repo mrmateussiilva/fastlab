@@ -15,6 +15,19 @@ export type ProjectFull = ProjectSummary & {
   environment: unknown;
 };
 
+/** Monta a mensagem de erro com o motivo devolvido pela API, em vez de esconder a causa. */
+async function describeError(res: Response, fallback: string): Promise<string> {
+  if (res.status === 401) return 'Sua sessão expirou. Entre de novo para ver seus projetos.';
+  let detail = '';
+  try {
+    const body = await res.json();
+    if (body && typeof body.error === 'string') detail = body.error;
+  } catch {
+    // resposta sem JSON (ex.: página de erro do servidor)
+  }
+  return detail ? `${fallback} (${res.status}): ${detail}` : `${fallback} (${res.status}).`;
+}
+
 export function useProjects() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,7 +39,7 @@ export function useProjects() {
     setError(null);
     try {
       const res = await fetch('/api/projects');
-      if (!res.ok) throw new Error('Erro ao carregar projetos');
+      if (!res.ok) throw new Error(await describeError(res, 'Não foi possível carregar os projetos'));
       const data = await res.json();
       setProjects(data);
     } catch (err) {
@@ -62,7 +75,7 @@ export function useProjects() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error('Erro ao salvar projeto');
+      if (!res.ok) throw new Error(await describeError(res, 'Não foi possível salvar o projeto'));
       const saved = await res.json();
       // Atualiza a lista local
       setProjects((prev) => {
