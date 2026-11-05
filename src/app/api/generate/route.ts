@@ -101,7 +101,7 @@ async function generateViaVisionAndDalle(
           content: [
             {
               type: 'text',
-              text: 'Here is the 2D party decoration mockup created by the decorator. Analyze all elements and output the photorealistic DALL-E 3 prompt.',
+              text: 'Here is the 2D party decoration mockup created by the decorator. Analyze all elements and output the photorealistic image generation prompt.',
             },
             {
               type: 'image_url',
