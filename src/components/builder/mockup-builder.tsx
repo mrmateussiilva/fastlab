@@ -1586,12 +1586,13 @@ export default function MockupBuilder({
         </main>
         )}
 
-        {/* 3. Sidebar Direita: Propriedades (ONLY when element selected — Canva-style) */}
-        {!isPreviewMode && viewMode !== '3d' && selectedElement && (
-          <div className="hidden md:flex shrink-0 animate-in slide-in-from-right-2 duration-150">
+        {/* 3. Sidebar Direita: sempre visível no desktop. Com item selecionado mostra as propriedades
+            dele; sem seleção mostra Ambiente & Fundo (evita a barra aparecer e sumir a cada clique). */}
+        {!isPreviewMode && viewMode !== '3d' && (
+          <div className="hidden md:flex shrink-0">
             <PropertiesSidebar
-              selectedElement={selectedElement}
-              onClose={() => setSelectedId(null)}
+              selectedElement={selectedElement ?? null}
+              onClose={selectedElement ? () => setSelectedId(null) : undefined}
               onUpdateElement={(updated) => {
                 if (selectedId) handleUpdateElement(selectedId, updated);
               }}
