@@ -20,7 +20,7 @@ interface MobileBottomNavProps {
   onOpenEnvironment: () => void;
   onOpenProperties: () => void;
   onOpenGenerateModal: () => void;
-  onOpenARMode: () => void;
+  onOpenARMode?: () => void;
   viewMode?: '2d' | '3d';
   onToggleViewMode?: () => void;
   onToggle3DAutoRotate?: () => void;
@@ -152,7 +152,8 @@ export default function MobileBottomNav({
         <span className="text-[9px] font-medium font-sans">Ambiente</span>
       </button>
 
-      {/* 2. Botão 3D */}
+      {/* 2. Botão 3D (escondido no MVP: só aparece se onToggleViewMode for passado) */}
+      {onToggleViewMode && (
       <button
         type="button"
         onClick={onToggleViewMode}
@@ -163,6 +164,7 @@ export default function MobileBottomNav({
           Ver em 3D
         </span>
       </button>
+      )}
 
       {/* 3. Botão Adicionar (Centro, Destaque) */}
       <div className="flex-1 flex justify-center -mt-6">

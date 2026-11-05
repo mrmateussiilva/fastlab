@@ -15,7 +15,6 @@ import {
   ArrowDownToLine, 
   ArrowUp, 
   ArrowDown, 
-  Copy, 
   Trash2, 
   Lock, 
   Unlock, 
@@ -54,10 +53,26 @@ interface PropertiesSidebarProps {
   onClose?: () => void;
 }
 
+type TopTab = 'same' | 'color' | 'art';
+
+const TOP_COLORS = [
+  { name: 'Roxo Festa', value: '#582B7D' },
+  { name: 'Lilás Suave', value: '#C4B5FD' },
+  { name: 'Branco Neve', value: '#FFFFFF' },
+  { name: 'Pinus Claro', value: '#E7DFD5' },
+  { name: 'Madeira Natural', value: '#CDBCA8' },
+  { name: 'Dourado Festa', value: '#D4AF37' },
+  { name: 'Off-White', value: '#F5EBE0' },
+  { name: 'Preto Fosco', value: '#1E1E24' },
+  { name: 'Rosa Bebê', value: '#F2D5D9' },
+  { name: 'Azul Céu', value: '#BFDBFE' },
+];
+
+const sectionLabel = 'text-[11px] font-semibold text-zinc-700 tracking-wide font-sans';
+
 export default function PropertiesSidebar({
   selectedElement,
   onUpdateElement,
-  onDuplicate,
   onDelete,
   onBringToFront,
   onBringForward,
@@ -73,6 +88,8 @@ export default function PropertiesSidebar({
   const artFileInputRef = useRef<HTMLInputElement>(null);
   const topArtFileInputRef = useRef<HTMLInputElement>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  // Aba escolhida para a tampa do cilindro, por elemento (sem efeito para resetar ao trocar de item)
+  const [topTabById, setTopTabById] = useState<Record<string, TopTab>>({});
   const [isRemovingBg, setIsRemovingBg] = useState(false);
 
   const handleRemoveElementBg = async () => {
@@ -424,10 +441,7 @@ export default function PropertiesSidebar({
       {/* Título com Nome do Item + Ações Rápidas */}
       <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
         <div className="flex-1 min-w-0 pr-2">
-          <span className="text-[10px] text-zinc-400 uppercase tracking-wider font-sans font-semibold">
-            Elemento Selecionado
-          </span>
-          <h2 className="text-xs font-semibold text-zinc-900 font-sans truncate">
+          <h2 className="text-sm font-semibold text-zinc-900 font-sans truncate">
             {selectedElement.name}
           </h2>
         </div>
@@ -787,106 +801,68 @@ export default function PropertiesSidebar({
           </div>
         )}
 
-        {/* Opções de Acabamento do Tampo para Cilindros de Festa */}
-        {selectedElement.shapeType.includes('cylinder') && (
-          <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200/80 space-y-3">
-            <input
-              ref={topArtFileInputRef}
-              type="file"
-              accept="image/png, image/jpeg, image/webp"
-              onChange={handleTopArtUpload}
-              className="hidden"
-            />
+        {/* Tampa do cilindro: 3 abas, mostra só os controles da aba ativa */}
+        {selectedElement.shapeType.includes('cylinder') && (() => {
+          const hasSideArt = Boolean(selectedElement.fillImageSrc);
+          const derived: TopTab = selectedElement.topImageSrc
+            ? 'art'
+            : hasSideArt && selectedElement.includeTopArtwork
+              ? 'same'
+              : 'color';
+          const chosen = topTabById[selectedElement.id] ?? derived;
+          const topTab: TopTab = chosen === 'same' && !hasSideArt ? 'color' : chosen;
+          const tabs: { id: TopTab; label: string }[] = [
+            ...(hasSideArt ? [{ id: 'same' as const, label: 'Igual à lateral' }] : []),
+            { id: 'color', label: 'Cor' },
+            { id: 'art', label: 'Arte própria' },
+          ];
+          const selectTab = (tab: TopTab) => {
+            setTopTabById((prev) => ({ ...prev, [selectedElement.id]: tab }));
+            if (tab === 'same') onUpdateElement({ includeTopArtwork: true, topImageSrc: undefined });
+          };
 
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-zinc-800 tracking-wide font-sans flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 bg-white inline-block shadow-2xs" />
-                Acabamento da Tampa (Tampo)
-              </label>
-              {(selectedElement.topFill || selectedElement.topImageSrc) && (
-                <button
-                  type="button"
-                  onClick={() => onUpdateElement({ topFill: undefined, topImageSrc: undefined })}
-                  className="text-[10px] text-zinc-500 hover:text-zinc-800 underline cursor-pointer"
-                >
-                  Restaurar padrão
-                </button>
-              )}
-            </div>
+          return (
+            <div className="space-y-2.5">
+              <input
+                ref={topArtFileInputRef}
+                type="file"
+                accept="image/png, image/jpeg, image/webp"
+                onChange={handleTopArtUpload}
+                className="hidden"
+              />
+              <label className={`${sectionLabel} block`}>Tampa</label>
 
-            {/* Opção A: Enviar Arte/Imagem Exclusiva para a Tampa */}
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isLocked}
-                  onClick={() => topArtFileInputRef.current?.click()}
-                  className="flex-1 text-xs h-8 border-orange-200 text-orange-800 hover:bg-orange-50 font-sans cursor-pointer justify-center"
-                >
-                  <UploadCloud className="w-3.5 h-3.5 mr-1.5 text-orange-600" />
-                  {selectedElement.topImageSrc ? 'Trocar arte da tampa' : 'Enviar arte da tampa (arquivo redondo)'}
-                </Button>
-
-                {selectedElement.topImageSrc && (
-                  <Button
+              <div role="tablist" aria-label="Acabamento da tampa" className={`grid gap-1 p-0.5 bg-zinc-100 rounded-lg ${tabs.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                {tabs.map((t) => (
+                  <button
+                    key={t.id}
                     type="button"
-                    variant="outline"
-                    size="sm"
+                    role="tab"
+                    aria-selected={topTab === t.id}
                     disabled={isLocked}
-                    onClick={handleRemoveTopArtwork}
-                    className="text-xs h-8 border-red-200 text-red-600 hover:bg-red-50 font-sans cursor-pointer px-2"
-                    title="Remover arte da tampa"
+                    onClick={() => selectTab(t.id)}
+                    className={`py-1 text-[11px] font-sans rounded-md transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                      topTab === t.id ? 'bg-white text-zinc-900 font-medium shadow-2xs' : 'text-zinc-600 hover:text-zinc-900'
+                    }`}
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                )}
+                    {t.label}
+                  </button>
+                ))}
               </div>
-              <p className="text-[10px] text-zinc-400 font-sans leading-tight">
-                Ideal para o arquivo redondo do kit de sublimação (estrelas, nuvens, madeira, nome).
-              </p>
-            </div>
 
-            {/* Opção B: Usar a Mesma Estampa da Lateral (se houver estampa na lateral e não tiver arte própria na tampa) */}
-            {selectedElement.fillImageSrc && !selectedElement.topImageSrc && (
-              <label className="flex items-center gap-2 pt-1 border-t border-zinc-200/60 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  disabled={isLocked}
-                  checked={!!selectedElement.includeTopArtwork}
-                  onChange={(e) => onUpdateElement({ includeTopArtwork: e.target.checked })}
-                  className="w-3.5 h-3.5 accent-orange-600 rounded cursor-pointer"
-                />
-                <span className="text-[11px] text-zinc-700 font-sans leading-tight">
-                  Usar a mesma estampa da lateral na tampa
-                </span>
-              </label>
-            )}
+              {topTab === 'same' && (
+                <p className="text-[11px] text-zinc-500 font-sans">A tampa usa a mesma estampa da lateral.</p>
+              )}
 
-            {/* Opção C: Cores e Acabamentos Lisos (Madeira, Roxo, Dourado, Branco, etc) */}
-            {!selectedElement.topImageSrc && (
-              <div className="space-y-1.5 pt-2 border-t border-zinc-200/60">
-                <span className="text-[10px] text-zinc-500 font-sans block">Ou escolha uma cor / acabamento que combine:</span>
+              {topTab === 'color' && (
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  {[
-                    { name: 'Roxo Festa', value: '#582B7D' },
-                    { name: 'Lilás Suave', value: '#C4B5FD' },
-                    { name: 'Branco Neve', value: '#FFFFFF' },
-                    { name: 'Pinus Claro', value: '#E7DFD5' },
-                    { name: 'Madeira Natural', value: '#CDBCA8' },
-                    { name: 'Dourado Festa', value: '#D4AF37' },
-                    { name: 'Off-White', value: '#F5EBE0' },
-                    { name: 'Preto Fosco', value: '#1E1E24' },
-                    { name: 'Rosa Bebê', value: '#F2D5D9' },
-                    { name: 'Azul Céu', value: '#BFDBFE' },
-                  ].map((c) => (
+                  {TOP_COLORS.map((c) => (
                     <button
                       key={c.value}
                       type="button"
                       title={c.name}
                       disabled={isLocked}
-                      onClick={() => onUpdateElement({ topFill: c.value, includeTopArtwork: false })}
+                      onClick={() => onUpdateElement({ topFill: c.value, includeTopArtwork: false, topImageSrc: undefined })}
                       className={`w-6 h-6 rounded-full border transition-all cursor-pointer ${
                         (selectedElement.topFill || selectedElement.fill).toLowerCase() === c.value.toLowerCase()
                           ? 'ring-2 ring-orange-500 ring-offset-1 scale-110 border-transparent'
@@ -895,22 +871,53 @@ export default function PropertiesSidebar({
                       style={{ backgroundColor: c.value }}
                     />
                   ))}
-
-                  <div className="relative inline-flex items-center">
-                    <input
-                      type="color"
-                      disabled={isLocked}
-                      value={selectedElement.topFill || selectedElement.fill || '#FFFFFF'}
-                      onChange={(e) => onUpdateElement({ topFill: e.target.value, includeTopArtwork: false })}
-                      className="w-6 h-6 rounded-full border border-zinc-300 cursor-pointer p-0 overflow-hidden"
-                      title="Cor personalizada da tampa"
-                    />
-                  </div>
+                  <input
+                    type="color"
+                    disabled={isLocked}
+                    value={selectedElement.topFill || selectedElement.fill || '#FFFFFF'}
+                    onChange={(e) => onUpdateElement({ topFill: e.target.value, includeTopArtwork: false, topImageSrc: undefined })}
+                    className="w-6 h-6 rounded-full border border-zinc-300 cursor-pointer p-0 overflow-hidden"
+                    title="Cor personalizada da tampa"
+                  />
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+
+              {topTab === 'art' && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isLocked}
+                      onClick={() => topArtFileInputRef.current?.click()}
+                      className="flex-1 text-xs h-8 border-zinc-200 text-zinc-800 hover:bg-zinc-50 font-sans cursor-pointer justify-center"
+                    >
+                      <UploadCloud className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />
+                      {selectedElement.topImageSrc ? 'Trocar arte' : 'Enviar arte redonda'}
+                    </Button>
+                    {selectedElement.topImageSrc && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isLocked}
+                        onClick={handleRemoveTopArtwork}
+                        className="text-xs h-8 border-red-200 text-red-600 hover:bg-red-50 font-sans cursor-pointer px-2"
+                        title="Remover arte da tampa"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-zinc-400 font-sans leading-tight">
+                    Use o arquivo redondo do kit de sublimação.
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* 3. Cores e Acabamentos */}
         {selectedElement.shapeType.includes('balloon') ? (
@@ -1093,273 +1100,155 @@ export default function PropertiesSidebar({
           </div>
         ))}
 
-        {/* 4. Opacidade */}
+        {/* Tamanho real em centímetros (sempre visível: decoradora pensa em cm) */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-[11px] font-semibold text-zinc-700 tracking-wide font-sans">
-              Opacidade
-            </label>
-            <span className="text-[11px] text-zinc-500 font-mono">
-              {Math.round(selectedElement.opacity * 100)}%
-            </span>
+          <label className={`${sectionLabel} flex items-center gap-1.5 mb-2`}>
+            <Ruler className="w-3.5 h-3.5 text-zinc-400" />
+            Tamanho
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              ['Largura', 'width', widthCm],
+              ['Altura', 'height', heightCm],
+            ] as const).map(([label, key, cm]) => (
+              <div key={key}>
+                <span className="text-[10px] text-zinc-500 font-sans block mb-1">{label}</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={isLocked}
+                    onClick={() => onUpdateElement({ [key]: Math.max(SCALE.cmToPx(10), selectedElement[key] - SCALE.cmToPx(5)) })}
+                    title="Diminuir 5 cm"
+                    aria-label={`Diminuir ${label.toLowerCase()} em 5 cm`}
+                    className="w-6 h-7 shrink-0 rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100 transition-all cursor-pointer flex items-center justify-center text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    −
+                  </button>
+                  <div className="relative flex-1 min-w-0">
+                    <input
+                      type="number"
+                      disabled={isLocked}
+                      value={cm}
+                      aria-label={`${label} em centímetros`}
+                      onChange={(e) => {
+                        const value = Math.max(10, parseInt(e.target.value) || 10);
+                        onUpdateElement({ [key]: SCALE.cmToPx(value) });
+                      }}
+                      className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 rounded-md pl-2.5 pr-7 py-1.5 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                    />
+                    <span className="absolute right-2 top-1.5 text-[10px] text-zinc-400 pointer-events-none">cm</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isLocked}
+                    onClick={() => onUpdateElement({ [key]: Math.min(SCALE.cmToPx(500), selectedElement[key] + SCALE.cmToPx(5)) })}
+                    title="Aumentar 5 cm"
+                    aria-label={`Aumentar ${label.toLowerCase()} em 5 cm`}
+                    className="w-6 h-7 shrink-0 rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100 transition-all cursor-pointer flex items-center justify-center text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-          <input
-            type="range"
-            min="0.1"
-            max="1"
-            step="0.05"
-            disabled={isLocked}
-            value={selectedElement.opacity}
-            onChange={(e) => onUpdateElement({ opacity: parseFloat(e.target.value) })}
-            className="w-full accent-orange-600 cursor-pointer h-1.5 bg-zinc-200 rounded-lg appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-          />
         </div>
 
-        {/* 5. Ordem das Camadas (4 comandos: Top, Up, Down, Bottom) */}
+        {/* Camadas: só os dois passos mais usados; extremos ficam no Avançado */}
         <div>
-          <div className="flex items-center gap-1.5 mb-2">
+          <label className={`${sectionLabel} flex items-center gap-1.5 mb-2`}>
             <Layers className="w-3.5 h-3.5 text-zinc-400" />
-            <label className="text-[11px] font-semibold text-zinc-700 tracking-wide font-sans">
-              Ordem de Camadas
-            </label>
-          </div>
+            Camada
+          </label>
           <div className="grid grid-cols-2 gap-1.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onBringToFront}
-              className="text-[11px] h-7.5 border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-sans cursor-pointer justify-start px-2"
-            >
-              <ArrowUpToLine className="w-3 h-3 mr-1 text-zinc-400" />
-              Trazer p/ frente
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onBringForward}
-              className="text-[11px] h-7.5 border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-sans cursor-pointer justify-start px-2"
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onBringForward}
+              className="text-[11px] h-8 border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-sans cursor-pointer justify-center px-2">
               <ArrowUp className="w-3 h-3 mr-1 text-zinc-400" />
-              Avançar camada
+              Para frente
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onSendBackward}
-              className="text-[11px] h-7.5 border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-sans cursor-pointer justify-start px-2"
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onSendBackward}
+              className="text-[11px] h-8 border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-sans cursor-pointer justify-center px-2">
               <ArrowDown className="w-3 h-3 mr-1 text-zinc-400" />
-              Recuar camada
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onSendToBack}
-              className="text-[11px] h-7.5 border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-sans cursor-pointer justify-start px-2"
-            >
-              <ArrowDownToLine className="w-3 h-3 mr-1 text-zinc-400" />
-              Enviar p/ trás
+              Para trás
             </Button>
           </div>
         </div>
 
-        {/* Botão de Avançado */}
-        <div className="pt-2">
+        {/* Avançado (recolhido): posição, giro, opacidade e camadas extremas */}
+        <div className="border-t border-zinc-100">
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-800 transition-colors cursor-pointer w-full"
+            aria-expanded={showAdvanced}
+            className="flex items-center gap-1.5 pt-3 text-xs font-semibold text-zinc-500 hover:text-zinc-800 transition-colors cursor-pointer w-full"
           >
             {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            Opções Avançadas (Medidas e Posição)
+            Avançado
           </button>
         </div>
 
         {showAdvanced && (
-          <div className="space-y-5 pt-2 border-t border-zinc-100">
-            {/* 1. Medidas Reais (Centímetros & Pixels) */}
+          <div className="space-y-5">
             <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-[11px] font-semibold text-zinc-700 tracking-wide font-sans flex items-center gap-1.5">
-              <Ruler className="w-3.5 h-3.5 text-zinc-400" />
-              Medidas do Elemento
-            </label>
-            <span className="text-[10px] text-zinc-400 font-mono">1cm = 2px</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <span className="text-[10px] text-zinc-500 font-sans block mb-1">Largura (cm)</span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={isLocked}
-                  onClick={() => onUpdateElement({ width: Math.max(SCALE.cmToPx(10), selectedElement.width - SCALE.cmToPx(5)) })}
-                  title="Diminuir 5 cm"
-                  className="w-6 h-7 shrink-0 rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  −
-                </button>
-                <div className="relative flex-1 min-w-0">
-                  <input
-                    type="number"
-                    disabled={isLocked}
-                    value={widthCm}
-                    onChange={(e) => {
-                      const cm = Math.max(10, parseInt(e.target.value) || 10);
-                      onUpdateElement({ width: SCALE.cmToPx(cm) });
-                    }}
-                    className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 rounded-md px-2.5 py-1.5 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
-                  />
-                  <span className="absolute right-2 top-1.5 text-[10px] text-zinc-400 pointer-events-none">cm</span>
-                </div>
-                <button
-                  type="button"
-                  disabled={isLocked}
-                  onClick={() => onUpdateElement({ width: Math.min(SCALE.cmToPx(500), selectedElement.width + SCALE.cmToPx(5)) })}
-                  title="Aumentar 5 cm"
-                  className="w-6 h-7 shrink-0 rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  +
-                </button>
+              <label className={`${sectionLabel} block mb-2`}>Posição e giro</label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  ['X', 'x'],
+                  ['Y', 'y'],
+                  ['Giro (°)', 'rotation'],
+                ] as const).map(([label, key]) => (
+                  <div key={key}>
+                    <span className="text-[10px] text-zinc-400 font-sans block mb-1">{label}</span>
+                    <input
+                      type="number"
+                      disabled={isLocked}
+                      value={Math.round(selectedElement[key])}
+                      aria-label={label}
+                      onChange={(e) => onUpdateElement({ [key]: parseInt(e.target.value) || 0 })}
+                      className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 rounded-md px-2 py-1 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                ))}
               </div>
-              <span className="text-[10px] text-zinc-400 font-mono block mt-0.5">{Math.round(selectedElement.width)} px</span>
             </div>
 
             <div>
-              <span className="text-[10px] text-zinc-500 font-sans block mb-1">Altura (cm)</span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={isLocked}
-                  onClick={() => onUpdateElement({ height: Math.max(SCALE.cmToPx(10), selectedElement.height - SCALE.cmToPx(5)) })}
-                  title="Diminuir 5 cm"
-                  className="w-6 h-7 shrink-0 rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  −
-                </button>
-                <div className="relative flex-1 min-w-0">
-                  <input
-                    type="number"
-                    disabled={isLocked}
-                    value={heightCm}
-                    onChange={(e) => {
-                      const cm = Math.max(10, parseInt(e.target.value) || 10);
-                      onUpdateElement({ height: SCALE.cmToPx(cm) });
-                    }}
-                    className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 rounded-md px-2.5 py-1.5 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
-                  />
-                  <span className="absolute right-2 top-1.5 text-[10px] text-zinc-400 pointer-events-none">cm</span>
-                </div>
-                <button
-                  type="button"
-                  disabled={isLocked}
-                  onClick={() => onUpdateElement({ height: Math.min(SCALE.cmToPx(500), selectedElement.height + SCALE.cmToPx(5)) })}
-                  title="Aumentar 5 cm"
-                  className="w-6 h-7 shrink-0 rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  +
-                </button>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className={sectionLabel}>Opacidade</label>
+                <span className="text-[11px] text-zinc-500 font-mono">
+                  {Math.round(selectedElement.opacity * 100)}%
+                </span>
               </div>
-              <span className="text-[10px] text-zinc-400 font-mono block mt-0.5">{Math.round(selectedElement.height)} px</span>
+              <input
+                type="range"
+                min="0.1"
+                max="1"
+                step="0.05"
+                disabled={isLocked}
+                value={selectedElement.opacity}
+                onChange={(e) => onUpdateElement({ opacity: parseFloat(e.target.value) })}
+                aria-label="Opacidade"
+                className="w-full accent-orange-600 cursor-pointer h-1.5 bg-zinc-200 rounded-lg appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+              />
             </div>
-          </div>
-        </div>
 
-        {/* 2. Posição e Rotação */}
-        <div>
-          <label className="text-[11px] font-semibold text-zinc-700 tracking-wide font-sans block mb-2">
-            Posição & Rotação
-          </label>
-          <div className="grid grid-cols-3 gap-2">
             <div>
-              <span className="text-[10px] text-zinc-400 font-sans block mb-1">X</span>
-              <input
-                type="number"
-                disabled={isLocked}
-                value={Math.round(selectedElement.x)}
-                onChange={(e) => onUpdateElement({ x: parseInt(e.target.value) || 0 })}
-                className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 rounded-md px-2 py-1 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
-              />
+              <label className={`${sectionLabel} block mb-2`}>Camada (extremos)</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button type="button" variant="outline" size="sm" onClick={onBringToFront}
+                  className="text-[11px] h-8 border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-sans cursor-pointer justify-center px-2">
+                  <ArrowUpToLine className="w-3 h-3 mr-1 text-zinc-400" />
+                  Para o topo
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={onSendToBack}
+                  className="text-[11px] h-8 border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-sans cursor-pointer justify-center px-2">
+                  <ArrowDownToLine className="w-3 h-3 mr-1 text-zinc-400" />
+                  Para o fundo
+                </Button>
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] text-zinc-400 font-sans block mb-1">Y</span>
-              <input
-                type="number"
-                disabled={isLocked}
-                value={Math.round(selectedElement.y)}
-                onChange={(e) => onUpdateElement({ y: parseInt(e.target.value) || 0 })}
-                className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 rounded-md px-2 py-1 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
-              />
-            </div>
-            <div>
-              <span className="text-[10px] text-zinc-400 font-sans block mb-1">Giro (°)</span>
-              <input
-                type="number"
-                disabled={isLocked}
-                value={Math.round(selectedElement.rotation)}
-                onChange={(e) => onUpdateElement({ rotation: parseInt(e.target.value) || 0 })}
-                className="w-full text-xs font-mono text-zinc-800 border border-zinc-200 rounded-md px-2 py-1 outline-none focus:border-orange-400 disabled:bg-zinc-100 disabled:cursor-not-allowed"
-              />
-            </div>
-          </div>
-        </div>
-
           </div>
         )}
-
-        {/* 6. Ações Rápidas (Duplicar, Travar, Excluir) */}
-        <div className="pt-2 border-t border-zinc-100 flex flex-col gap-1.5">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onDuplicate}
-            className="w-full text-xs h-8 border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-sans cursor-pointer justify-center"
-          >
-            <Copy className="w-3.5 h-3.5 mr-1.5 text-zinc-400" />
-            Duplicar item (Ctrl+D)
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onUpdateElement({ locked: !isLocked })}
-            className={`w-full text-xs h-8 border font-sans cursor-pointer justify-center ${
-              isLocked 
-                ? 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100' 
-                : 'border-zinc-200 text-zinc-700 hover:bg-zinc-50'
-            }`}
-          >
-            {isLocked ? (
-              <>
-                <Unlock className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
-                Destravar posição
-              </>
-            ) : (
-              <>
-                <Lock className="w-3.5 h-3.5 mr-1.5 text-zinc-400" />
-                Travar posição
-              </>
-            )}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onDelete}
-            className="w-full text-xs h-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-sans cursor-pointer justify-center"
-          >
-            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-            Excluir elemento
-          </Button>
-        </div>
 
       </div>
     </aside>

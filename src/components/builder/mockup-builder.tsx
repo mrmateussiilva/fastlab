@@ -370,6 +370,10 @@ const newElementId = (index = 0) =>
 // Toques nas setas dentro desse intervalo viram um único passo de desfazer
 const NUDGE_MERGE_MS = 800;
 
+/** MVP: 3D/AR e Preview ficam no código, mas escondidos da interface. */
+const ENABLE_3D = false;
+const ENABLE_PREVIEW = false;
+
 export default function MockupBuilder({
   onBackToHome,
   projectId,
@@ -519,6 +523,18 @@ export default function MockupBuilder({
   const [customUploads, setCustomUploads] = useState<CustomUploadItem[]>([]);
   
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+  // Estado "Salvo": compara referências (updates são imutáveis), sem serializar a cena a cada render.
+  const [lastSaved, setLastSaved] = useState<{
+    name: string;
+    elements: CanvasElement[];
+    environment: EnvironmentConfig;
+  } | null>(null);
+  const isDirty =
+    !lastSaved ||
+    lastSaved.elements !== elements ||
+    lastSaved.environment !== environment ||
+    lastSaved.name !== projectName;
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [baseImageForGeneration, setBaseImageForGeneration] = useState<string | null>(null);
   const [is3DAutoRotating, setIs3DAutoRotating] = useState(false);
@@ -540,8 +556,10 @@ export default function MockupBuilder({
       setHistory([loaded]);
       setHistoryIndex(0);
       setSelectedIds([]);
-      setEnvironment(project.environment as typeof DEFAULT_ENVIRONMENT);
+      const loadedEnv = project.environment as typeof DEFAULT_ENVIRONMENT;
+      setEnvironment(loadedEnv);
       setProjectName(project.name);
+      setLastSaved({ name: project.name, elements: loaded, environment: loadedEnv });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
@@ -557,7 +575,10 @@ export default function MockupBuilder({
       environment,
       thumbnail_url: thumbnail,
     });
-    if (saved) setCurrentProjectId(saved.id);
+    if (saved) {
+      setCurrentProjectId(saved.id);
+      setLastSaved({ name: projectName, elements, environment });
+    }
   }, [isSignedIn, openSignIn, saveProject, currentProjectId, projectName, elements, environment]);
 
   const handleStartRenderFrom3D = useCallback((snapshotDataUrl: string) => {
@@ -1302,7 +1323,7 @@ export default function MockupBuilder({
         onBack={onBackToHome}
         onExport={handleExportMockup}
         onOpenGenerateModal={handleOpenGenerateModal}
-        onOpenARMode={handleOpenARMode}
+        onOpenARMode={ENABLE_3D ? handleOpenARMode : undefined}
         isGenerating={isGenerating}
         elementCount={elements.length}
         canUndo={historyIndex > 0}
@@ -1310,19 +1331,20 @@ export default function MockupBuilder({
         onUndo={handleUndo}
         onRedo={handleRedo}
         isPreviewMode={isPreviewMode}
-        onTogglePreview={() => {
+        onTogglePreview={ENABLE_PREVIEW ? () => {
           setSelectedId(null);
           setIsPreviewMode(!isPreviewMode);
-        }}
+        } : undefined}
         viewMode={viewMode}
-        onToggleViewMode={() => {
+        onToggleViewMode={ENABLE_3D ? () => {
           setSelectedId(null);
           setViewMode((prev) => (prev === '2d' ? '3d' : '2d'));
-        }}
+        } : undefined}
         limitData={limitData}
         isSignedIn={!!isSignedIn}
         onSave={isSignedIn ? handleSaveProject : undefined}
         saving={saving}
+        saved={!isDirty}
         adminMode={adminThemeConfig ? {
           themeName: adminThemeConfig.themeName,
           onSaveModel: handleAdminSaveModel,
@@ -1359,7 +1381,8 @@ export default function MockupBuilder({
           <span className="flex items-center gap-2 min-w-0">
             <Sparkles className="w-3.5 h-3.5 text-orange-500 shrink-0" />
             <span className="truncate sm:whitespace-normal">
-              Comece aqui: clique em um painel, envie uma arte e gere a imagem realista.
+              <span className="md:hidden">Toque em + para adicionar itens, ajuste as cores e toque em Gerar.</span>
+              <span className="hidden md:inline">Clique num item à esquerda para adicionar, ajuste as cores e clique em Gerar com IA. Segure Espaço para mover o cenário.</span>
             </span>
           </span>
           <button
@@ -1512,27 +1535,15 @@ export default function MockupBuilder({
               >
                 <Trash2 className="w-4 h-4" />
               </button>
-              {selectedElement && <div className="w-px h-5 bg-zinc-200 mx-1" />}
+              {/* No desktop a barra de propriedades já fica aberta; o atalho "Editar" só existe no celular */}
+              {selectedElement && <div className="w-px h-5 bg-zinc-200 mx-1 md:hidden" />}
               {selectedElement && <button
                 type="button"
-                onClick={() => {
-                  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-                  if (isMobile) {
-                    setMobileSheet('properties');
-                  } else {
-                    // Flash sutil na sidebar pra indicar onde edita
-                    const sidebar = document.getElementById('properties-sidebar-scroll');
-                    if (sidebar) {
-                      sidebar.classList.add('ring-2', 'ring-orange-500', 'transition-all');
-                      setTimeout(() => sidebar.classList.remove('ring-2', 'ring-orange-500'), 500);
-                    }
-                  }
-                }}
-                className="px-2 h-8 rounded-lg flex items-center gap-1.5 text-xs font-medium text-orange-600 hover:bg-orange-50 transition-colors cursor-pointer"
+                onClick={() => setMobileSheet('properties')}
+                className="md:hidden px-2 h-8 rounded-lg flex items-center gap-1.5 text-xs font-medium text-orange-600 hover:bg-orange-50 transition-colors cursor-pointer"
               >
                 <Sliders className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Propriedades</span>
-                <span className="sm:hidden">Editar</span>
+                <span>Editar</span>
               </button>}
             </div>
           )}
@@ -1579,10 +1590,6 @@ export default function MockupBuilder({
             </button>
           </div>
 
-          {/* Dica de Pan com Espaço */}
-          <div className="absolute bottom-4 left-4 z-10 text-[10px] text-zinc-400 font-sans pointer-events-none hidden md:block">
-            💡 Dica: Segure <kbd className="px-1.5 py-0.5 bg-white/80 border border-zinc-200 rounded font-mono text-[9px]">Espaço</kbd> para arrastar o cenário
-          </div>
         </main>
         )}
 
@@ -1637,12 +1644,12 @@ export default function MockupBuilder({
           onOpenEnvironment={() => setMobileSheet('environment')}
           onOpenProperties={() => setMobileSheet('properties')}
           onOpenGenerateModal={handleOpenGenerateModal}
-          onOpenARMode={handleOpenARMode}
+          onOpenARMode={ENABLE_3D ? handleOpenARMode : undefined}
           viewMode={viewMode}
-          onToggleViewMode={() => {
+          onToggleViewMode={ENABLE_3D ? () => {
             setSelectedId(null);
             setViewMode((prev) => (prev === '2d' ? '3d' : '2d'));
-          }}
+          } : undefined}
           onToggle3DAutoRotate={() => {
             actions3DRef.current?.toggleRotate();
             setIs3DAutoRotating((prev) => !prev);

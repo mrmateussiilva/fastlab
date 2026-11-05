@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import {
   ArrowLeft,
   Download,
@@ -13,10 +12,9 @@ import {
   Eye,
   EyeOff,
   Box,
-  ChevronDown,
-  Share2,
   Pencil,
   Check,
+  CheckCircle2,
   Lock,
   Save,
   Camera,
@@ -30,7 +28,7 @@ interface BuilderToolbarProps {
   onBack: () => void;
   onExport: () => void;
   onOpenGenerateModal: () => void;
-  onOpenARMode: () => void;
+  onOpenARMode?: () => void;
   isGenerating: boolean;
   elementCount: number;
   canUndo: boolean;
@@ -38,13 +36,17 @@ interface BuilderToolbarProps {
   onUndo: () => void;
   onRedo: () => void;
   isPreviewMode: boolean;
-  onTogglePreview: () => void;
+  /** Opcional: sem ele o botão de Preview não aparece (MVP). */
+  onTogglePreview?: () => void;
   viewMode?: '2d' | '3d';
+  /** Opcional: sem ele a alternância 2D/3D não aparece (MVP). */
   onToggleViewMode?: () => void;
   limitData?: GenerationLimitData;
   isSignedIn?: boolean;
   onSave?: () => void;
   saving?: boolean;
+  /** true quando não há alterações desde o último salvamento. */
+  saved?: boolean;
   adminMode?: {
     themeName: string;
     onSaveModel: () => void;
@@ -60,7 +62,6 @@ export default function BuilderToolbar({
   onBack,
   onExport,
   onOpenGenerateModal,
-  onOpenARMode,
   isGenerating,
   elementCount,
   canUndo,
@@ -75,6 +76,7 @@ export default function BuilderToolbar({
   isSignedIn = true,
   onSave,
   saving = false,
+  saved = false,
   adminMode,
 }: BuilderToolbarProps) {
   const [isEditingName, setIsEditingName] = useState(false);
@@ -98,30 +100,24 @@ export default function BuilderToolbar({
       
       {/* ── LEFT: Logo + Undo/Redo ── */}
       <div className="flex items-center gap-1 shrink-0">
-        {/* Back */}
+        {/* Voltar ao início (seta + logo em um único botão) */}
         <button
           type="button"
           onClick={onBack}
           disabled={isGenerating}
           title="Voltar ao início"
-          className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors cursor-pointer disabled:opacity-40"
+          aria-label="Voltar ao início"
+          className="flex items-center gap-1 h-9 pl-1.5 pr-2 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors cursor-pointer disabled:opacity-40"
         >
           <ArrowLeft className="w-4 h-4" />
-        </button>
-
-        {/* Logo mark */}
-        <Link href="/dashboard" className="flex items-center gap-1.5 px-1 hover:opacity-80 transition-opacity">
           <Image
             src="/logo-icon.png"
-            alt="FestaLab"
+            alt=""
             width={28}
             height={28}
             className="w-7 h-7 object-contain shrink-0"
           />
-          <span className="font-serif font-medium text-sm text-zinc-900 hidden sm:block tracking-tight">
-            FestaLab
-          </span>
-        </Link>
+        </button>
 
         {/* Divider */}
         <div className="w-px h-5 bg-zinc-200 mx-1 hidden sm:block" />
@@ -206,7 +202,8 @@ export default function BuilderToolbar({
           </div>
         )}
 
-        {/* Preview */}
+        {/* Preview (escondido no MVP: só aparece se onTogglePreview for passado) */}
+        {onTogglePreview && (
         <button
           type="button"
           onClick={onTogglePreview}
@@ -229,8 +226,10 @@ export default function BuilderToolbar({
             </>
           )}
         </button>
+        )}
 
-        {/* Toggle 2D / 3D */}
+        {/* Toggle 2D / 3D (escondido no MVP: só aparece se onToggleViewMode for passado) */}
+        {onToggleViewMode && (
         <div className="flex items-center bg-zinc-100 p-0.5 rounded-lg border border-zinc-200">
           <button
             type="button"
@@ -258,6 +257,7 @@ export default function BuilderToolbar({
             <span>3D</span>
           </button>
         </div>
+        )}
 
         {/* Botão Admin: Definir Canvas como Foto de Capa da Landing Page */}
         {adminMode?.onSetCoverFromCanvas && (
@@ -292,26 +292,31 @@ export default function BuilderToolbar({
           <button
             type="button"
             onClick={onSave}
-            disabled={saving}
-            title="Salvar projeto na nuvem"
-            className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200 transition-all cursor-pointer disabled:opacity-40"
+            disabled={saving || saved}
+            title={saved ? 'Todas as alterações estão salvas' : 'Salvar projeto na nuvem'}
+            className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200 transition-all cursor-pointer disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-zinc-600"
           >
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            <span>{saving ? 'Salvando...' : 'Salvar'}</span>
+            {saving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : saved ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            <span>{saving ? 'Salvando…' : saved ? 'Salvo' : 'Salvar'}</span>
           </button>
         )}
 
-        {/* Export dropdown button */}
+        {/* Baixar rascunho: ação secundária, só ícone */}
         <button
           type="button"
           onClick={onExport}
           disabled={elementCount === 0 || isGenerating}
-          title="Exportar mockup"
-          className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Baixar rascunho (PNG)"
+          aria-label="Baixar rascunho (PNG)"
+          className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <Share2 className="w-3.5 h-3.5" />
-          <span>Exportar</span>
-          <ChevronDown className="w-3 h-3 text-zinc-400" />
+          <Download className="w-4 h-4" />
         </button>
 
         {/* Primary CTA: Generate */}
